@@ -4,17 +4,26 @@ import { useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import {
   mdiApi,
+  mdiBankOutline,
+  mdiFormatListBulleted,
   mdiHomeOutline,
+  mdiPlus,
+  mdiShapeOutline,
   mdiLogout,
   mdiShieldLockOutline,
   mdiThemeLightDark,
   mdiWeatherNight,
   mdiWhiteBalanceSunny,
 } from '@mdi/js'
+import TransactionDialog from '@/components/TransactionDialog.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useReferenceStore } from '@/stores/reference'
+import { useTransactionEditor } from '@/stores/transactionEditor'
 import { useThemePreference } from '@/composables/useThemePreference'
 
 const auth = useAuthStore()
+const reference = useReferenceStore()
+const editor = useTransactionEditor()
 const router = useRouter()
 const { mdAndUp } = useDisplay()
 const { preference } = useThemePreference()
@@ -22,6 +31,9 @@ const loggingOut = ref(false)
 
 const navigation = [
   { title: 'Accueil', icon: mdiHomeOutline, to: { name: 'home' } },
+  { title: 'Opérations', icon: mdiFormatListBulleted, to: { name: 'transactions' } },
+  { title: 'Comptes', icon: mdiBankOutline, to: { name: 'accounts' } },
+  { title: 'Catégories', icon: mdiShapeOutline, to: { name: 'categories' } },
   { title: 'Sécurité', icon: mdiShieldLockOutline, to: { name: 'security' } },
 ]
 
@@ -38,6 +50,7 @@ async function logout() {
   try {
     await auth.logout()
   } finally {
+    reference.reset()
     loggingOut.value = false
     await router.push({ name: 'login' })
   }
@@ -116,6 +129,20 @@ async function logout() {
     </v-container>
   </v-main>
 
+  <!-- Saisie rapide (L3) : accessible depuis tous les écrans. -->
+  <v-btn
+    v-if="auth.canWrite"
+    :icon="mdiPlus"
+    color="primary"
+    size="large"
+    elevation="6"
+    class="hb-fab"
+    :class="{ 'hb-fab--above-nav': !mdAndUp }"
+    aria-label="Nouvelle opération"
+    @click="editor.open('create', null, ($route.query.accountId as string) ?? null)"
+  />
+  <TransactionDialog />
+
   <v-bottom-navigation v-if="!mdAndUp" grow>
     <v-btn v-for="item in navigation" :key="item.title" :to="item.to" exact>
       <v-icon :icon="item.icon" />
@@ -123,3 +150,18 @@ async function logout() {
     </v-btn>
   </v-bottom-navigation>
 </template>
+
+<style scoped>
+.hb-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1005;
+}
+
+/* Sur mobile, au-dessus du menu du bas. */
+.hb-fab--above-nav {
+  right: 16px;
+  bottom: calc(72px + env(safe-area-inset-bottom));
+}
+</style>

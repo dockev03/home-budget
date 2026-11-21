@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 
 using HomeBudget.Api.Domain.Users;
+using HomeBudget.Api.Infrastructure.Backups;
 using HomeBudget.Api.Infrastructure.Configuration;
 using HomeBudget.Api.Infrastructure.Data;
 using HomeBudget.Api.Infrastructure.Security;
@@ -35,7 +36,12 @@ public static class HomeBudgetServices
 
         builder.WebHost.ConfigureKestrel(k => k.AddServerHeader = false);
 
-        services.AddDbContext<AppDbContext>(db => db.UseSqlite($"Data Source={options.DatabasePath}"));
+        services.AddSingleton(TimeProvider.System);
+        services.AddHttpContextAccessor();
+        services.AddSingleton<AuditInterceptor>();
+        services.AddDbContext<AppDbContext>((sp, db) => db
+            .UseSqlite($"Data Source={options.DatabasePath}")
+            .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()));
 
         // Clés de chiffrement des cookies persistées : les sessions survivent aux redémarrages.
         services.AddDataProtection()
@@ -90,6 +96,8 @@ public static class HomeBudgetServices
                 .AddPrometheusExporter());
 
         services.AddSingleton<SetupTokenStore>();
+        services.AddSingleton<BackupService>();
+        services.AddHostedService<BackupWorker>();
         return builder;
     }
 
@@ -144,7 +152,8 @@ public static class HomeBudgetServices
         services.AddAuthorizationBuilder()
             // Sécurisé par défaut : tout endpoint exige une session, sauf AllowAnonymous explicite.
             .SetFallbackPolicy(new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
-            .AddPolicy(AuthorizationPolicies.Admin, p => p.RequireRole(Roles.Admin));
+            .AddPolicy(AuthorizationPolicies.Admin, p => p.RequireRole(Roles.Admin))
+            .AddPolicy(AuthorizationPolicies.Write, p => p.RequireRole(Roles.Admin, Roles.Member));
 
     private static void AddRateLimiting(IServiceCollection services, HomeBudgetOptions options) =>
         services.AddRateLimiter(o =>

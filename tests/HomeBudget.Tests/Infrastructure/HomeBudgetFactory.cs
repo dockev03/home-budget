@@ -1,6 +1,8 @@
+using HomeBudget.Api.Domain.Users;
 using HomeBudget.Api.Infrastructure.Security;
 
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,7 +24,11 @@ public class HomeBudgetFactory : WebApplicationFactory<Program>
         builder.UseSetting("HB:DataPath", _dataPath);
         builder.UseSetting("HB:Security:AuthRequestsPerMinute", AuthRequestsPerMinute.ToString(System.Globalization.CultureInfo.InvariantCulture));
         builder.UseSetting("HB:SetupToken", TestData.SetupToken);
+        // La sauvegarde automatique est testée à part (BackupTests), en l'appelant directement.
+        builder.UseSetting("HB:Backup:Enabled", "false");
     }
+
+    public string DataPath => _dataPath;
 
     public ApiClient CreateApiClient()
     {
@@ -49,6 +55,23 @@ public class HomeBudgetFactory : WebApplicationFactory<Program>
             password = TestData.AdminPassword,
         });
         response.EnsureSuccessStatusCode();
+        await client.RefreshCsrfAsync();
+        return client;
+    }
+
+    /// <summary>Crée un utilisateur avec le rôle donné et renvoie un client connecté avec son compte.</summary>
+    public async Task<ApiClient> CreateUserClientAsync(string userName, string role)
+    {
+        using (var scope = Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+            var user = new AppUser(userName);
+            (await users.CreateAsync(user, TestData.AdminPassword)).Succeeded.ShouldBeTrue();
+            (await users.AddToRoleAsync(user, role)).Succeeded.ShouldBeTrue();
+        }
+        var client = CreateApiClient();
+        var login = await client.PostAsync("/api/auth/login", new { userName, password = TestData.AdminPassword });
+        login.EnsureSuccessStatusCode();
         await client.RefreshCsrfAsync();
         return client;
     }

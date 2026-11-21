@@ -14,6 +14,24 @@ export const router = createRouter({
   routes: [
     { path: '/', name: 'home', component: () => import('@/views/HomeView.vue'), meta: { title: 'Accueil' } },
     {
+      path: '/operations',
+      name: 'transactions',
+      component: () => import('@/views/TransactionsView.vue'),
+      meta: { title: 'Opérations' },
+    },
+    {
+      path: '/comptes',
+      name: 'accounts',
+      component: () => import('@/views/AccountsView.vue'),
+      meta: { title: 'Comptes' },
+    },
+    {
+      path: '/categories',
+      name: 'categories',
+      component: () => import('@/views/CategoriesView.vue'),
+      meta: { title: 'Catégories' },
+    },
+    {
       path: '/securite',
       name: 'security',
       component: () => import('@/views/SecurityView.vue'),

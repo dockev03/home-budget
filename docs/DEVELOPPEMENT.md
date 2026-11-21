@@ -78,7 +78,7 @@ Les migrations sont appliquées automatiquement au démarrage.
 Contre une instance démarrée sur un dossier de données vide :
 
 ```bash
-ASPNETCORE_ENVIRONMENT=Production ASPNETCORE_HTTP_PORTS=8080 HB__DataPath=/tmp/hb-e2e HB__SetupToken=e2e-setup-token HB__Security__AllowInsecureHttp=true dotnet src/HomeBudget.Api/bin/Debug/net10.0/HomeBudget.Api.dll
+ASPNETCORE_ENVIRONMENT=Production ASPNETCORE_HTTP_PORTS=8080 HB__DataPath=/tmp/hb-e2e HB__SetupToken=e2e-setup-token HB__Security__AllowInsecureHttp=true HB__Security__AuthRequestsPerMinute=60 dotnet src/HomeBudget.Api/bin/Debug/net10.0/HomeBudget.Api.dll
 ```
 
 ```bash

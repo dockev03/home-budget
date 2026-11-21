@@ -1,3 +1,4 @@
+using HomeBudget.Api.Domain.Categories;
 using HomeBudget.Api.Domain.Settings;
 using HomeBudget.Api.Domain.Users;
 
@@ -9,7 +10,7 @@ namespace HomeBudget.Api.Infrastructure.Data;
 public static class DatabaseInitializer
 {
     /// <summary>
-    /// Applique les migrations, active le mode WAL et crée les données de référence (rôles, paramètres).
+    /// Applique les migrations, active le mode WAL et crée les données de référence (rôles, paramètres, catégories par défaut).
     /// </summary>
     public static async Task InitializeAsync(IServiceProvider services, CancellationToken ct = default)
     {
@@ -32,10 +33,29 @@ public static class DatabaseInitializer
             }
         }
 
-        if (!await db.HouseholdSettings.AnyAsync(ct))
+        var settings = await db.HouseholdSettings.FirstOrDefaultAsync(ct);
+        if (settings is null)
         {
-            db.HouseholdSettings.Add(new HouseholdSettings());
-            await db.SaveChangesAsync(ct);
+            settings = new HouseholdSettings();
+            db.HouseholdSettings.Add(settings);
         }
+
+        if (!settings.DefaultCategoriesCreated)
+        {
+            var order = 0;
+            foreach (var definition in DefaultCategories.All)
+            {
+                db.Categories.Add(new Category
+                {
+                    Name = definition.Name,
+                    Kind = definition.Kind,
+                    Icon = definition.Icon,
+                    Color = definition.Color,
+                    SortOrder = order++,
+                });
+            }
+            settings.DefaultCategoriesCreated = true;
+        }
+        await db.SaveChangesAsync(ct);
     }
 }

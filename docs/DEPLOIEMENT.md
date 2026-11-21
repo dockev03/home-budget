@@ -47,6 +47,9 @@ Le jeton change à chaque redémarrage tant qu'aucun utilisateur n'existe. Il es
 | `HB__KnownProxyNetwork` | — | Réseaux (CIDR, séparés par des virgules) autorisés à transmettre les en-têtes `X-Forwarded-For` et `X-Forwarded-Proto` |
 | `HB__Metrics__AllowedNetwork` | — (boucle locale uniquement) | Réseaux autorisés à interroger `/metrics` (Prometheus). Une requête passée par le proxy est toujours refusée |
 | `HB__Security__AuthRequestsPerMinute` | `10` | Requêtes d'authentification autorisées par minute et par adresse IP |
+| `HB__Backup__Enabled` | `true` | Sauvegarde automatique quotidienne de la base |
+| `HB__Backup__Hour` | `3` | Heure locale de la sauvegarde (fuseau `TZ` du conteneur) |
+| `HB__Backup__KeepDaily` / `__KeepWeekly` / `__KeepMonthly` | `7` / `4` / `12` | Rotation : derniers jours, dernière sauvegarde de chaque semaine, de chaque mois |
 | `HB__SetupToken` | — | Impose le jeton de premier lancement (automatisation et tests uniquement) |
 | `HB__Security__AllowInsecureHttp` | `false` | Autorise les cookies en HTTP non chiffré. **Développement et tests uniquement, jamais en production** |
 
@@ -61,6 +64,17 @@ Le jeton change à chaque redémarrage tant qu'aucun utilisateur n'existe. Il es
 Toutes les données sont dans le volume `home-budget-data`, monté sur `/data` :
 
 - `homebudget.db` : la base, en mode WAL ;
-- `keys/` : les clés de chiffrement des cookies. Si elles sont perdues, il faut se reconnecter, mais aucune donnée n'est perdue.
+- `keys/` : les clés de chiffrement des cookies. Si elles sont perdues, il faut se reconnecter, mais aucune donnée n'est perdue ;
+- `backups/` : les sauvegardes automatiques `homebudget-AAAAMMJJ.db`.
 
-Les sauvegardes automatiques avec rotation arriveront à l'étape 1. En attendant, sauvegarder le volume au niveau de l'hôte.
+### Sauvegardes automatiques
+
+Chaque nuit (3 h par défaut), l'application écrit un instantané cohérent de la base (`VACUUM INTO`, sans interruption du service) dans `/data/backups`, puis applique la rotation : 7 quotidiennes, 4 hebdomadaires et 12 mensuelles par défaut. Au démarrage, la sauvegarde du jour est faite si elle manque.
+
+Ces copies restent sur le même volume que la base : **elles ne protègent pas d'une panne du disque**. Synchroniser `/data/backups` vers un NAS ou un autre stockage, depuis l'hôte.
+
+### Restaurer une sauvegarde
+
+1. Arrêter la stack dans Portainer.
+2. Dans le volume, remplacer `homebudget.db` par la sauvegarde choisie (renommée `homebudget.db`) et supprimer `homebudget.db-wal` et `homebudget.db-shm` s'ils existent.
+3. Redémarrer la stack.

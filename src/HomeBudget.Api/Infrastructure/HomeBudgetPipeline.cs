@@ -1,0 +1,70 @@
+using HomeBudget.Api.Features.Account;
+using HomeBudget.Api.Features.Auth;
+using HomeBudget.Api.Features.Setup;
+using HomeBudget.Api.Infrastructure.Security;
+
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Net.Http.Headers;
+
+using Scalar.AspNetCore;
+
+namespace HomeBudget.Api.Infrastructure;
+
+public static class HomeBudgetPipeline
+{
+    public static WebApplication UseHomeBudget(this WebApplication app)
+    {
+        app.UseForwardedHeaders();
+        app.UseMiddleware<SecurityHeadersMiddleware>();
+        app.UseExceptionHandler();
+        app.UseStatusCodePages();
+        app.UseMiddleware<MetricsAccessMiddleware>();
+
+        // PWA : fichiers statiques servis sans authentification (l'API reste protégée).
+        app.UseDefaultFiles();
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            OnPrepareResponse = ctx =>
+            {
+                var headers = ctx.Context.Response.Headers;
+                headers[HeaderNames.CacheControl] = ctx.Context.Request.Path.StartsWithSegments("/assets")
+                    ? "public, max-age=31536000, immutable" // fichiers Vite avec empreinte dans le nom
+                    : "no-cache";
+            },
+        });
+
+        app.UseRouting();
+        app.UseRateLimiter();
+        app.UseAuthentication();
+        app.UseAuthorization();
+        app.UseMiddleware<AntiforgeryValidationMiddleware>();
+        return app;
+    }
+
+    public static WebApplication MapHomeBudgetEndpoints(this WebApplication app)
+    {
+        app.MapSetupEndpoints();
+        app.MapAuthEndpoints();
+        app.MapTwoFactorEndpoints();
+
+        app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
+        app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") }).AllowAnonymous();
+        app.MapPrometheusScrapingEndpoint("/metrics").AllowAnonymous(); // restreint par MetricsAccessMiddleware
+
+        app.MapOpenApi().RequireAuthorization(AuthorizationPolicies.Admin);
+        app.MapScalarApiReference("/api/docs", o => o
+                .WithTitle("Home Budget API")
+                .WithOpenApiRoutePattern("/openapi/{documentName}.json")
+                // Aucune ressource ni service externe : polices système, ni agent IA, ni télémétrie.
+                .DisableDefaultFonts()
+                .DisableAgent()
+                .DisableTelemetry()
+                .HideDeveloperTools())
+            .RequireAuthorization(AuthorizationPolicies.Admin);
+
+        app.MapFallback("/api/{**path}", () => Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Ressource introuvable."))
+            .AllowAnonymous().ExcludeFromDescription();
+        app.MapFallbackToFile("index.html").AllowAnonymous();
+        return app;
+    }
+}

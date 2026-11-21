@@ -1,0 +1,13 @@
+**/node_modules
+**/bin
+**/obj
+**/data
+**/test-results
+**/playwright-report
+src/HomeBudget.Api/wwwroot
+tests/
+docs/
+.git
+.github
+.config
+**/*.md

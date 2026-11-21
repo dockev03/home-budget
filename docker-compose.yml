@@ -1,0 +1,38 @@
+# Stack Portainer (« Repository » : construite depuis ce dépôt Git).
+# Variables à renseigner dans Portainer (onglet « Environment variables ») :
+#   HB_PUBLIC_URL          URL publique, ex. https://budget.mondomaine.fr
+#   HB_KNOWN_PROXY_NETWORK sous-réseau du réseau Docker du NPM, ex. 172.20.0.0/16
+#                          (docker network inspect <réseau> → IPAM.Config.Subnet)
+#   NPM_NETWORK            nom du réseau Docker du Nginx Proxy Manager (défaut : npm_default)
+# Dans le NPM : Proxy Host → hôte « home-budget », port 8080, SSL forcé, HSTS activé.
+
+services:
+  home-budget:
+    build: .
+    image: home-budget:local
+    container_name: home-budget
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Paris
+      HB__PublicUrl: ${HB_PUBLIC_URL:-}
+      HB__KnownProxyNetwork: ${HB_KNOWN_PROXY_NETWORK:-}
+    volumes:
+      - home-budget-data:/data
+    networks:
+      - npm
+    # Aucun port publié : seul le NPM joint le conteneur, via le réseau Docker.
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  home-budget-data:
+
+networks:
+  npm:
+    external: true
+    name: ${NPM_NETWORK:-npm_default}

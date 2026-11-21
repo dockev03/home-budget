@@ -1,0 +1,3 @@
+# Migrations générées par EF Core : exclues des règles de style.
+[*.cs]
+generated_code = true

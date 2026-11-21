@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/HomeBudget.Api/HomeBudget.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HomeBudget.Tests/HomeBudget.Tests.csproj" />
+  </Folder>
+</Solution>

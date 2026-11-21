@@ -5,6 +5,8 @@ import { useDisplay } from 'vuetify'
 import {
   mdiApi,
   mdiBankOutline,
+  mdiCogOutline,
+  mdiChartDonut,
   mdiFormatListBulleted,
   mdiHomeOutline,
   mdiPlus,
@@ -29,13 +31,33 @@ const { mdAndUp } = useDisplay()
 const { preference } = useThemePreference()
 const loggingOut = ref(false)
 
-const navigation = [
-  { title: 'Accueil', icon: mdiHomeOutline, to: { name: 'home' } },
-  { title: 'Opérations', icon: mdiFormatListBulleted, to: { name: 'transactions' } },
-  { title: 'Comptes', icon: mdiBankOutline, to: { name: 'accounts' } },
-  { title: 'Catégories', icon: mdiShapeOutline, to: { name: 'categories' } },
-  { title: 'Sécurité', icon: mdiShieldLockOutline, to: { name: 'security' } },
-]
+// Menu du bas (mobile) : 5 entrées au plus ; les autres sont dans le menu du compte.
+const navigation = computed(() =>
+  [
+    { title: 'Accueil', icon: mdiHomeOutline, to: { name: 'home' }, exact: true, bottom: true },
+    {
+      title: 'Opérations',
+      icon: mdiFormatListBulleted,
+      to: { name: 'transactions' },
+      exact: true,
+      bottom: true,
+    },
+    { title: 'Budget', icon: mdiChartDonut, to: { name: 'budget' }, exact: false, bottom: true },
+    { title: 'Comptes', icon: mdiBankOutline, to: { name: 'accounts' }, exact: true, bottom: true },
+    { title: 'Catégories', icon: mdiShapeOutline, to: { name: 'categories' }, exact: true, bottom: true },
+    { title: 'Sécurité', icon: mdiShieldLockOutline, to: { name: 'security' }, exact: true, bottom: false },
+    {
+      title: 'Paramètres',
+      icon: mdiCogOutline,
+      to: { name: 'settings' },
+      exact: true,
+      bottom: false,
+      admin: true,
+    },
+  ].filter((item) => !item.admin || auth.isAdmin),
+)
+const bottomNavigation = computed(() => navigation.value.filter((item) => item.bottom))
+const menuNavigation = computed(() => navigation.value.filter((item) => !item.bottom))
 
 const themeOptions = [
   { value: 'light', title: 'Clair', icon: mdiWhiteBalanceSunny },
@@ -92,6 +114,15 @@ async function logout() {
       <v-list density="compact">
         <v-list-item :title="auth.user?.userName" :subtitle="auth.isAdmin ? 'Administrateur' : 'Membre'" />
         <v-divider />
+        <template v-if="!mdAndUp">
+          <v-list-item
+            v-for="item in menuNavigation"
+            :key="item.title"
+            :to="item.to"
+            :prepend-icon="item.icon"
+            :title="item.title"
+          />
+        </template>
         <v-list-item
           v-if="auth.isAdmin"
           href="/api/docs/"
@@ -118,7 +149,7 @@ async function logout() {
         :to="item.to"
         :prepend-icon="item.icon"
         :title="item.title"
-        exact
+        :exact="item.exact"
       />
     </v-list>
   </v-navigation-drawer>
@@ -144,7 +175,7 @@ async function logout() {
   <TransactionDialog />
 
   <v-bottom-navigation v-if="!mdAndUp" grow>
-    <v-btn v-for="item in navigation" :key="item.title" :to="item.to" exact>
+    <v-btn v-for="item in bottomNavigation" :key="item.title" :to="item.to" :exact="item.exact">
       <v-icon :icon="item.icon" />
       <span>{{ item.title }}</span>
     </v-btn>

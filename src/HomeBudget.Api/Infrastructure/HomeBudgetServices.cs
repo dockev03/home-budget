@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 
 using HomeBudget.Api.Domain.Users;
+using HomeBudget.Api.Features.Budgets;
 using HomeBudget.Api.Infrastructure.Backups;
 using HomeBudget.Api.Infrastructure.Configuration;
 using HomeBudget.Api.Infrastructure.Data;
@@ -97,6 +98,7 @@ public static class HomeBudgetServices
 
         services.AddSingleton<SetupTokenStore>();
         services.AddSingleton<BackupService>();
+        services.AddSingleton<IBudgetScheduleSource, NoScheduleSource>();
         services.AddHostedService<BackupWorker>();
         return builder;
     }

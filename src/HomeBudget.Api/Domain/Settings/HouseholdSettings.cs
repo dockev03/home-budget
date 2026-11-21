@@ -10,7 +10,7 @@ public enum PeriodMode
 }
 
 /// <summary>Paramètres du foyer (une seule ligne par instance).</summary>
-public sealed class HouseholdSettings : Entity
+public sealed class HouseholdSettings : AuditableEntity
 {
     public PeriodMode PeriodMode { get; set; } = PeriodMode.Calendar;
 

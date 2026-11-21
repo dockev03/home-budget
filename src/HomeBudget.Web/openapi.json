@@ -1455,6 +1455,357 @@
           }
         }
       }
+    },
+    "/api/settings": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Param\u00E8tres du foyer.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Modifie les param\u00E8tres du foyer (administrateurs, If-Match requis).",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/periods/current": {
+      "get": {
+        "tags": [
+          "Periods"
+        ],
+        "summary": "P\u00E9riode en cours.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeriodDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/periods/{key}": {
+      "get": {
+        "tags": [
+          "Periods"
+        ],
+        "summary": "P\u00E9riode d\u00E9sign\u00E9e par sa cl\u00E9 AAAA-MM.",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeriodDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/budgets/{periodKey}": {
+      "get": {
+        "tags": [
+          "Budgets"
+        ],
+        "summary": "Budget de la p\u00E9riode (cl\u00E9 AAAA-MM) compar\u00E9 au r\u00E9el, par cat\u00E9gorie, avec le r\u00E9capitulatif.",
+        "parameters": [
+          {
+            "name": "periodKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/budgets/categories/{categoryId}": {
+      "put": {
+        "tags": [
+          "Budgets"
+        ],
+        "summary": "D\u00E9finit le budget d\u0027une cat\u00E9gorie. If-Match requis si un budget existe d\u00E9j\u00E0 (sa version).",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryBudgetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryBudgetDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Budgets"
+        ],
+        "summary": "Supprime le budget d\u0027une cat\u00E9gorie (If-Match requis) : retour au mode par d\u00E9faut.",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1666,6 +2017,219 @@
           },
           "authenticatorUri": {
             "type": "string"
+          }
+        }
+      },
+      "BudgetDto": {
+        "required": [
+          "period",
+          "budgeted",
+          "actual",
+          "incomeBase",
+          "uncategorized",
+          "warningPercent",
+          "alertPercent",
+          "categories"
+        ],
+        "type": "object",
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/PeriodDto"
+          },
+          "budgeted": {
+            "$ref": "#/components/schemas/KindTotalsDto"
+          },
+          "actual": {
+            "$ref": "#/components/schemas/KindTotalsDto"
+          },
+          "incomeBase": {
+            "type": "number",
+            "format": "double"
+          },
+          "uncategorized": {
+            "type": "number",
+            "format": "double"
+          },
+          "warningPercent": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "alertPercent": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BudgetLineDto"
+            }
+          }
+        }
+      },
+      "BudgetLineDto": {
+        "required": [
+          "categoryId",
+          "parentId",
+          "name",
+          "kind",
+          "color",
+          "icon",
+          "isArchived",
+          "mode",
+          "isDefaultMode",
+          "value",
+          "budgetVersion",
+          "ownBudgeted",
+          "budgeted",
+          "actual",
+          "remaining",
+          "percentUsed",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "parentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/CategoryKind"
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "icon": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isArchived": {
+            "type": "boolean"
+          },
+          "mode": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BudgetMode"
+              }
+            ]
+          },
+          "isDefaultMode": {
+            "type": "boolean"
+          },
+          "value": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "budgetVersion": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "ownBudgeted": {
+            "type": "number",
+            "format": "double"
+          },
+          "budgeted": {
+            "type": "number",
+            "format": "double"
+          },
+          "actual": {
+            "type": "number",
+            "format": "double"
+          },
+          "remaining": {
+            "type": "number",
+            "format": "double"
+          },
+          "percentUsed": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BudgetStatus"
+          }
+        }
+      },
+      "BudgetMode": {
+        "enum": [
+          "Amount",
+          "PercentOfIncome",
+          "Auto",
+          null
+        ]
+      },
+      "BudgetStatus": {
+        "enum": [
+          "None",
+          "Ok",
+          "Warning",
+          "Exceeded"
+        ]
+      },
+      "CategoryBudgetDto": {
+        "required": [
+          "categoryId",
+          "mode",
+          "value",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/BudgetMode"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CategoryBudgetRequest": {
+        "required": [
+          "mode",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "mode": {
+            "$ref": "#/components/schemas/BudgetMode"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
           }
         }
       },
@@ -1931,6 +2495,38 @@
           }
         }
       },
+      "KindTotalsDto": {
+        "required": [
+          "income",
+          "fixed",
+          "variable",
+          "savings",
+          "remaining"
+        ],
+        "type": "object",
+        "properties": {
+          "income": {
+            "type": "number",
+            "format": "double"
+          },
+          "fixed": {
+            "type": "number",
+            "format": "double"
+          },
+          "variable": {
+            "type": "number",
+            "format": "double"
+          },
+          "savings": {
+            "type": "number",
+            "format": "double"
+          },
+          "remaining": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "LoginRequest": {
         "required": [
           "userName",
@@ -2010,6 +2606,45 @@
           }
         }
       },
+      "PeriodDto": {
+        "required": [
+          "key",
+          "start",
+          "end",
+          "previousKey",
+          "nextKey",
+          "isCurrent"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "format": "date"
+          },
+          "previousKey": {
+            "type": "string"
+          },
+          "nextKey": {
+            "type": "string"
+          },
+          "isCurrent": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PeriodMode": {
+        "enum": [
+          "Calendar",
+          "FixedDay"
+        ]
+      },
       "ProblemDetails": {
         "type": "object",
         "properties": {
@@ -2068,6 +2703,69 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "SettingsDto": {
+        "required": [
+          "periodMode",
+          "periodStartDay",
+          "budgetWarningPercent",
+          "budgetAlertPercent",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "periodMode": {
+            "$ref": "#/components/schemas/PeriodMode"
+          },
+          "periodStartDay": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "budgetWarningPercent": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "budgetAlertPercent": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SettingsRequest": {
+        "required": [
+          "periodMode",
+          "periodStartDay",
+          "budgetWarningPercent",
+          "budgetAlertPercent"
+        ],
+        "type": "object",
+        "properties": {
+          "periodMode": {
+            "$ref": "#/components/schemas/PeriodMode"
+          },
+          "periodStartDay": {
+            "maximum": 28,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "budgetWarningPercent": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "budgetAlertPercent": {
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -2505,6 +3203,15 @@
     },
     {
       "name": "Transfers"
+    },
+    {
+      "name": "Settings"
+    },
+    {
+      "name": "Periods"
+    },
+    {
+      "name": "Budgets"
     }
   ]
 }

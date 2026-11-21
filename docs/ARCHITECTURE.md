@@ -239,11 +239,12 @@ Il n'y a pas d'éditeur de règles. L'appli apprend des corrections :
 
 ## 7. Conventions d'API
 
+- Une période est désignée par la clé `AAAA-MM` du mois dont elle porte le nom (en mode jour fixe N : le mois de début si N ≤ 15, le mois de fin sinon).
 - Préfixe `/api`, noms en anglais, JSON en `camelCase`, dates au format ISO `YYYY-MM-DD`, montants en nombres décimaux à 2 décimales.
 - Pagination par curseur pour les opérations (`?cursor=&limit=`).
 - Erreurs au format `application/problem+json` (RFC 9457).
 - Concurrence optimiste : l'en-tête `If-Match: <version>` est exigé pour un `PUT` ou un `DELETE`, et l'API répond `412` en cas de conflit.
-- Endpoints prévus pour le MVP : `/accounts`, `/categories`, `/payees`, `/transactions`, `/transfers`, `/recurrences`, `/recurrences/pending`, `/budgets/{period}`, `/dashboard/{period}`, `/forecast`, `/exports`, `/backups`, `/auth/*`, `/settings`.
+- Endpoints prévus pour le MVP : `/accounts`, `/categories`, `/payees`, `/transactions`, `/transfers`, `/recurrences`, `/recurrences/pending`, `/periods/current`, `/periods/{key}`, `/budgets/{period}`, `/budgets/categories/{id}`, `/dashboard/{period}`, `/forecast`, `/exports`, `/backups`, `/auth/*`, `/settings`.
 
 ## 8. Déploiement
 

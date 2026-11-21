@@ -5,6 +5,8 @@ declare module 'vue-router' {
   interface RouteMeta {
     /** Page accessible sans session (premier lancement, connexion). */
     public?: boolean
+    /** Page réservée aux administrateurs. */
+    admin?: boolean
     title?: string
   }
 }
@@ -18,6 +20,12 @@ export const router = createRouter({
       name: 'transactions',
       component: () => import('@/views/TransactionsView.vue'),
       meta: { title: 'Opérations' },
+    },
+    {
+      path: '/budget/:period(\\d{4}-\\d{2})?',
+      name: 'budget',
+      component: () => import('@/views/BudgetView.vue'),
+      meta: { title: 'Budget' },
     },
     {
       path: '/comptes',
@@ -36,6 +44,12 @@ export const router = createRouter({
       name: 'security',
       component: () => import('@/views/SecurityView.vue'),
       meta: { title: 'Sécurité' },
+    },
+    {
+      path: '/parametres',
+      name: 'settings',
+      component: () => import('@/views/SettingsView.vue'),
+      meta: { title: 'Paramètres', admin: true },
     },
     {
       path: '/premier-lancement',
@@ -63,6 +77,7 @@ router.beforeEach(async (to) => {
   if (!to.meta.public && !auth.isAuthenticated) {
     return { name: 'login', query: to.fullPath !== '/' ? { redirect: to.fullPath } : {} }
   }
+  if (to.meta.admin && !auth.isAdmin) return { name: 'home' }
   return true
 })
 

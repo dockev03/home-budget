@@ -40,7 +40,9 @@ test.describe.serial('authentification', () => {
     await login(page)
 
     if (testInfo.project.name === 'mobile') {
-      await page.locator('.v-bottom-navigation').getByText('Sécurité').click()
+      // Sur mobile, le menu du bas est limité à 5 entrées : Sécurité est dans le menu du compte.
+      await page.getByRole('button', { name: 'Compte' }).click()
+      await page.getByRole('link', { name: 'Sécurité' }).click()
     } else {
       await page.locator('.v-navigation-drawer').getByText('Sécurité').click()
     }

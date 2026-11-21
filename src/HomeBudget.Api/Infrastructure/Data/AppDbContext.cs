@@ -1,5 +1,6 @@
 using HomeBudget.Api.Domain;
 using HomeBudget.Api.Domain.Accounts;
+using HomeBudget.Api.Domain.Budgets;
 using HomeBudget.Api.Domain.Categories;
 using HomeBudget.Api.Domain.Payees;
 using HomeBudget.Api.Domain.Settings;
@@ -26,6 +27,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<TransactionLine> TransactionLines => Set<TransactionLine>();
 
+    public DbSet<CategoryBudget> CategoryBudgets => Set<CategoryBudget>();
+
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         // Tous les montants sont stockés en centimes (voir DM1 dans docs/ARCHITECTURE.md).
@@ -44,6 +47,15 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         {
             builder.Entity(entity.ClrType).Property(nameof(Entity.Id)).ValueGeneratedNever();
         }
+
+        builder.Entity<HouseholdSettings>(ConfigureAudit);
+
+        builder.Entity<CategoryBudget>(e =>
+        {
+            ConfigureAudit(e);
+            e.HasOne<Category>().WithMany().HasForeignKey(b => b.CategoryId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(b => b.CategoryId).IsUnique();
+        });
 
         builder.Entity<Account>(e =>
         {

@@ -1533,6 +1533,384 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Paramètres du foyer. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SettingsDto"];
+                    };
+                };
+            };
+        };
+        /** Modifie les paramètres du foyer (administrateurs, If-Match requis). */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SettingsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SettingsDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/periods/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Période en cours. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PeriodDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/periods/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Période désignée par sa clé AAAA-MM. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PeriodDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/budgets/{periodKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Budget de la période (clé AAAA-MM) comparé au réel, par catégorie, avec le récapitulatif. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    periodKey: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BudgetDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/budgets/categories/{categoryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Définit le budget d'une catégorie. If-Match requis si un budget existe déjà (sa version). */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    categoryId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CategoryBudgetRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CategoryBudgetDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Supprime le budget d'une catégorie (If-Match requis) : retour au mode par défaut. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    categoryId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1589,6 +1967,66 @@ export interface components {
         AuthenticatorSetup: {
             sharedKey: string;
             authenticatorUri: string;
+        };
+        BudgetDto: {
+            period: components["schemas"]["PeriodDto"];
+            budgeted: components["schemas"]["KindTotalsDto"];
+            actual: components["schemas"]["KindTotalsDto"];
+            /** Format: double */
+            incomeBase: number;
+            /** Format: double */
+            uncategorized: number;
+            /** Format: int32 */
+            warningPercent: number;
+            /** Format: int32 */
+            alertPercent: number;
+            categories: components["schemas"]["BudgetLineDto"][];
+        };
+        BudgetLineDto: {
+            /** Format: uuid */
+            categoryId: string;
+            /** Format: uuid */
+            parentId: null | string;
+            name: string;
+            kind: components["schemas"]["CategoryKind"];
+            color: null | string;
+            icon: null | string;
+            isArchived: boolean;
+            mode: null | components["schemas"]["BudgetMode"];
+            isDefaultMode: boolean;
+            /** Format: double */
+            value: null | number;
+            /** Format: int32 */
+            budgetVersion: null | number;
+            /** Format: double */
+            ownBudgeted: number;
+            /** Format: double */
+            budgeted: number;
+            /** Format: double */
+            actual: number;
+            /** Format: double */
+            remaining: number;
+            /** Format: double */
+            percentUsed: null | number;
+            status: components["schemas"]["BudgetStatus"];
+        };
+        /** @enum {unknown} */
+        BudgetMode: "Amount" | "PercentOfIncome" | "Auto" | null;
+        /** @enum {unknown} */
+        BudgetStatus: "None" | "Ok" | "Warning" | "Exceeded";
+        CategoryBudgetDto: {
+            /** Format: uuid */
+            categoryId: string;
+            mode: components["schemas"]["BudgetMode"];
+            /** Format: double */
+            value: number;
+            /** Format: int32 */
+            version: number;
+        };
+        CategoryBudgetRequest: {
+            mode: components["schemas"]["BudgetMode"];
+            /** Format: double */
+            value: number;
         };
         CategoryDto: {
             /** Format: uuid */
@@ -1652,6 +2090,18 @@ export interface components {
                 [key: string]: string[];
             };
         };
+        KindTotalsDto: {
+            /** Format: double */
+            income: number;
+            /** Format: double */
+            fixed: number;
+            /** Format: double */
+            variable: number;
+            /** Format: double */
+            savings: number;
+            /** Format: double */
+            remaining: number;
+        };
         LoginRequest: {
             userName: string;
             password: string;
@@ -1674,6 +2124,18 @@ export interface components {
             /** Format: int32 */
             usageCount: number;
         };
+        PeriodDto: {
+            key: string;
+            /** Format: date */
+            start: string;
+            /** Format: date */
+            end: string;
+            previousKey: string;
+            nextKey: string;
+            isCurrent: boolean;
+        };
+        /** @enum {unknown} */
+        PeriodMode: "Calendar" | "FixedDay";
         ProblemDetails: {
             type?: null | string;
             title?: null | string;
@@ -1687,6 +2149,26 @@ export interface components {
         };
         RecoveryCodes: {
             codes: string[];
+        };
+        SettingsDto: {
+            periodMode: components["schemas"]["PeriodMode"];
+            /** Format: int32 */
+            periodStartDay: number;
+            /** Format: int32 */
+            budgetWarningPercent: number;
+            /** Format: int32 */
+            budgetAlertPercent: number;
+            /** Format: int32 */
+            version: number;
+        };
+        SettingsRequest: {
+            periodMode: components["schemas"]["PeriodMode"];
+            /** Format: int32 */
+            periodStartDay: number;
+            /** Format: int32 */
+            budgetWarningPercent: number;
+            /** Format: int32 */
+            budgetAlertPercent: number;
         };
         SetupStatus: {
             required: boolean;

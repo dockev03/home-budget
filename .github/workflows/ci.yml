@@ -29,7 +29,7 @@ jobs:
         run: dotnet build --no-restore -c Release
       - name: Tests (dont contrat OpenAPI)
         run: dotnet test --no-build -c Release --collect:"XPlat Code Coverage" --results-directory coverage
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage
@@ -89,7 +89,7 @@ jobs:
       - name: Logs du conteneur
         if: failure()
         run: docker logs home-budget
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report

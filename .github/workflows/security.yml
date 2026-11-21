@@ -62,7 +62,7 @@ jobs:
       # ⚠ trivy-action a subi une compromission de ses tags en mars 2026 (CVE-2026-33634) :
       # v0.35.0 est la version saine, à épingler par SHA complet. Binaire Trivy figé en v0.69.3.
       - name: Scan des dépendances et de la configuration
-        uses: aquasecurity/trivy-action@v0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           version: v0.69.3
           scan-type: fs
@@ -74,7 +74,7 @@ jobs:
       - name: Image Docker
         run: docker build -t home-budget:scan .
       - name: Scan de l'image
-        uses: aquasecurity/trivy-action@v0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           version: v0.69.3
           image-ref: home-budget:scan

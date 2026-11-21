@@ -9,7 +9,7 @@ COPY src/HomeBudget.Web/ ./
 RUN npm run build
 
 # 2. API : publication .NET avec la PWA incluse
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS api
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS api
 WORKDIR /src
 COPY global.json Directory.Build.props Directory.Packages.props .editorconfig ./
 COPY src/HomeBudget.Api/HomeBudget.Api.csproj src/HomeBudget.Api/

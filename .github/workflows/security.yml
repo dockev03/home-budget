@@ -24,7 +24,7 @@ jobs:
       matrix:
         language: [csharp, javascript-typescript]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v5
         if: matrix.language == 'csharp'
         with:
@@ -58,7 +58,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       # ⚠ trivy-action a subi une compromission de ses tags en mars 2026 (CVE-2026-33634) :
       # v0.35.0 est la version saine, à épingler par SHA complet. Binaire Trivy figé en v0.69.3.
       - name: Scan des dépendances et de la configuration

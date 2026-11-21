@@ -17,7 +17,7 @@ jobs:
     name: API (.NET)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
@@ -42,7 +42,7 @@ jobs:
       run:
         working-directory: src/HomeBudget.Web
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version: 22
@@ -64,7 +64,7 @@ jobs:
       E2E_BASE_URL: http://localhost:8080
       E2E_SETUP_TOKEN: ci-e2e-token
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Image Docker
         run: docker build -t home-budget:ci .
       - name: Démarrage du conteneur (volume vide)

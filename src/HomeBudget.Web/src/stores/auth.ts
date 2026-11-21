@@ -12,6 +12,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => user.value !== null)
   const isAdmin = computed(() => user.value?.roles.includes('Admin') ?? false)
+  /** Saisie et modification autorisées (administrateur ou membre, pas lecture seule). */
+  const canWrite = computed(() => user.value?.roles.some((r) => r === 'Admin' || r === 'Member') ?? false)
 
   /** Chargé une seule fois au démarrage : premier lancement ? session existante ? */
   function init(): Promise<void> {
@@ -72,6 +74,7 @@ export const useAuthStore = defineStore('auth', () => {
     setupRequired,
     isAuthenticated,
     isAdmin,
+    canWrite,
     init,
     refreshUser,
     setup,

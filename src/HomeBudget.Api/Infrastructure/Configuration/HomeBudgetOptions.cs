@@ -24,9 +24,28 @@ public sealed class HomeBudgetOptions
 
     public SecurityOptions Security { get; set; } = new();
 
+    public BackupOptions Backup { get; set; } = new();
+
     public string DatabasePath => Path.Combine(DataPath, "homebudget.db");
 
     public string KeysPath => Path.Combine(DataPath, "keys");
+
+    public string BackupsPath => Path.Combine(DataPath, "backups");
+}
+
+public sealed class BackupOptions
+{
+    /// <summary>Sauvegarde automatique quotidienne de la base (O3).</summary>
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>Heure locale (0 à 23) de la sauvegarde quotidienne.</summary>
+    public int Hour { get; set; } = 3;
+
+    public int KeepDaily { get; set; } = 7;
+
+    public int KeepWeekly { get; set; } = 4;
+
+    public int KeepMonthly { get; set; } = 12;
 }
 
 public sealed class MetricsOptions

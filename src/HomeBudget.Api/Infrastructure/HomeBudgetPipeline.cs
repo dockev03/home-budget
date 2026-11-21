@@ -1,6 +1,10 @@
 using HomeBudget.Api.Features.Account;
+using HomeBudget.Api.Features.Accounts;
 using HomeBudget.Api.Features.Auth;
+using HomeBudget.Api.Features.Categories;
+using HomeBudget.Api.Features.Payees;
 using HomeBudget.Api.Features.Setup;
+using HomeBudget.Api.Features.Transactions;
 using HomeBudget.Api.Infrastructure.Security;
 
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -46,6 +50,11 @@ public static class HomeBudgetPipeline
         app.MapSetupEndpoints();
         app.MapAuthEndpoints();
         app.MapTwoFactorEndpoints();
+        app.MapAccountEndpoints();
+        app.MapCategoryEndpoints();
+        app.MapPayeeEndpoints();
+        app.MapTransactionEndpoints();
+        app.MapTransferEndpoints();
 
         app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
         app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") }).AllowAnonymous();

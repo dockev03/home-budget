@@ -35,6 +35,49 @@ public sealed class ApiClient(HttpClient http)
         return await http.SendAsync(request);
     }
 
+    public Task<HttpResponseMessage> PutAsync(string url, object body, int? version) =>
+        SendAsync(HttpMethod.Put, url, body, version);
+
+    public Task<HttpResponseMessage> DeleteAsync(string url, int? version) =>
+        SendAsync(HttpMethod.Delete, url, null, version);
+
+    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string url, object? body, int? version)
+    {
+        if (_csrf is null)
+        {
+            await RefreshCsrfAsync();
+        }
+        using var request = new HttpRequestMessage(method, new Uri(url, UriKind.Relative));
+        if (body is not null)
+        {
+            request.Content = JsonContent.Create(body);
+        }
+        request.Headers.Add("X-CSRF-TOKEN", _csrf);
+        if (version is not null)
+        {
+            request.Headers.TryAddWithoutValidation("If-Match", $"\"{version}\"");
+        }
+        return await http.SendAsync(request);
+    }
+
+    /// <summary>POST attendu en succès ; renvoie le JSON de la réponse.</summary>
+    public async Task<JsonElement> CreateAsync(string url, object body)
+    {
+        var response = await PostAsync(url, body);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new HttpRequestException($"{(int)response.StatusCode} {await response.Content.ReadAsStringAsync()}");
+        }
+        return await ReadJsonAsync(response);
+    }
+
+    public async Task<JsonElement> GetJsonAsync(string url)
+    {
+        var response = await GetAsync(url);
+        response.EnsureSuccessStatusCode();
+        return await ReadJsonAsync(response);
+    }
+
     public static async Task<JsonElement> ReadJsonAsync(HttpResponseMessage response) =>
         await response.Content.ReadFromJsonAsync<JsonElement>();
 }

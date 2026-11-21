@@ -26,4 +26,7 @@ public sealed class HouseholdSettings : Entity
     public int BudgetWarningPercent { get; set; } = 80;
 
     public int BudgetAlertPercent { get; set; } = 100;
+
+    /// <summary>Le jeu de catégories par défaut (C6) a été créé : il ne l'est qu'une fois.</summary>
+    public bool DefaultCategoriesCreated { get; set; }
 }

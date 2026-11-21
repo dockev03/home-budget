@@ -72,6 +72,7 @@ jobs:
           docker run -d --name home-budget -p 8080:8080 \
             -e HB__SetupToken=$E2E_SETUP_TOKEN \
             -e HB__Security__AllowInsecureHttp=true \
+            -e HB__Security__AuthRequestsPerMinute=60 \
             --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true \
             home-budget:ci
           for i in $(seq 1 30); do curl -fs http://localhost:8080/health/ready && exit 0; sleep 2; done

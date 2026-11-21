@@ -203,7 +203,7 @@ Légende des lots (détail en §6) : **L1** = MVP cœur · **L2** = import et au
 | # | Exigence | Lot |
 |---|---|---|
 | M1 | Notifications push (Web Push) : budget dépassé (80 / 100 %), passage sous le seuil prévu, échéance demain, opérations à valider. Choix par utilisateur et par type | L5 |
-| M2 | Résumé par e-mail, hebdomadaire ou mensuel (SMTP) | L5 |
+| M2 | Résumé par e-mail, hebdomadaire ou mensuel (SMTP générique : Gmail ou serveur tiers) | L5 |
 
 ### N. Sécurité
 
@@ -240,7 +240,7 @@ Légende des lots (détail en §6) : **L1** = MVP cœur · **L2** = import et au
 ## 4. Règles de gestion
 
 **R1 — Période budgétaire.** C'est un paramètre du foyer :
-- **calendaire** : du 1er au dernier jour du mois (par défaut) ;
+- **calendaire** : du 1er au dernier jour du mois (par défaut, et **choix retenu par le foyer**) ;
 - **jour fixe N** : du N du mois jusqu'à la veille du N suivant (par exemple du 25 au 24).
 
 La période porte le nom du mois où elle se termine majoritairement. Tous les calculs (budget, prévision, rapports) passent par cette notion de période, jamais par le mois calendaire en dur.
@@ -257,7 +257,8 @@ Solde prévu = Solde réel au jour J
             + opérations déjà saisies datées après J
             + échéances de récurrence restantes (non encore générées)
             + Σ par catégorie de max(0, budget restant − échéances restantes de la catégorie)
-              (avec un signe négatif pour les dépenses ; les revenus peuvent être exclus via une option)
+              (avec un signe négatif pour les dépenses ; les revenus sont inclus par défaut
+               et peuvent être exclus via une option)
 ```
 
 Le reste de budget non couvert par une échéance est étalé uniformément sur les jours restants, pour tracer la courbe (F2).
@@ -269,7 +270,7 @@ Reste à vivre = Solde réel au jour J
               + revenus attendus restants
               − dépenses fixes restantes
               − épargne prévue restante
-              − seuil de sécurité
+              − seuil de sécurité (0 € par défaut)
 ```
 
 Le reste à vivre par jour est ce montant divisé par le nombre de jours restants dans la période.
@@ -311,10 +312,12 @@ Le reste à vivre par jour est ce montant divisé par le nombre de jours restant
 | **L5 — Confort** | Hors ligne, push, e-mail, pièces jointes, crédits, Sankey, rapports personnalisés, calendrier, API publique et webhooks, répartition des dépenses | |
 | **L6 — Bonus** | Mode enveloppes et report du reste, CAF/CMG, frais de garde, santé | |
 
-## 7. Questions ouvertes
+## 7. Décisions prises
 
-1. **Période (R1)** : calendaire ou jour fixe ? Si c'est un jour fixe, lequel (jour de versement du salaire) ?
-2. **SMTP** (M2) : quel fournisseur, ou quel relais existant ?
-3. **Format de l'export CSV de La Banque Postale** : il faudra un fichier d'exemple anonymisé (H1).
-4. **Seuil de sécurité** du reste à vivre (R4) : 0 € par défaut ?
-5. **Revenus dans la prévision** (R3) : faut-il compter le reste des revenus budgétés non encore reçus ? Je propose oui, avec une option pour le désactiver.
+| # | Sujet | Décision |
+|---|---|---|
+| Q1 | Période budgétaire (R1) | **Calendaire** (du 1er au dernier jour du mois). Le mode « jour fixe » (D10) reste développé, mais n'est pas activé |
+| Q2 | SMTP (M2) | Configuration SMTP générique (hôte, port, SSL/STARTTLS, identifiants), compatible avec **Gmail** (mot de passe d'application) ou un serveur tiers |
+| Q3 | Format CSV de La Banque Postale (H1) | Un fichier d'exemple anonymisé sera fourni au moment du lot L2 |
+| Q4 | Seuil de sécurité du reste à vivre (R4) | **0 €** par défaut, paramétrable |
+| Q5 | Revenus dans la prévision (R3) | **Inclus** par défaut, avec une option pour les désactiver |

@@ -19,7 +19,7 @@ COPY --from=web /src/src/HomeBudget.Api/wwwroot src/HomeBudget.Api/wwwroot
 RUN dotnet publish src/HomeBudget.Api/HomeBudget.Api.csproj -c Release -o /app --no-restore /p:UseAppHost=false
 
 # 3. Exécution : image runtime minimale, utilisateur non root (app, UID 1654)
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS runtime
 ENV ASPNETCORE_HTTP_PORTS=8080 \
     HB__DataPath=/data \
     TZ=Europe/Paris \

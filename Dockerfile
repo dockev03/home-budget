@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # 1. Front : compilation de la PWA (Vue + Vuetify) vers src/HomeBudget.Api/wwwroot
-FROM node:22-alpine AS web
+FROM node:26-alpine AS web
 WORKDIR /src/src/HomeBudget.Web
 COPY src/HomeBudget.Web/package.json src/HomeBudget.Web/package-lock.json ./
 RUN npm ci --no-audit --no-fund

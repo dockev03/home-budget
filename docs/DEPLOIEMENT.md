@@ -5,16 +5,21 @@
 - Docker et Portainer.
 - Nginx Proxy Manager (NPM) déjà en place, avec un réseau Docker partagé.
 - Un nom de domaine pointant vers le NPM. Le HTTPS est **obligatoire** : cookies `Secure`, PWA, notifications push.
+- Un accès au registre GHCR : l'image `ghcr.io/dockev03/home-budget` est publiée par le workflow `release.yml` à chaque tag de version, et le paquet est privé comme le dépôt. Créer un jeton GitHub (classic) avec le seul droit `read:packages`.
 
 ## 1. Créer la stack
 
-Dans Portainer : **Stacks → Add stack → Repository**.
+L'image n'est plus construite sur le serveur : elle est tirée de GHCR, à la version choisie.
 
-- Dépôt : ce dépôt Git, branche `main`, fichier `docker-compose.yml`.
-- Variables d'environnement :
+Dans Portainer :
+
+1. **Registries → Add registry → Custom registry** : URL `ghcr.io`, utilisateur GitHub et le jeton `read:packages`.
+2. **Stacks → Add stack → Repository** : ce dépôt Git, branche `main`, fichier `docker-compose.yml`. Le mode **Web editor** fonctionne aussi, en y collant le contenu du fichier.
+3. Variables d'environnement :
 
 | Variable | Exemple | Rôle |
 |---|---|---|
+| `HB_VERSION` | `0.6.0` | Version de l'image (défaut `latest`). Épingler une version précise : la mise à jour reste un choix explicite |
 | `HB_PUBLIC_URL` | `https://budget.mondomaine.fr` | URL publique |
 | `HB_KNOWN_PROXY_NETWORK` | `172.20.0.0/16` | Sous-réseau du réseau du NPM : `docker network inspect <réseau>` → `IPAM.Config.Subnet` |
 | `NPM_NETWORK` | `npm_default` | Nom du réseau Docker du NPM |
@@ -37,6 +42,7 @@ Prérequis : un réseau privé entre le serveur NPM et le serveur de la stack (W
 
 | Variable | Exemple | Rôle |
 |---|---|---|
+| `HB_VERSION` | `0.6.0` | Version de l'image (défaut `latest`) |
 | `HB_PUBLIC_URL` | `https://budget.mondomaine.fr` | URL publique |
 | `HB_BIND_ADDRESS` | `10.0.0.2` | IP privée du serveur de la stack, sur laquelle le port est publié (obligatoire) |
 | `HB_PORT` | `8080` | Port publié (défaut `8080`) |
@@ -45,6 +51,36 @@ Prérequis : un réseau privé entre le serveur NPM et le serveur de la stack (W
 - Ne jamais mettre `0.0.0.0` dans `HB_BIND_ADDRESS` : Docker contourne les règles UFW, le port serait ouvert à tout Internet.
 - Dans le NPM, le Proxy Host vise `http://<HB_BIND_ADDRESS>:<HB_PORT>`, avec les mêmes réglages SSL que ci-dessus.
 - Si les logs montrent une adresse cliente en `172.x.x.x` au lieu de l'IP du NPM (proxy « userland » de Docker), ajouter aussi le sous-réseau du réseau de la stack à `HB_KNOWN_PROXY_NETWORK`, séparé par une virgule.
+
+## Sans Portainer : Docker Compose
+
+Sur le serveur, avec le fichier `docker-compose.yml` (ou `docker-compose.proxy-distant.yml`) et un fichier `.env` à côté :
+
+```bash
+echo "$JETON_READ_PACKAGES" | docker login ghcr.io -u <utilisateur-github> --password-stdin
+```
+
+```bash
+cat > .env <<'ENV'
+HB_VERSION=0.6.0
+HB_PUBLIC_URL=https://budget.mondomaine.fr
+HB_KNOWN_PROXY_NETWORK=172.20.0.0/16
+NPM_NETWORK=npm_default
+ENV
+```
+
+```bash
+docker compose up -d
+```
+
+## Mettre à jour
+
+1. Publier la nouvelle version (tag `vX.Y.Z` sur `main`, voir le [README](../README.md)).
+2. Changer `HB_VERSION` :
+   - Portainer : modifier la variable de la stack, puis **Update the stack** avec **Re-pull image** ;
+   - Docker Compose : modifier `.env`, puis `docker compose pull && docker compose up -d`.
+
+Les migrations de base sont appliquées au démarrage. Pour revenir en arrière, remettre l'ancienne version dans `HB_VERSION` ; restaurer d'abord une sauvegarde si la nouvelle version a migré la base.
 
 ## 3. Premier lancement
 

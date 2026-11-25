@@ -1,5 +1,8 @@
-# Stack Portainer (« Repository » : construite depuis ce dépôt Git).
-# Variables à renseigner dans Portainer (onglet « Environment variables ») :
+# Stack Portainer (« Repository » ou « Web editor ») ou `docker compose up -d`.
+# L'image est tirée de GHCR (paquet privé) : déclarer le registre ghcr.io dans Portainer
+# (Registries) ou faire `docker login ghcr.io` avec un jeton GitHub `read:packages`.
+# Variables à renseigner dans Portainer (onglet « Environment variables ») ou dans un fichier .env :
+#   HB_VERSION             version de l'image, ex. 0.2.0 (défaut : latest ; épingler en production)
 #   HB_PUBLIC_URL          URL publique, ex. https://budget.mondomaine.fr
 #   HB_KNOWN_PROXY_NETWORK sous-réseau du réseau Docker du NPM, ex. 172.20.0.0/16
 #                          (docker network inspect <réseau> → IPAM.Config.Subnet)
@@ -8,8 +11,7 @@
 
 services:
   home-budget:
-    build: .
-    image: home-budget:local
+    image: ghcr.io/dockev03/home-budget:${HB_VERSION:-latest}
     container_name: home-budget
     restart: unless-stopped
     environment:

@@ -19,3 +19,11 @@ Application web auto-hébergée de gestion du budget du foyer (PWA mobile et PC)
 * Branche `feature/etape-N-sujet`, `feature/`, `fix/` ou `docs/sujet`, jamais réutilisée ; jamais de commit sur `main`/`master`/`staging`.
 * Aucun commit ni push sans accord explicite ; présenter le message (Conventional Commits en français) avant.
 * Aucun identifiant de modèle d'IA dans commits, PR ou fichiers (pas de `Co-Authored-By` d'IA).
+
+## Versions (tags → image GHCR)
+
+* SemVer, tag `vX.Y.Z` annoté, posé sur `main` après fusion et CI verte ; le push du tag publie l'image (`release.yml`).
+* Étape N fusionnée → `v0.N.0`. Correctif (`fix/`) fusionné touchant l'appli → patch (`v0.N.1`). Docs ou CI seules → pas de tag.
+* `v1.0.0` quand le critère de fin du lot L1 est atteint et validé (« le classeur Excel peut être abandonné ») ; ensuite étape = mineure, rupture (migration irréversible, variable supprimée ou renommée) = majeure.
+* Pré-version pour essai sur le serveur : `vX.Y.Z-rc.N` (pas de `latest`).
+* En fin d'étape ou de correctif fusionné, proposer le tag et la commande ; ne jamais créer ni pousser un tag sans accord explicite.

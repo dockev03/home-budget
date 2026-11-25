@@ -41,7 +41,6 @@ Une instance correspond à **un foyer**. Il n'y a pas de gestion de plusieurs fo
 | M3 | Notifications ntfy, Gotify ou Telegram | Non |
 | N3 | Connexion via un fournisseur d'identité OIDC | Non |
 | N7 | Chiffrement de la base au repos | Non |
-| O6 | Publication de l'image sur GHCR | Non : Portainer construit l'image depuis le dépôt Git |
 | P5 | Lecture automatique des fiches de paie PDF | Non : le PDF est seulement **attaché** à l'opération de salaire (voir B7) |
 
 ## 3. Exigences fonctionnelles
@@ -219,11 +218,12 @@ Légende des lots (détail en §6) : **L1** = MVP cœur · **L2** = import et au
 
 | # | Exigence | Lot |
 |---|---|---|
-| O1 | Image Docker et `docker-compose.yml` compatibles avec une stack Portainer construite depuis Git | L0 |
+| O1 | Image Docker et `docker-compose.yml` compatibles avec une stack Portainer (image tirée de GHCR) | L0 |
 | O2 | Configuration par variables d'environnement | L0 |
 | O3 | Sauvegarde automatique quotidienne de la base, avec rotation paramétrable (par défaut 7 quotidiennes, 4 hebdomadaires, 12 mensuelles) | L1 |
 | O4 | CI GitHub Actions : build, tests, lint | L0 |
 | O5 | Scans de sécurité : CodeQL, Trivy (fichiers et image), Dependabot, revue des dépendances | L0 |
+| O6 | Publication de l'image sur GHCR au push d'un tag de version `vX.Y.Z` posé sur `main` (après scan Trivy) | L0 |
 | O7 | `/health` (vivacité et disponibilité) et `/metrics` (format Prometheus) | L0 |
 | O8 | Tests unitaires (moteur de prévision ≥ 90 % de couverture), tests d'intégration de l'API, tests de bout en bout Playwright sur les parcours clés | L0+ |
 | O9 | Migrations de base versionnées, appliquées au démarrage | L0 |

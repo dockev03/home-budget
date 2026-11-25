@@ -255,12 +255,12 @@ Le `Dockerfile` est en plusieurs étapes :
 2. `dotnet/sdk:10.0` publie l'API, en y copiant la PWA dans `wwwroot` ;
 3. `dotnet/aspnet:10.0` exécute l'appli sous l'utilisateur `app`, avec un `HEALTHCHECK` sur `/health/live`.
 
-### 8.2 `docker-compose.yml` (stack Portainer construite depuis Git)
+### 8.2 `docker-compose.yml` (stack Portainer, image tirée de GHCR)
 
 ```yaml
 services:
   home-budget:
-    build: .
+    image: ghcr.io/dockev03/home-budget:${HB_VERSION:-latest}
     container_name: home-budget
     restart: unless-stopped
     environment:
@@ -302,9 +302,10 @@ networks:
 |---|---|---|
 | `ci.yml` | push, pull request | `dotnet build` / `dotnet test` (avec couverture), `npm ci` / lint / `vitest` / build, build de l'image Docker, Playwright contre le conteneur |
 | `security.yml` | push, pull request, chaque semaine | CodeQL (C# et JS/TS), Trivy (fichiers et image, échec sur les failles HIGH/CRITICAL), `dependency-review` |
+| `release.yml` | tag `vX.Y.Z` posé sur `main` | Contrôle que le commit est sur `main`, build de l'image (amd64), scan Trivy (échec sur HIGH/CRITICAL), publication sur GHCR : `X.Y.Z`, `X.Y`, `latest`, `sha-<court>` |
 | `dependabot.yml` | chaque semaine | NuGet, npm, GitHub Actions, Docker |
 
-Pas de publication de l'image : Portainer reconstruit la stack depuis la branche `main`, manuellement ou via le webhook GitOps de Portainer.
+Le serveur ne construit plus l'image : les fichiers compose tirent l'image versionnée `ghcr.io/dockev03/home-budget:${HB_VERSION}` publiée par `release.yml` (voir [DEPLOIEMENT.md](DEPLOIEMENT.md)).
 
 ## 10. Décisions écartées
 

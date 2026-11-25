@@ -1,6 +1,10 @@
 # Stack Portainer (« Repository », Compose path : docker-compose.proxy-distant.yml)
+# ou `docker compose -f docker-compose.proxy-distant.yml up -d`,
 # quand le Nginx Proxy Manager tourne sur un AUTRE serveur.
-# Variables à renseigner dans Portainer (onglet « Environment variables ») :
+# L'image est tirée de GHCR (paquet privé) : déclarer le registre ghcr.io dans Portainer
+# (Registries) ou faire `docker login ghcr.io` avec un jeton GitHub `read:packages`.
+# Variables à renseigner dans Portainer (onglet « Environment variables ») ou dans un fichier .env :
+#   HB_VERSION             version de l'image, ex. 0.2.0 (défaut : latest ; épingler en production)
 #   HB_PUBLIC_URL          URL publique, ex. https://budget.mondomaine.fr
 #   HB_BIND_ADDRESS        IP PRIVÉE du serveur qui héberge la stack (WireGuard, Tailscale,
 #                          réseau privé de l'hébergeur), ex. 10.0.0.2. Jamais 0.0.0.0 :
@@ -12,8 +16,7 @@
 
 services:
   home-budget:
-    build: .
-    image: home-budget:local
+    image: ghcr.io/dockev03/home-budget:${HB_VERSION:-latest}
     container_name: home-budget
     restart: unless-stopped
     environment:

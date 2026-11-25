@@ -23,6 +23,15 @@ public sealed class Transaction : AuditableEntity
 
     public Guid? TransferId { get; set; }
 
+    /// <summary>Libellé brut du relevé bancaire, pour une opération importée.</summary>
+    public string? RawLabel { get; set; }
+
+    /// <summary>Import qui a créé l'opération ou l'a rapprochée d'une échéance.</summary>
+    public Guid? ImportBatchId { get; set; }
+
+    /// <summary>Empreinte de l'opération du relevé (FITID ou condensé), unique par compte : écarte les doublons (H3).</summary>
+    public string? ImportHash { get; set; }
+
     public List<TransactionLine> Lines { get; private set; } = [];
 
     public void SetLines(IEnumerable<TransactionLine> lines)

@@ -24,7 +24,7 @@ test.describe.serial('authentification', () => {
 
     await page.getByLabel('Code de vérification').fill(totp(sharedKey))
     await page.getByRole('button', { name: "Confirmer l'activation" }).click()
-    await expect(page.getByText('Codes de secours')).toBeVisible()
+    await expect(page.getByText('Codes de secours', { exact: true })).toBeVisible()
     await expect(page.getByText(/Il vous reste\s+10\s+code/)).toBeVisible()
 
     await page.getByRole('button', { name: 'Compte' }).click()

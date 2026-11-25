@@ -150,8 +150,8 @@ SavingsGoal                Id, Name, TargetAmount, TargetDate, AccountId?, Categ
 Scenario / ScenarioEvent   Id, Name, IsActive / Date, Amount, Label, CategoryId?, AccountId   (F5)
 SplitSetting               Mode{Equal,IncomeRatio,Fixed}, Shares, SharedCategoryIds   (K4)
 
-ImportProfile              Id, Name, Format{Csv,Ofx,Qif}, Encoding, Delimiter, DateFormat, DecimalSep, Mapping(JSON)
-ImportBatch                Id, AccountId, FileName, ImportedAt, Count, Duplicates
+ImportProfile              Id, Name, Delimiter, DateFormat, DecimalSeparator, DateColumn, LabelColumn, AmountColumn?, DebitColumn?, CreditColumn?   (CSV/TSV ; encodage détecté)
+ImportBatch                Id, AccountId, FileName, Format{Csv,Ofx,Qif}, Created, Matched, Duplicates   (date et auteur : CreatedAt, CreatedBy)
 
 AuditLog                   Id, At, UserId, Action, Entity, EntityId, Changes(JSON), Ip
 PushSubscription           UserId, Endpoint, P256dh, Auth, Preferences(JSON)

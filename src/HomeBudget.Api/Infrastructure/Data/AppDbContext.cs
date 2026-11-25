@@ -2,6 +2,7 @@ using HomeBudget.Api.Domain;
 using HomeBudget.Api.Domain.Accounts;
 using HomeBudget.Api.Domain.Budgets;
 using HomeBudget.Api.Domain.Categories;
+using HomeBudget.Api.Domain.Imports;
 using HomeBudget.Api.Domain.Payees;
 using HomeBudget.Api.Domain.Recurrences;
 using HomeBudget.Api.Domain.Settings;
@@ -39,6 +40,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Recurrence> Recurrences => Set<Recurrence>();
 
     public DbSet<RecurrenceOccurrence> RecurrenceOccurrences => Set<RecurrenceOccurrence>();
+
+    public DbSet<ImportProfile> ImportProfiles => Set<ImportProfile>();
+
+    public DbSet<ImportBatch> ImportBatches => Set<ImportBatch>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -105,6 +110,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasIndex(t => new { t.AccountId, t.Date });
             e.HasIndex(t => t.Date);
             e.HasIndex(t => t.TransferId);
+            e.Property(t => t.RawLabel).HasMaxLength(500);
+            e.Property(t => t.ImportHash).HasMaxLength(100);
+            // Un relevé réimporté ne crée pas de doublon (H3), même lors de deux imports simultanés.
+            e.HasIndex(t => new { t.AccountId, t.ImportHash }).IsUnique().HasFilter("\"ImportHash\" IS NOT NULL");
+            e.HasOne<ImportBatch>().WithMany().HasForeignKey(t => t.ImportBatchId).OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<TransactionLine>(e =>
@@ -125,6 +135,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasMany(r => r.Occurrences).WithOne().HasForeignKey(o => o.RecurrenceId).OnDelete(DeleteBehavior.Cascade);
             e.Ignore(r => r.Rule);
             e.Ignore(r => r.States);
+            e.Ignore(r => r.AmountTolerance);
         });
 
         builder.Entity<RecurrenceOccurrence>(e =>
@@ -135,6 +146,38 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasIndex(o => new { o.Status, o.DueDate });
             // L'opération générée peut être supprimée : l'échéance reste, pour ne pas être régénérée.
             e.HasOne<Transaction>().WithMany().HasForeignKey(o => o.TransactionId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<ImportProfile>(e =>
+        {
+            ConfigureAudit(e);
+            e.Property(p => p.Name).HasMaxLength(60);
+            e.Property(p => p.DateFormat).HasMaxLength(16);
+            e.HasIndex(p => p.Name).IsUnique();
+            e.Ignore(p => p.Options);
+            // Profil de l'export CSV de La Banque Postale (Q3) : « Date;Libellé;Montant(EUROS) ».
+            var installedAt = new DateTimeOffset(2026, 11, 25, 0, 0, 0, TimeSpan.Zero);
+            e.HasData(new ImportProfile
+            {
+                Id = ImportProfile.BanquePostaleId,
+                Name = "La Banque Postale (CSV)",
+                Delimiter = ';',
+                DateFormat = "dd/MM/yyyy",
+                DecimalSeparator = ',',
+                DateColumn = 1,
+                LabelColumn = 2,
+                AmountColumn = 3,
+                CreatedAt = installedAt,
+                UpdatedAt = installedAt,
+                Version = 1,
+            });
+        });
+
+        builder.Entity<ImportBatch>(e =>
+        {
+            ConfigureAudit(e);
+            e.Property(b => b.FileName).HasMaxLength(200);
+            e.HasOne<Account>().WithMany().HasForeignKey(b => b.AccountId).OnDelete(DeleteBehavior.Restrict);
         });
     }
 

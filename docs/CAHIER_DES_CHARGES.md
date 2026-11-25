@@ -318,6 +318,6 @@ Le reste à vivre par jour est ce montant divisé par le nombre de jours restant
 |---|---|---|
 | Q1 | Période budgétaire (R1) | **Calendaire** (du 1er au dernier jour du mois). Le mode « jour fixe » (D10) reste développé, mais n'est pas activé |
 | Q2 | SMTP (M2) | Configuration SMTP générique (hôte, port, SSL/STARTTLS, identifiants), compatible avec **Gmail** (mot de passe d'application) ou un serveur tiers |
-| Q3 | Format CSV de La Banque Postale (H1) | Un fichier d'exemple anonymisé sera fourni au moment du lot L2 |
+| Q3 | Format CSV de La Banque Postale (H1) | Profil « La Banque Postale (CSV) » créé à l'installation (`Date;Libellé;Montant(EUROS)`, en-tête du relevé ignoré). L'**OFX** est recommandé : chaque opération porte un identifiant de la banque (FITID), ce qui écarte les doublons à coup sûr |
 | Q4 | Seuil de sécurité du reste à vivre (R4) | **0 €** par défaut, paramétrable |
 | Q5 | Revenus dans la prévision (R3) | **Inclus** par défaut, avec une option pour les désactiver |

@@ -244,6 +244,10 @@ public static class RecurrenceEndpoints
         {
             errors["label"] = ["Le libellé est obligatoire."];
         }
+        if (!new AmountTolerance(request.Tolerance ?? 0, request.ToleranceUnit ?? ToleranceUnit.Amount).IsValid)
+        {
+            errors["tolerance"] = ["Tolérance invalide : de 0 à 100 % ou un montant positif (2 décimales au plus)."];
+        }
         if (request.IsInstallment && request.End != RecurrenceEnd.AfterCount)
         {
             errors["end"] = ["Un paiement en plusieurs fois se termine après un nombre d'échéances."];
@@ -315,6 +319,8 @@ public static class RecurrenceEndpoints
         recurrence.EndDate = request.End == RecurrenceEnd.OnDate ? request.EndDate : null;
         recurrence.Count = request.End == RecurrenceEnd.AfterCount ? request.Count : null;
         recurrence.IsInstallment = request.IsInstallment;
+        recurrence.Tolerance = request.Tolerance ?? 0;
+        recurrence.ToleranceUnit = request.ToleranceUnit ?? ToleranceUnit.Amount;
     }
 
     private static async Task<RecurrenceDto> LoadDtoAsync(AppDbContext db, TimeProvider clock, Guid id)
@@ -337,6 +343,8 @@ public static class RecurrenceEndpoints
                 r.PayeeId is { } p ? payees.GetValueOrDefault(p) : null,
                 r.CategoryId, r.Amount, r.Notes, r.Mode, r.StartDate, r.Unit, r.Interval, r.End, r.EndDate, r.Count,
                 r.IsInstallment,
+                r.Tolerance,
+                r.ToleranceUnit,
                 next.Count > 0 ? next[0].Date : null,
                 r.Occurrences.Count(o => o.Status == OccurrenceStatus.Pending && o.DueDate <= today),
                 r.Version);

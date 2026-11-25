@@ -2640,6 +2640,345 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/import-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Profils de lecture CSV et TSV, par nom. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ImportProfileDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Crée un profil de lecture. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ImportProfileRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ImportProfileDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/import-profiles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Modifie un profil de lecture (If-Match requis). */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ImportProfileRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ImportProfileDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Supprime un profil de lecture (If-Match requis). */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Derniers imports, du plus récent au plus ancien. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ImportBatchDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Importe les opérations choisies du relevé, en une seule transaction. Les doublons certains sont écartés. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ImportCommitRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ImportResultDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/imports/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Lit un relevé (CSV, TSV, OFX ou QIF) sans rien enregistrer : opérations, doublons et échéances correspondantes. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ImportFileRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ImportPreviewDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2772,6 +3111,44 @@ export interface components {
             transactions: null | components["schemas"]["BackupTransaction"][];
             recurrences: null | components["schemas"]["BackupRecurrence"][];
             occurrences: null | components["schemas"]["BackupOccurrence"][];
+            importProfiles?: null | components["schemas"]["BackupImportProfile"][];
+            importBatches?: null | components["schemas"]["BackupImportBatch"][];
+        };
+        BackupImportBatch: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            accountId: string;
+            fileName: null | string;
+            format: components["schemas"]["ImportFormat"];
+            /** Format: int32 */
+            created: number;
+            /** Format: int32 */
+            matched: number;
+            /** Format: int32 */
+            duplicates: number;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
+        BackupImportProfile: {
+            /** Format: uuid */
+            id: string;
+            name: null | string;
+            /** Format: char */
+            delimiter: string;
+            dateFormat: null | string;
+            /** Format: char */
+            decimalSeparator: string;
+            /** Format: int32 */
+            dateColumn: number;
+            /** Format: int32 */
+            labelColumn: number;
+            /** Format: int32 */
+            amountColumn: null | number;
+            /** Format: int32 */
+            debitColumn: null | number;
+            /** Format: int32 */
+            creditColumn: null | number;
+            audit: null | components["schemas"]["BackupAudit"];
         };
         BackupOccurrence: {
             /** Format: uuid */
@@ -2825,6 +3202,12 @@ export interface components {
             /** Format: date */
             generateFrom: string;
             audit: null | components["schemas"]["BackupAudit"];
+            /**
+             * Format: double
+             * @default 0
+             */
+            tolerance: number;
+            toleranceUnit?: components["schemas"]["ToleranceUnit"];
         };
         BackupSettings: {
             /** Format: uuid */
@@ -2858,6 +3241,10 @@ export interface components {
             transferId: null | string;
             lines: null | components["schemas"]["BackupTransactionLine"][];
             audit: null | components["schemas"]["BackupAudit"];
+            rawLabel?: null | string;
+            /** Format: uuid */
+            importBatchId?: null | string;
+            importHash?: null | string;
         };
         BackupTransactionLine: {
             /** Format: uuid */
@@ -3054,6 +3441,127 @@ export interface components {
                 [key: string]: string[];
             };
         };
+        ImportBatchDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            accountId: string;
+            fileName: string;
+            format: components["schemas"]["ImportFormat"];
+            /** Format: int32 */
+            created: number;
+            /** Format: int32 */
+            matched: number;
+            /** Format: int32 */
+            duplicates: number;
+            /** Format: date-time */
+            importedAt: string;
+        };
+        ImportCommitRequest: {
+            /** Format: uuid */
+            accountId: string;
+            fileName: string;
+            content: string;
+            /** Format: uuid */
+            profileId: null | string;
+            lines: components["schemas"]["ImportLineChoice"][];
+        };
+        ImportFileRequest: {
+            /** Format: uuid */
+            accountId: string;
+            fileName: string;
+            content: string;
+            /** Format: uuid */
+            profileId: null | string;
+        };
+        /** @enum {unknown} */
+        ImportFormat: "Csv" | "Ofx" | "Qif";
+        ImportLineChoice: {
+            /** Format: int32 */
+            line: number;
+            acceptMatch: boolean;
+        };
+        /** @enum {unknown} */
+        ImportLineStatus: "New" | "Duplicate" | "ProbableDuplicate" | "Match";
+        ImportOccurrenceDto: {
+            /** Format: uuid */
+            recurrenceId: string;
+            label: string;
+            /** Format: date */
+            date: string;
+            /** Format: double */
+            amount: number;
+            /** Format: uuid */
+            categoryId: null | string;
+        };
+        ImportPreviewDto: {
+            format: components["schemas"]["ImportFormat"];
+            profileName: null | string;
+            lines: components["schemas"]["ImportPreviewLineDto"][];
+            errors: components["schemas"]["StatementError"][];
+        };
+        ImportPreviewLineDto: {
+            /** Format: int32 */
+            line: number;
+            /** Format: date */
+            date: string;
+            /** Format: double */
+            amount: number;
+            label: string;
+            status: components["schemas"]["ImportLineStatus"];
+            /** Format: uuid */
+            duplicateOfId: null | string;
+            duplicateOfLabel: null | string;
+            /** Format: date */
+            duplicateOfDate: null | string;
+            occurrence: null | components["schemas"]["ImportOccurrenceDto"];
+        };
+        ImportProfileDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            delimiter: string;
+            dateFormat: string;
+            decimalSeparator: string;
+            /** Format: int32 */
+            dateColumn: number;
+            /** Format: int32 */
+            labelColumn: number;
+            /** Format: int32 */
+            amountColumn: null | number;
+            /** Format: int32 */
+            debitColumn: null | number;
+            /** Format: int32 */
+            creditColumn: null | number;
+            /** Format: int32 */
+            version: number;
+        };
+        ImportProfileRequest: {
+            name: string;
+            delimiter: string;
+            dateFormat: string;
+            decimalSeparator: string;
+            /** Format: int32 */
+            dateColumn: number;
+            /** Format: int32 */
+            labelColumn: number;
+            /** Format: int32 */
+            amountColumn: null | number;
+            /** Format: int32 */
+            debitColumn: null | number;
+            /** Format: int32 */
+            creditColumn: null | number;
+        };
+        ImportResultDto: {
+            /** Format: uuid */
+            batchId: string;
+            /** Format: int32 */
+            created: number;
+            /** Format: int32 */
+            matched: number;
+            /** Format: int32 */
+            duplicates: number;
+        };
         KeyFiguresDto: {
             /** Format: double */
             income: number;
@@ -3106,7 +3614,7 @@ export interface components {
             transactionId: null | string;
         };
         /** @enum {unknown} */
-        OccurrenceStatus: "Pending" | "Generated" | "Skipped";
+        OccurrenceStatus: "Pending" | "Generated" | "Skipped" | "Matched";
         PasswordConfirmation: {
             password: string;
         };
@@ -3208,6 +3716,9 @@ export interface components {
             /** Format: int32 */
             count: null | number;
             isInstallment: boolean;
+            /** Format: double */
+            tolerance: number;
+            toleranceUnit: components["schemas"]["ToleranceUnit"];
             /** Format: date */
             nextDate: null | string;
             /** Format: int32 */
@@ -3243,6 +3754,9 @@ export interface components {
             /** Format: int32 */
             count: null | number;
             isInstallment: boolean;
+            /** Format: double */
+            tolerance?: null | number;
+            toleranceUnit?: null | components["schemas"]["ToleranceUnit"];
         };
         RemainingToLiveDto: {
             /** Format: double */
@@ -3300,6 +3814,13 @@ export interface components {
         SetupStatus: {
             required: boolean;
         };
+        StatementError: {
+            /** Format: int32 */
+            line: number;
+            message: string;
+        };
+        /** @enum {unknown} */
+        ToleranceUnit: "Amount" | "Percent";
         TransactionDto: {
             /** Format: uuid */
             id: string;

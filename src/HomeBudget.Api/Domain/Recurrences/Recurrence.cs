@@ -48,6 +48,13 @@ public sealed class Recurrence : AuditableEntity
     /// <summary>Paiement en N fois (E2) : libellé numéroté, et fin après <see cref="Count"/> échéances.</summary>
     public bool IsInstallment { get; set; }
 
+    /// <summary>Écart de montant admis pour rapprocher une opération importée (E7), en euros ou en pourcentage.</summary>
+    public decimal Tolerance { get; set; }
+
+    public ToleranceUnit ToleranceUnit { get; set; }
+
+    public AmountTolerance AmountTolerance => new(Tolerance, ToleranceUnit);
+
     /// <summary>Date à partir de laquelle les échéances produisent des opérations (création ou changement de règle).</summary>
     public DateOnly GenerateFrom { get; set; }
 

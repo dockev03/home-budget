@@ -55,6 +55,16 @@ public sealed class BackupRestoreTests
             end = "Never",
             isInstallment = false,
         });
+        var ofx = "<OFX><BANKTRANLIST><STMTTRN><DTPOSTED>" + TestScenario.Today.AddDays(-1).ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture)
+            + "<TRNAMT>-12.34<FITID>F1<NAME>ACHAT CB BOULANGERIE</STMTTRN></BANKTRANLIST></OFX>";
+        var content = Convert.ToBase64String(Encoding.ASCII.GetBytes(ofx));
+        await admin.CreateAsync("/api/imports", new
+        {
+            accountId = checking,
+            fileName = "releve.ofx",
+            content,
+            lines = new[] { new { line = 1, acceptMatch = true } },
+        });
     }
 
     private static async Task<string> ExportAsync(ApiClient client)
@@ -92,8 +102,10 @@ public sealed class BackupRestoreTests
 
         var document = JsonNode.Parse(backup)!;
         document["format"]!.GetValue<string>().ShouldBe("home-budget-backup");
-        document["formatVersion"]!.GetValue<int>().ShouldBe(1);
-        document["transactions"]!.AsArray().Count.ShouldBe(3);
+        document["formatVersion"]!.GetValue<int>().ShouldBe(2);
+        document["transactions"]!.AsArray().Count.ShouldBe(4);
+        document["importBatches"]!.AsArray().Count.ShouldBe(1);
+        document["importProfiles"]!.AsArray().Count.ShouldBe(1);
         document["occurrences"]!.AsArray().Count.ShouldBeGreaterThan(0);
         // Ni comptes utilisateurs, ni mots de passe, ni secrets de double authentification.
         backup.ShouldNotContain("passwordHash", Case.Insensitive);
@@ -110,7 +122,7 @@ public sealed class BackupRestoreTests
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var result = await ApiClient.ReadJsonAsync(response);
         result.GetProperty("accounts").GetInt32().ShouldBe(2);
-        result.GetProperty("transactions").GetInt32().ShouldBe(3);
+        result.GetProperty("transactions").GetInt32().ShouldBe(4);
         Comparable(await ExportAsync(admin)).ShouldBe(Comparable(backup));
         (await admin.GetJsonAsync("/api/settings")).GetProperty("periodMode").GetString().ShouldBe("Calendar");
 
@@ -125,6 +137,36 @@ public sealed class BackupRestoreTests
             (await command.ExecuteScalarAsync(TestContext.Current.CancellationToken)).ShouldBe(1L);
         }
         factory.Services.GetRequiredService<BackupService>().List().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Version_1_backup_without_imports_is_still_restored_and_keeps_the_import_profiles()
+    {
+        await using var factory = new HomeBudgetFactory();
+        var admin = await factory.CreateAdminClientAsync();
+        await SeedAsync(admin);
+        var node = JsonNode.Parse(await ExportAsync(admin))!.AsObject();
+        node["formatVersion"] = 1;
+        node.Remove("importProfiles");
+        node.Remove("importBatches");
+        foreach (var t in node["transactions"]!.AsArray())
+        {
+            t!.AsObject().Remove("rawLabel");
+            t.AsObject().Remove("importBatchId");
+            t.AsObject().Remove("importHash");
+        }
+        foreach (var r in node["recurrences"]!.AsArray())
+        {
+            r!.AsObject().Remove("tolerance");
+            r.AsObject().Remove("toleranceUnit");
+        }
+
+        (await RestoreAsync(admin, node.ToJsonString())).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var restored = JsonNode.Parse(await ExportAsync(admin))!;
+        restored["importBatches"]!.AsArray().ShouldBeEmpty();
+        restored["importProfiles"]!.AsArray().Count.ShouldBe(1);
+        restored["recurrences"]![0]!["toleranceUnit"]!.GetValue<string>().ShouldBe("Amount");
     }
 
     [Fact]

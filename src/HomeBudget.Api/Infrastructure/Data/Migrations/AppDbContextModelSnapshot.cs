@@ -187,6 +187,132 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("HomeBudget.Api.Domain.Imports.ImportBatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Created")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Duplicates")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Format")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Matched")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.ToTable("ImportBatches");
+                });
+
+            modelBuilder.Entity("HomeBudget.Api.Domain.Imports.ImportProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("AmountColumn")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("CreditColumn")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("DateColumn")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("DateFormat")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("DebitColumn")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<char>("DecimalSeparator")
+                        .HasColumnType("TEXT");
+
+                    b.Property<char>("Delimiter")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("LabelColumn")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("ImportProfiles");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("019ab7a0-0000-7000-8000-000000000001"),
+                            AmountColumn = 3,
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 11, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            DateColumn = 1,
+                            DateFormat = "dd/MM/yyyy",
+                            DecimalSeparator = ',',
+                            Delimiter = ';',
+                            LabelColumn = 2,
+                            Name = "La Banque Postale (CSV)",
+                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 11, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Version = 1
+                        });
+                });
+
             modelBuilder.Entity("HomeBudget.Api.Domain.Payees.Payee", b =>
                 {
                     b.Property<Guid>("Id")
@@ -287,6 +413,14 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<Guid?>("ToAccountId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Tolerance")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ToleranceUnit")
+                        .IsRequired()
+                        .HasMaxLength(32)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Unit")
@@ -439,6 +573,13 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.Property<DateOnly>("Date")
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("ImportBatchId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ImportHash")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("IsCleared")
                         .HasColumnType("INTEGER");
 
@@ -451,6 +592,10 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<Guid?>("PayeeId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RawLabel")
+                        .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
                     b.Property<Guid?>("TransferId")
@@ -470,11 +615,17 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
 
                     b.HasIndex("Date");
 
+                    b.HasIndex("ImportBatchId");
+
                     b.HasIndex("PayeeId");
 
                     b.HasIndex("TransferId");
 
                     b.HasIndex("AccountId", "Date");
+
+                    b.HasIndex("AccountId", "ImportHash")
+                        .IsUnique()
+                        .HasFilter("\"ImportHash\" IS NOT NULL");
 
                     b.ToTable("Transactions");
                 });
@@ -728,6 +879,15 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("HomeBudget.Api.Domain.Imports.ImportBatch", b =>
+                {
+                    b.HasOne("HomeBudget.Api.Domain.Accounts.Account", null)
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("HomeBudget.Api.Domain.Recurrences.Recurrence", b =>
                 {
                     b.HasOne("HomeBudget.Api.Domain.Accounts.Account", null)
@@ -773,6 +933,11 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                         .HasForeignKey("AccountId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("HomeBudget.Api.Domain.Imports.ImportBatch", null)
+                        .WithMany()
+                        .HasForeignKey("ImportBatchId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("HomeBudget.Api.Domain.Payees.Payee", null)
                         .WithMany()

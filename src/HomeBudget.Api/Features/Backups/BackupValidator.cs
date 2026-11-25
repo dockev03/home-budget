@@ -1,3 +1,4 @@
+using HomeBudget.Api.Domain.Imports;
 using HomeBudget.Api.Domain.Payees;
 using HomeBudget.Api.Domain.Periods;
 using HomeBudget.Api.Domain.Recurrences;
@@ -22,7 +23,7 @@ public static class BackupValidator
             errors.Add("Ce fichier n'est pas une sauvegarde Home Budget.");
             return errors.List;
         }
-        if (document.FormatVersion != BackupDocument.CurrentVersion)
+        if (document.FormatVersion is < BackupDocument.MinVersion or > BackupDocument.CurrentVersion)
         {
             errors.Add($"Version de format {document.FormatVersion} non prise en charge (attendue : {BackupDocument.CurrentVersion}).");
             return errors.List;
@@ -42,6 +43,17 @@ public static class BackupValidator
             errors.Add("Fichier invalide : un élément de liste est vide (null).");
             return errors.List;
         }
+        var hasImports = document.FormatVersion >= 2;
+        if (hasImports && (document.ImportProfiles is null || document.ImportBatches is null))
+        {
+            errors.Add("Fichier incomplet : profils de lecture et historique des imports attendus.");
+            return errors.List;
+        }
+        if (hasImports && (document.ImportProfiles!.Contains(null) || document.ImportBatches!.Contains(null)))
+        {
+            errors.Add("Fichier invalide : un élément de liste est vide (null).");
+            return errors.List;
+        }
 
         ValidateSettings(settings, errors);
         var accountIds = UniqueIds("compte", accounts.Select(a => a!.Id), errors);
@@ -51,6 +63,8 @@ public static class BackupValidator
         var transactionIds = UniqueIds("opération", transactions.Select(t => t!.Id), errors);
         var recurrenceIds = UniqueIds("récurrence", recurrences.Select(r => r!.Id), errors);
         UniqueIds("échéance", occurrences.Select(o => o!.Id), errors);
+        var batchIds = UniqueIds("import", (document.ImportBatches ?? []).Select(b => b!.Id), errors);
+        UniqueIds("profil de lecture", (document.ImportProfiles ?? []).Select(p => p!.Id), errors);
 
         foreach (var a in accounts.OfType<BackupAccount>())
         {
@@ -120,6 +134,7 @@ public static class BackupValidator
         }
 
         var lineIds = new HashSet<Guid>();
+        var importHashes = new HashSet<(Guid, string)>();
         foreach (var t in transactions.OfType<BackupTransaction>())
         {
             var where = $"Opération {t.Id}";
@@ -127,6 +142,13 @@ public static class BackupValidator
             OptionalReference(where, "tiers", t.PayeeId, payeeIds, errors);
             Text(where, "libellé", t.Label, 200, required: false, errors);
             Text(where, "notes", t.Notes, 2000, required: false, errors);
+            Text(where, "libellé bancaire", t.RawLabel, StatementText.MaxLabelLength, required: false, errors);
+            OptionalReference(where, "import", t.ImportBatchId, batchIds, errors);
+            if (Text(where, "empreinte d'import", t.ImportHash, 100, required: false, errors)
+                && t.ImportHash is { } hash && !importHashes.Add((t.AccountId, hash)))
+            {
+                errors.Add($"{where} : empreinte d'import en double dans le compte.");
+            }
             Audit(where, t.Audit, errors);
             if (t.Lines is not { Count: > 0 and <= 50 } lines || lines.Contains(null))
             {
@@ -158,6 +180,10 @@ public static class BackupValidator
             Defined(where, r.Mode, errors);
             Defined(where, r.Unit, errors);
             Defined(where, r.End, errors);
+            if (!new AmountTolerance(r.Tolerance, r.ToleranceUnit).IsValid)
+            {
+                errors.Add($"{where} : tolérance invalide.");
+            }
             if (r.Interval is < 1 or > RecurrenceRule.MaxInterval || r.Count is < 1 or > RecurrenceRule.MaxCount)
             {
                 errors.Add($"{where} : intervalle ou nombre d'échéances invalide.");
@@ -181,6 +207,36 @@ public static class BackupValidator
                 errors.Add($"{where} : rang négatif.");
             }
             Audit(where, o.Audit, errors);
+        }
+
+        var profileNames = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var p in (document.ImportProfiles ?? []).OfType<BackupImportProfile>())
+        {
+            var where = $"Profil de lecture {p.Id}";
+            if (Text(where, "nom", p.Name, 60, required: true, errors) && !profileNames.Add(p.Name!.Trim()))
+            {
+                errors.Add($"{where} : nom en double.");
+            }
+            var options = new CsvOptions(
+                p.Delimiter, p.DateFormat ?? string.Empty, p.DecimalSeparator, p.DateColumn, p.LabelColumn, p.AmountColumn, p.DebitColumn, p.CreditColumn);
+            if (options.Validate().Count > 0)
+            {
+                errors.Add($"{where} : réglages invalides.");
+            }
+            Audit(where, p.Audit, errors);
+        }
+
+        foreach (var b in (document.ImportBatches ?? []).OfType<BackupImportBatch>())
+        {
+            var where = $"Import {b.Id}";
+            Reference(where, "compte", b.AccountId, accountIds, errors);
+            Text(where, "nom de fichier", b.FileName, 200, required: true, errors);
+            Defined(where, b.Format, errors);
+            if (b.Created < 0 || b.Matched < 0 || b.Duplicates < 0 || b.Matched > b.Created)
+            {
+                errors.Add($"{where} : compteurs invalides.");
+            }
+            Audit(where, b.Audit, errors);
         }
 
         return errors.List;

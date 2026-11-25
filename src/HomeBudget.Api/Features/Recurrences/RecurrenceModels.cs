@@ -7,6 +7,8 @@ namespace HomeBudget.Api.Features.Recurrences;
 /// <param name="ToAccountId">Compte de destination : la récurrence est alors un virement (montant positif).</param>
 /// <param name="Amount">Montant signé (négatif pour une dépense) ; positif pour un virement.</param>
 /// <param name="IsInstallment">Paiement en N fois : fin après <paramref name="Count"/> échéances, libellé numéroté.</param>
+/// <param name="Tolerance">Écart de montant admis pour rapprocher une opération importée (E7) ; 0 par défaut.</param>
+/// <param name="ToleranceUnit">Unité de la tolérance : euros (par défaut) ou pourcentage du montant.</param>
 public sealed record RecurrenceRequest(
     [property: Required, StringLength(200, MinimumLength = 1)] string Label,
     Guid AccountId,
@@ -22,7 +24,9 @@ public sealed record RecurrenceRequest(
     RecurrenceEnd End,
     DateOnly? EndDate,
     int? Count,
-    bool IsInstallment);
+    bool IsInstallment,
+    [property: Range(0, 999_999_999)] decimal? Tolerance = null,
+    ToleranceUnit? ToleranceUnit = null);
 
 /// <param name="NextDate">Prochaine échéance attendue (une échéance à valider en retard compte) ; null si terminée.</param>
 /// <param name="PendingCount">Échéances en attente de validation.</param>
@@ -44,6 +48,8 @@ public sealed record RecurrenceDto(
     DateOnly? EndDate,
     int? Count,
     bool IsInstallment,
+    decimal Tolerance,
+    ToleranceUnit ToleranceUnit,
     DateOnly? NextDate,
     int PendingCount,
     int Version);

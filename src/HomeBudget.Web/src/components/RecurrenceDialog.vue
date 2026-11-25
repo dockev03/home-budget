@@ -44,6 +44,8 @@ const end = ref<RecurrenceEnd>('Never')
 const endDate = ref<string | null>(null)
 const count = ref('')
 const isInstallment = ref(false)
+const tolerance = ref('0')
+const toleranceUnit = ref<'Amount' | 'Percent'>('Amount')
 
 const valid = ref(false)
 const saving = ref(false)
@@ -75,6 +77,11 @@ const amountRule = (v: string) => {
   const value = parseAmount(v)
   if (value === null) return 'Montant invalide (2 décimales au plus).'
   return value > 0 || 'Montant positif attendu.'
+}
+const toleranceRule = (v: string) => {
+  const value = parseAmount(v)
+  if (value === null || value < 0) return 'Tolérance invalide.'
+  return toleranceUnit.value !== 'Percent' || value <= 100 || '100 % au plus.'
 }
 const intervalRule = (v: string) => (/^\d{1,3}$/.test(v) && Number(v) >= 1 ? true : 'De 1 à 999.')
 const differentAccount = (v: string | null) => v !== accountId.value || 'Choisissez deux comptes différents.'
@@ -113,6 +120,8 @@ async function reset() {
     endDate.value = null
     count.value = ''
     isInstallment.value = false
+    tolerance.value = '0'
+    toleranceUnit.value = 'Amount'
     return
   }
   kind.value = r.toAccountId ? 'transfer' : r.amount > 0 ? 'income' : 'expense'
@@ -131,6 +140,8 @@ async function reset() {
   endDate.value = r.endDate
   count.value = r.count ? String(r.count) : ''
   isInstallment.value = r.isInstallment
+  tolerance.value = String(r.tolerance).replace('.', ',')
+  toleranceUnit.value = r.toleranceUnit
 }
 
 watch(visible, (open) => {
@@ -169,6 +180,8 @@ async function save() {
     endDate: end.value === 'OnDate' ? endDate.value : null,
     count: end.value === 'AfterCount' ? Number(count.value) : null,
     isInstallment: isInstallment.value,
+    tolerance: roundCents(parseAmount(tolerance.value) ?? 0),
+    toleranceUnit: toleranceUnit.value,
   }
   try {
     if (props.recurrence) {
@@ -288,6 +301,29 @@ async function remove() {
               <v-list-item v-bind="itemProps" :subtitle="categoryKindTitle(item.kind)" />
             </template>
           </v-autocomplete>
+
+          <v-row v-if="kind !== 'transfer'" dense>
+            <v-col cols="7" sm="6">
+              <v-text-field
+                v-model="tolerance"
+                label="Tolérance de montant"
+                inputmode="decimal"
+                hint="Écart admis pour reconnaître l’opération dans un relevé importé"
+                persistent-hint
+                :rules="[toleranceRule]"
+              />
+            </v-col>
+            <v-col cols="5" sm="3">
+              <v-select
+                v-model="toleranceUnit"
+                :items="[
+                  { value: 'Amount', title: '€' },
+                  { value: 'Percent', title: '%' },
+                ]"
+                label="Unité"
+              />
+            </v-col>
+          </v-row>
 
           <v-row dense align="center">
             <v-col cols="5" sm="3">

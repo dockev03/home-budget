@@ -86,26 +86,7 @@ public static class BudgetEndpoints
             return PeriodEndpoints.UnknownPeriod();
         }
 
-        var categories = await db.Categories.AsNoTracking().ToListAsync(ct);
-        var budgets = await db.CategoryBudgets.AsNoTracking().ToDictionaryAsync(b => b.CategoryId, ct);
-
-        // Réalisé : lignes de la période regroupées en SQL. Les lignes de virement sans catégorie sont
-        // exclues (R5) ; seule la ligne d'un virement vers l'épargne porte une catégorie.
-        var sums = await db.TransactionLines.AsNoTracking()
-            .Join(db.Transactions, l => l.TransactionId, t => t.Id, (l, t) => new { l.CategoryId, l.Amount, t.Date, IsTransfer = t.TransferId != null })
-            .Where(x => x.Date >= period.Start && x.Date <= period.End && !(x.CategoryId == null && x.IsTransfer))
-            .GroupBy(x => x.CategoryId)
-            .Select(g => new { CategoryId = g.Key, Sum = g.Sum(x => x.Amount) })
-            .ToListAsync(ct);
-        var actualSums = sums.Where(s => s.CategoryId is not null).ToDictionary(s => s.CategoryId!.Value, s => s.Sum);
-        var uncategorized = sums.Where(s => s.CategoryId is null).Sum(s => s.Sum);
-
-        var result = BudgetCalculator.Compute(new BudgetInput(
-            categories.Select(c => new BudgetCategory(
-                c.Id, c.ParentId, c.Kind, budgets.GetValueOrDefault(c.Id)?.Mode, budgets.GetValueOrDefault(c.Id)?.Value ?? 0m)).ToList(),
-            actualSums,
-            await schedule.GetScheduledSumsAsync(period, ct),
-            new BudgetThresholds(settings.BudgetWarningPercent, settings.BudgetAlertPercent)));
+        var (categories, budgets, result, uncategorized) = await ComputeAsync(db, settings, period, schedule, ct);
 
         // Une catégorie archivée n'apparaît que si elle a encore un budget ou du réalisé sur la période.
         bool Visible(Category c) =>
@@ -130,6 +111,34 @@ public static class BudgetEndpoints
             settings.BudgetWarningPercent,
             settings.BudgetAlertPercent,
             lines));
+    }
+
+    /// <summary>Calcul du budget d'une période, partagé avec la prévision.</summary>
+    /// <returns>Les catégories, les budgets définis, le résultat, et la somme des opérations sans catégorie.</returns>
+    internal static async Task<(List<Category> Categories, Dictionary<Guid, CategoryBudget> Budgets, BudgetResult Result, decimal Uncategorized)>
+        ComputeAsync(AppDbContext db, Domain.Settings.HouseholdSettings settings, Domain.Periods.Period period, IBudgetScheduleSource schedule, CancellationToken ct)
+    {
+        var categories = await db.Categories.AsNoTracking().ToListAsync(ct);
+        var budgets = await db.CategoryBudgets.AsNoTracking().ToDictionaryAsync(b => b.CategoryId, ct);
+
+        // Réalisé : lignes de la période regroupées en SQL. Les lignes de virement sans catégorie sont
+        // exclues (R5) ; seule la ligne d'un virement vers l'épargne porte une catégorie.
+        var sums = await db.TransactionLines.AsNoTracking()
+            .Join(db.Transactions, l => l.TransactionId, t => t.Id, (l, t) => new { l.CategoryId, l.Amount, t.Date, IsTransfer = t.TransferId != null })
+            .Where(x => x.Date >= period.Start && x.Date <= period.End && !(x.CategoryId == null && x.IsTransfer))
+            .GroupBy(x => x.CategoryId)
+            .Select(g => new { CategoryId = g.Key, Sum = g.Sum(x => x.Amount) })
+            .ToListAsync(ct);
+        var actualSums = sums.Where(s => s.CategoryId is not null).ToDictionary(s => s.CategoryId!.Value, s => s.Sum);
+        var uncategorized = sums.Where(s => s.CategoryId is null).Sum(s => s.Sum);
+
+        var result = BudgetCalculator.Compute(new BudgetInput(
+            categories.Select(c => new BudgetCategory(
+                c.Id, c.ParentId, c.Kind, budgets.GetValueOrDefault(c.Id)?.Mode, budgets.GetValueOrDefault(c.Id)?.Value ?? 0m)).ToList(),
+            actualSums,
+            await schedule.GetScheduledSumsAsync(period, ct),
+            new BudgetThresholds(settings.BudgetWarningPercent, settings.BudgetAlertPercent)));
+        return (categories, budgets, result, uncategorized);
     }
 
     private static async Task<IResult> SetAsync(Guid categoryId, CategoryBudgetRequest request, HttpRequest http, AppDbContext db)

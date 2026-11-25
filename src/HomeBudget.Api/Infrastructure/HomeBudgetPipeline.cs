@@ -3,8 +3,10 @@ using HomeBudget.Api.Features.Accounts;
 using HomeBudget.Api.Features.Auth;
 using HomeBudget.Api.Features.Budgets;
 using HomeBudget.Api.Features.Categories;
+using HomeBudget.Api.Features.Forecasts;
 using HomeBudget.Api.Features.Payees;
 using HomeBudget.Api.Features.Periods;
+using HomeBudget.Api.Features.Recurrences;
 using HomeBudget.Api.Features.Settings;
 using HomeBudget.Api.Features.Setup;
 using HomeBudget.Api.Features.Transactions;
@@ -61,6 +63,8 @@ public static class HomeBudgetPipeline
         app.MapSettingsEndpoints();
         app.MapPeriodEndpoints();
         app.MapBudgetEndpoints();
+        app.MapRecurrenceEndpoints();
+        app.MapForecastEndpoints();
 
         app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
         app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") }).AllowAnonymous();

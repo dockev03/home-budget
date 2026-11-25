@@ -4,6 +4,7 @@ using HomeBudget.Api.Infrastructure.Security;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace HomeBudget.Tests.Infrastructure;
@@ -26,7 +27,16 @@ public class HomeBudgetFactory : WebApplicationFactory<Program>
         builder.UseSetting("HB:SetupToken", TestData.SetupToken);
         // La sauvegarde automatique est testée à part (BackupTests), en l'appelant directement.
         builder.UseSetting("HB:Backup:Enabled", "false");
+        // Les échéances sont traitées à la saisie de la récurrence ; le traitement de fond est testé à part.
+        builder.UseSetting("HB:Recurrences:Enabled", "false");
+        if (Today is { } today)
+        {
+            builder.ConfigureTestServices(s => s.AddSingleton<TimeProvider>(new FixedTimeProvider(today)));
+        }
     }
+
+    /// <summary>Date du jour imposée à l'application (null : la vraie date).</summary>
+    public DateOnly? Today { get; init; }
 
     public string DataPath => _dataPath;
 

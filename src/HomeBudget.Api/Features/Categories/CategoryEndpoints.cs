@@ -130,12 +130,14 @@ public static class CategoryEndpoints
         {
             return precondition;
         }
-        if (await db.Categories.AnyAsync(c => c.ParentId == id) || await db.TransactionLines.AnyAsync(l => l.CategoryId == id))
+        if (await db.Categories.AnyAsync(c => c.ParentId == id)
+            || await db.TransactionLines.AnyAsync(l => l.CategoryId == id)
+            || await db.Recurrences.AnyAsync(r => r.CategoryId == id))
         {
             return TypedResults.Problem(
                 statusCode: StatusCodes.Status409Conflict,
                 title: "Cette catégorie est utilisée.",
-                detail: "Elle a des sous-catégories ou des opérations : archivez-la plutôt.");
+                detail: "Elle a des sous-catégories, des opérations ou des récurrences : archivez-la plutôt.");
         }
         db.Categories.Remove(category);
         return await db.TrySaveAsync() ? TypedResults.NoContent() : Concurrency.Conflict();

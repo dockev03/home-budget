@@ -20,7 +20,8 @@ public sealed record TransactionExportRow(
     bool IsCleared,
     string? TransferAccount,
     string? Notes,
-    Guid TransactionId);
+    Guid TransactionId,
+    string Tags = "");
 
 /// <summary>Écriture de l'export des opérations (H5) en CSV « Excel français » ou en classeur .xlsx.</summary>
 public static class TransactionExportWriter
@@ -28,7 +29,7 @@ public static class TransactionExportWriter
     public static readonly IReadOnlyList<string> Headers =
     [
         "Date", "Compte", "Tiers", "Libellé", "Catégorie", "Sous-catégorie", "Type", "Montant", "Mémo",
-        "Montant de l'opération", "Pointée", "Virement avec", "Notes", "Identifiant de l'opération",
+        "Montant de l'opération", "Pointée", "Virement avec", "Notes", "Identifiant de l'opération", "Tags",
     ];
 
     // Virgule décimale, signe moins ASCII et aucun séparateur de milliers : relu tel quel par Excel en français.
@@ -57,6 +58,7 @@ public static class TransactionExportWriter
                 Text(row.TransferAccount),
                 Text(row.Notes),
                 row.TransactionId.ToString(),
+                Text(row.Tags),
             ]);
         }
         return [.. Encoding.UTF8.GetPreamble(), .. Encoding.UTF8.GetBytes(csv.ToString())];
@@ -91,13 +93,14 @@ public static class TransactionExportWriter
             sheet.Cell(r, 12).Value = Str(row.TransferAccount);
             sheet.Cell(r, 13).Value = Str(row.Notes);
             sheet.Cell(r, 14).Value = row.TransactionId.ToString();
+            sheet.Cell(r, 15).Value = Str(row.Tags.Length == 0 ? null : row.Tags);
         }
 
         sheet.Column(1).Style.DateFormat.Format = "dd/mm/yyyy";
         sheet.Column(8).Style.NumberFormat.Format = "#,##0.00 \"€\";-#,##0.00 \"€\"";
         sheet.Column(10).Style.NumberFormat.Format = "#,##0.00 \"€\";-#,##0.00 \"€\"";
         // Largeurs fixes : l'ajustement automatique dépend des polices installées sur le serveur.
-        double[] widths = [12, 20, 24, 30, 20, 20, 16, 14, 24, 14, 9, 20, 30, 38];
+        double[] widths = [12, 20, 24, 30, 20, 20, 16, 14, 24, 14, 9, 20, 30, 38, 24];
         for (var c = 0; c < widths.Length; c++)
         {
             sheet.Column(c + 1).Width = widths[c];

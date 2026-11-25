@@ -42,6 +42,7 @@ public static partial class ExportEndpoints
         decimal? maxAmount,
         string? search,
         bool? cleared,
+        Guid? tagId,
         CancellationToken ct)
     {
         var kind = (format ?? "csv").ToLowerInvariant();
@@ -50,7 +51,7 @@ public static partial class ExportEndpoints
             return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["format"] = ["Format attendu : csv ou xlsx."] });
         }
 
-        var filter = new TransactionFilter(accountId, categoryId, payeeId, from, to, minAmount, maxAmount, search, cleared);
+        var filter = new TransactionFilter(accountId, categoryId, payeeId, from, to, minAmount, maxAmount, search, cleared, tagId);
         var rows = await LoadRowsAsync(db, filter, ct);
 
         LogExport(loggers.CreateLogger("HomeBudget.Exports"), user.Identity?.Name, kind, rows.Count);
@@ -81,6 +82,7 @@ public static partial class ExportEndpoints
                 l.Amount,
                 l.Memo,
                 l.SortOrder,
+                LineId = l.Id,
             })
             .OrderBy(x => x.Date).ThenBy(x => x.Id).ThenBy(x => x.SortOrder)
             .ToListAsync(ct);
@@ -88,6 +90,10 @@ public static partial class ExportEndpoints
         var accounts = await db.Accounts.AsNoTracking().ToDictionaryAsync(a => a.Id, a => a.Name, ct);
         var payees = await db.Payees.AsNoTracking().ToDictionaryAsync(p => p.Id, p => p.Name, ct);
         var categories = await db.Categories.AsNoTracking().ToDictionaryAsync(c => c.Id, ct);
+        var tags = (await db.TransactionLines.AsNoTracking()
+                .SelectMany(l => l.Tags, (l, g) => new { l.Id, g.Name })
+                .ToListAsync(ct))
+            .ToLookup(x => x.Id, x => x.Name);
         var transfers = (await db.Transactions.AsNoTracking()
                 .Where(t => t.TransferId != null)
                 .Select(t => new { t.Id, TransferId = t.TransferId!.Value, t.AccountId })
@@ -113,7 +119,8 @@ public static partial class ExportEndpoints
                 x.IsCleared,
                 counterpart is null ? null : accounts.GetValueOrDefault(counterpart.AccountId),
                 x.Notes,
-                x.Id);
+                x.Id,
+                string.Join(", ", tags[x.LineId].Order(StringComparer.CurrentCultureIgnoreCase)));
         })];
     }
 

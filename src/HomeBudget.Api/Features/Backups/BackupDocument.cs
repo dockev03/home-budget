@@ -26,14 +26,22 @@ public sealed record BackupDocument(
     List<BackupRecurrence?>? Recurrences,
     List<BackupOccurrence?>? Occurrences,
     List<BackupImportProfile?>? ImportProfiles = null,
-    List<BackupImportBatch?>? ImportBatches = null)
+    List<BackupImportBatch?>? ImportBatches = null,
+    List<BackupTag?>? Tags = null,
+    List<BackupLabelRule?>? LabelRules = null)
 {
     public const string FormatName = "home-budget-backup";
 
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     /// <summary>Version 1 : sans profils ni historique d'import (étapes 1 à 4), toujours restaurable.</summary>
     public const int MinVersion = 1;
+
+    /// <summary>Version 2 : profils et historique d'import (étape 5), sans tags ni règles apprises.</summary>
+    public const int ImportsVersion = 2;
+
+    /// <summary>Version 3 : tags des lignes et règles apprises (étape 6).</summary>
+    public const int TagsVersion = 3;
 }
 
 /// <summary>Traçabilité (K2) et version de concurrence, conservées à la restauration.</summary>
@@ -74,7 +82,11 @@ public sealed record BackupPayee(Guid Id, string? Name, BackupAudit? Audit);
 
 public sealed record BackupBudget(Guid Id, Guid CategoryId, BudgetMode Mode, decimal Value, BackupAudit? Audit);
 
-public sealed record BackupTransactionLine(Guid Id, Guid? CategoryId, decimal Amount, string? Memo);
+public sealed record BackupTransactionLine(Guid Id, Guid? CategoryId, decimal Amount, string? Memo, List<Guid>? TagIds = null);
+
+public sealed record BackupTag(Guid Id, string? Name, BackupAudit? Audit);
+
+public sealed record BackupLabelRule(Guid Id, string? Key, Guid? PayeeId, Guid? CategoryId, BackupAudit? Audit);
 
 public sealed record BackupTransaction(
     Guid Id,

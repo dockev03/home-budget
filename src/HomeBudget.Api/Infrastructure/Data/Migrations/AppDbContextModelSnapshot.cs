@@ -504,6 +504,50 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.ToTable("RecurrenceOccurrences");
                 });
 
+            modelBuilder.Entity("HomeBudget.Api.Domain.Rules.LabelRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("PayeeId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.HasIndex("PayeeId");
+
+                    b.ToTable("LabelRules");
+                });
+
             modelBuilder.Entity("HomeBudget.Api.Domain.Settings.HouseholdSettings", b =>
                 {
                     b.Property<Guid>("Id")
@@ -551,6 +595,45 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("HouseholdSettings");
+                });
+
+            modelBuilder.Entity("HomeBudget.Api.Domain.Tags.Tag", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique();
+
+                    b.ToTable("Tags");
                 });
 
             modelBuilder.Entity("HomeBudget.Api.Domain.Transactions.Transaction", b =>
@@ -854,6 +937,21 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("TransactionLineTag", b =>
+                {
+                    b.Property<Guid>("TransactionLineId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TagId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("TransactionLineId", "TagId");
+
+                    b.HasIndex("TagId");
+
+                    b.ToTable("TransactionLineTag");
+                });
+
             modelBuilder.Entity("HomeBudget.Api.Domain.Accounts.Account", b =>
                 {
                     b.HasOne("HomeBudget.Api.Domain.Users.AppUser", null)
@@ -923,6 +1021,19 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.HasOne("HomeBudget.Api.Domain.Transactions.Transaction", null)
                         .WithMany()
                         .HasForeignKey("TransactionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("HomeBudget.Api.Domain.Rules.LabelRule", b =>
+                {
+                    b.HasOne("HomeBudget.Api.Domain.Categories.Category", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("HomeBudget.Api.Domain.Payees.Payee", null)
+                        .WithMany()
+                        .HasForeignKey("PayeeId")
                         .OnDelete(DeleteBehavior.SetNull);
                 });
 
@@ -1006,6 +1117,21 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.HasOne("HomeBudget.Api.Domain.Users.AppUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TransactionLineTag", b =>
+                {
+                    b.HasOne("HomeBudget.Api.Domain.Tags.Tag", null)
+                        .WithMany()
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HomeBudget.Api.Domain.Transactions.TransactionLine", null)
+                        .WithMany()
+                        .HasForeignKey("TransactionLineId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

@@ -15,7 +15,8 @@ public sealed record TransactionFilter(
     decimal? MinAmount,
     decimal? MaxAmount,
     string? Search,
-    bool? Cleared)
+    bool? Cleared,
+    Guid? TagId = null)
 {
     public async Task<IQueryable<Transaction>> ApplyAsync(AppDbContext db, IQueryable<Transaction> query, CancellationToken ct = default)
     {
@@ -28,6 +29,10 @@ public sealed record TransactionFilter(
             // Une catégorie principale inclut ses sous-catégories.
             var ids = await db.Categories.Where(c => c.Id == category || c.ParentId == category).Select(c => c.Id).ToListAsync(ct);
             query = query.Where(t => t.Lines.Any(l => l.CategoryId != null && ids.Contains(l.CategoryId.Value)));
+        }
+        if (TagId is { } tag)
+        {
+            query = query.Where(t => t.Lines.Any(l => l.Tags.Any(g => g.Id == tag)));
         }
         if (PayeeId is { } payee)
         {

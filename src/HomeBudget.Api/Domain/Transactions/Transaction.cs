@@ -1,3 +1,5 @@
+using HomeBudget.Api.Domain.Tags;
+
 namespace HomeBudget.Api.Domain.Transactions;
 
 /// <summary>
@@ -59,4 +61,7 @@ public sealed class TransactionLine : Entity
     public string? Memo { get; set; }
 
     public int SortOrder { get; set; }
+
+    /// <summary>Tags libres de la ligne (C4).</summary>
+    public List<Tag> Tags { get; set; } = [];
 }

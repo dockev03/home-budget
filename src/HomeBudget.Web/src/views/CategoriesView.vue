@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { mdiPlus } from '@mdi/js'
 import CategoryDialog from '@/components/CategoryDialog.vue'
+import LearnedRulesCard from '@/components/LearnedRulesCard.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useReferenceStore, type Category } from '@/stores/reference'
 import { iconPath } from '@/utils/icons'
@@ -109,6 +110,8 @@ onMounted(() => reference.load(true).catch(() => (error.value = 'Chargement impo
     hide-details
     class="mt-2"
   />
+
+  <LearnedRulesCard />
 
   <CategoryDialog
     v-model="dialog"

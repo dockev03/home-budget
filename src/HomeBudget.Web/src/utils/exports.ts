@@ -6,6 +6,7 @@ export type ExportFormat = 'csv' | 'xlsx'
 export interface TransactionFilters {
   accountId: string | null
   categoryId: string | null
+  tagId: string | null
   search: string
   from: string
   to: string
@@ -19,6 +20,7 @@ export function transactionsExportUrl(filters: TransactionFilters, format: Expor
   const query = new URLSearchParams({ format })
   if (filters.accountId) query.set('accountId', filters.accountId)
   if (filters.categoryId) query.set('categoryId', filters.categoryId)
+  if (filters.tagId) query.set('tagId', filters.tagId)
   if (filters.search.trim()) query.set('search', filters.search.trim())
   if (filters.from) query.set('from', filters.from)
   if (filters.to) query.set('to', filters.to)

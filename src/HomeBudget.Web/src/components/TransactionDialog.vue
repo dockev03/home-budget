@@ -1,13 +1,21 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useDisplay } from 'vuetify'
-import { mdiCallSplit, mdiClose, mdiContentCopy, mdiDeleteOutline, mdiPlus } from '@mdi/js'
+import { mdiCallSplit, mdiClose, mdiContentCopy, mdiDeleteOutline, mdiHistory, mdiPlus } from '@mdi/js'
 import { api } from '@/api/client'
 import { ifMatch } from '@/api/concurrency'
 import { ApiError, unwrap } from '@/api/errors'
 import { useReferenceStore } from '@/stores/reference'
-import { useTransactionEditor } from '@/stores/transactionEditor'
-import { formatAmount, parseAmount, roundCents, todayIso } from '@/utils/format'
+import { useTransactionEditor, type Transaction } from '@/stores/transactionEditor'
+import {
+  formatAmount,
+  formatDate,
+  formatSignedAmount,
+  parseAmount,
+  roundCents,
+  todayIso,
+} from '@/utils/format'
+import { cleanTags, correctionOf, isCorrection, recentShortcuts, type Correction } from '@/utils/learning'
 import { categoryKindTitle } from '@/utils/labels'
 import { required } from '@/utils/rules'
 
@@ -16,7 +24,10 @@ interface Line {
   categoryId: string | null
   amount: string
   memo: string
+  tags: string[]
 }
+
+const emptyLine = (): Line => ({ categoryId: null, amount: '', memo: '', tags: [] })
 
 const LAST_ACCOUNT_KEY = 'hb.lastAccountId'
 
@@ -33,11 +44,19 @@ const label = ref('')
 const notes = ref('')
 const isCleared = ref(false)
 const split = ref(false)
-const lines = ref<Line[]>([{ categoryId: null, amount: '', memo: '' }])
+const lines = ref<Line[]>([emptyLine()])
 const transferCategoryId = ref<string | null>(null)
 const transferVersion = ref<number | null>(null)
 
 const payeeItems = ref<string[]>([])
+const tagItems = ref<string[]>([])
+const shortcuts = ref<Transaction[]>([])
+/** Catégorie posée d'après l'historique du tiers (I2), tant que l'utilisateur ne l'a pas changée. */
+const suggestedCategoryId = ref<string | null>(null)
+/** Opérations semblables proposées après une correction (I4), et la correction à leur appliquer. */
+const similar = ref<Transaction[] | null>(null)
+const correction = ref<Correction | null>(null)
+const applying = ref(false)
 const valid = ref(false)
 const saving = ref(false)
 const deleting = ref(false)
@@ -113,11 +132,16 @@ async function reset() {
   error.value = null
   confirmDelete.value = false
   transferVersion.value = null
+  similar.value = null
+  correction.value = null
+  suggestedCategoryId.value = null
   await reference.load()
+  void loadTags()
   const t = source.value
   const duplicate = editor.mode === 'duplicate'
 
   if (!t) {
+    void loadShortcuts()
     kind.value = 'expense'
     accountId.value = defaultAccount()
     toAccountId.value = null
@@ -127,10 +151,11 @@ async function reset() {
     notes.value = ''
     isCleared.value = false
     split.value = false
-    lines.value = [{ categoryId: null, amount: '', memo: '' }]
+    lines.value = [emptyLine()]
     transferCategoryId.value = null
     return
   }
+  shortcuts.value = []
 
   date.value = duplicate ? todayIso() : t.date
   label.value = t.label ?? ''
@@ -144,7 +169,7 @@ async function reset() {
     kind.value = 'transfer'
     accountId.value = transfer.fromAccountId
     toAccountId.value = transfer.toAccountId
-    lines.value = [{ categoryId: null, amount: amountText(transfer.amount), memo: '' }]
+    lines.value = [{ ...emptyLine(), amount: amountText(transfer.amount) }]
     transferCategoryId.value = transfer.categoryId
     transferVersion.value = transfer.version
     split.value = false
@@ -161,6 +186,7 @@ async function reset() {
     categoryId: l.categoryId,
     amount: String(roundCents(l.amount * s)).replace('.', ','),
     memo: l.memo ?? '',
+    tags: [...l.tags],
   }))
   split.value = t.lines.length > 1
 }
@@ -171,6 +197,41 @@ watch(
     if (open) void reset()
   },
 )
+
+async function loadTags() {
+  const { data } = await api.GET('/api/tags')
+  tagItems.value = (data ?? []).map((t) => t.name)
+}
+
+/** Raccourcis « refaire une opération récente » (L5), à la création seulement. */
+async function loadShortcuts() {
+  const { data } = await api.GET('/api/transactions', { params: { query: { limit: 50 } } })
+  shortcuts.value = recentShortcuts(data?.items ?? [])
+}
+
+/** Repart d'une opération récente : mêmes compte, tiers, catégorie et montant, datée du jour. */
+function useShortcut(t: Transaction) {
+  editor.mode = 'duplicate'
+  editor.transaction = t
+  void reset()
+}
+
+/** Catégorie habituelle du tiers choisi (I2), si aucune catégorie n'est encore choisie. */
+let suggestTimer: ReturnType<typeof setTimeout> | undefined
+watch(payeeName, (name) => {
+  clearTimeout(suggestTimer)
+  if (isEdit.value || kind.value === 'transfer' || split.value || !name?.trim()) return
+  const line = lines.value[0]
+  if (line?.categoryId && line.categoryId !== suggestedCategoryId.value) return
+  suggestTimer = setTimeout(async () => {
+    const { data } = await api.GET('/api/suggestions', { params: { query: { payeeName: name } } })
+    const current = lines.value[0]
+    if (!data?.categoryId || !current || payeeName.value !== name) return
+    if (current.categoryId && current.categoryId !== suggestedCategoryId.value) return
+    current.categoryId = data.categoryId
+    suggestedCategoryId.value = data.categoryId
+  }, 300)
+})
 
 let searchTimer: ReturnType<typeof setTimeout> | undefined
 function searchPayees(text: string | null) {
@@ -186,7 +247,7 @@ function searchPayees(text: string | null) {
 function toggleSplit() {
   split.value = !split.value
   if (split.value && lines.value.length === 1) {
-    lines.value.push({ categoryId: null, amount: '', memo: '' })
+    lines.value.push(emptyLine())
   } else if (!split.value) {
     lines.value = [
       { ...lines.value[0]!, amount: total.value ? amountText(total.value) : lines.value[0]!.amount },
@@ -244,16 +305,22 @@ async function save() {
           categoryId: l.categoryId,
           amount: roundCents(sign.value * parseAmount(l.amount)!),
           memo: l.memo || null,
+          tags: cleanTags(l.tags),
         })),
       }
       if (isEdit.value && source.value) {
-        await unwrap(
+        const updated = await unwrap(
           api.PUT('/api/transactions/{id}', {
             params: { path: { id: source.value.id } },
             headers: ifMatch(source.value.version),
             body,
           }),
         )
+        if (await offerSimilar(source.value, updated)) {
+          rememberAccount(accountId.value)
+          await reference.loadAccounts()
+          return
+        }
       } else {
         await unwrap(api.POST('/api/transactions', { body }))
       }
@@ -266,6 +333,50 @@ async function save() {
   } finally {
     saving.value = false
   }
+}
+
+/**
+ * Après une correction du tiers ou de la catégorie (I4) : cherche les opérations de même libellé bancaire à
+ * corriger de la même façon. Renvoie vrai si elles sont proposées (le formulaire reste alors ouvert).
+ */
+async function offerSimilar(before: Transaction, after: Transaction): Promise<boolean> {
+  const change = correctionOf(after)
+  if (!isCorrection(correctionOf(before), change)) return false
+  const { data } = await api.GET('/api/transactions/{id}/similar', { params: { path: { id: after.id } } })
+  if (!data?.length) return false
+  correction.value = change
+  similar.value = data
+  return true
+}
+
+async function applySimilar() {
+  if (!similar.value || !correction.value) return
+  applying.value = true
+  error.value = null
+  try {
+    await unwrap(
+      api.POST('/api/transactions/bulk', {
+        body: {
+          ids: similar.value.map((t) => t.id),
+          category: correction.value.categoryId ? { categoryId: correction.value.categoryId } : null,
+          payeeName: correction.value.payeeName,
+          accountId: null,
+          isCleared: null,
+          addTags: null,
+          removeTags: null,
+        },
+      }),
+    )
+    editor.saved()
+  } catch (e) {
+    error.value = e instanceof ApiError ? e.message : 'Correction impossible.'
+  } finally {
+    applying.value = false
+  }
+}
+
+function similarTitle(t: Transaction): string {
+  return t.payeeName ?? t.label ?? reference.categoryLabel(t.lines[0]?.categoryId)
 }
 
 async function remove() {
@@ -307,152 +418,238 @@ async function remove() {
       <v-card-text>
         <v-alert v-if="error" type="error" variant="tonal" class="mb-4" :text="error" />
 
-        <v-btn-toggle
-          v-model="kind"
-          mandatory
-          divided
-          variant="outlined"
-          color="primary"
-          class="mb-4 w-100"
-          :disabled="isEdit"
-        >
-          <v-btn value="expense" class="flex-grow-1">Dépense</v-btn>
-          <v-btn value="income" class="flex-grow-1">Revenu</v-btn>
-          <v-btn value="transfer" class="flex-grow-1">Virement</v-btn>
-        </v-btn-toggle>
-
-        <v-form v-model="valid" @submit.prevent="save">
-          <v-row dense>
-            <v-col cols="12" sm="6">
-              <v-text-field
-                v-if="!split"
-                v-model="lines[0]!.amount"
-                label="Montant"
-                suffix="€"
-                inputmode="decimal"
-                autofocus
-                :rules="kind === 'transfer' ? [amountRule, positiveRule] : [amountRule]"
-              />
-              <v-text-field v-else :model-value="formatAmount(total)" label="Montant total" readonly />
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-text-field v-model="date" label="Date" type="date" :rules="[required]" />
-            </v-col>
-          </v-row>
-
-          <v-select
-            v-model="accountId"
-            :items="accounts"
-            :label="kind === 'transfer' ? 'Depuis le compte' : 'Compte'"
-            :rules="[required]"
-          />
-
-          <template v-if="kind === 'transfer'">
-            <v-select
-              v-model="toAccountId"
-              :items="accounts"
-              label="Vers le compte"
-              :rules="[required, differentAccount]"
-            />
-            <v-select
-              v-model="transferCategoryId"
-              :items="savingsCategories"
-              label="Catégorie d'épargne (facultatif)"
-              clearable
-              :no-data-text="'Aucune catégorie de type épargne'"
-            />
-          </template>
-
-          <template v-else>
-            <v-combobox
-              v-model="payeeName"
-              :items="payeeItems"
-              label="Tiers"
-              clearable
-              @update:search="searchPayees"
-              @focus="searchPayees(payeeName)"
-            />
-
-            <v-autocomplete
-              v-if="!split"
-              v-model="lines[0]!.categoryId"
-              :items="categoryItems"
-              label="Catégorie"
-              clearable
+        <div v-if="similar" data-testid="similar">
+          <p class="mb-2">
+            Opération enregistrée. {{ similar.length }} autre(s) opération(s) au même libellé bancaire ont un
+            autre tiers ou une autre catégorie. Leur appliquer la même correction ?
+          </p>
+          <p class="text-body-2 text-medium-emphasis mb-2">
+            <template v-if="correction?.payeeName">Tiers : {{ correction.payeeName }}. </template>
+            <template v-if="correction?.categoryId"
+              >Catégorie : {{ reference.categoryLabel(correction.categoryId) }}.</template
             >
-              <template #item="{ props: itemProps, item }">
-                <v-list-item v-bind="itemProps" :subtitle="categoryKindTitle(item.kind)" />
+          </p>
+          <v-list density="compact" class="border rounded">
+            <v-list-item
+              v-for="t in similar.slice(0, 20)"
+              :key="t.id"
+              :title="similarTitle(t)"
+              :subtitle="`${formatDate(t.date)} · ${reference.categoryLabel(t.lines[0]?.categoryId)}`"
+            >
+              <template #append>
+                <span class="text-no-wrap">{{ formatSignedAmount(t.amount) }}</span>
               </template>
-            </v-autocomplete>
+            </v-list-item>
+            <v-list-item v-if="similar.length > 20" :subtitle="`… et ${similar.length - 20} autre(s)`" />
+          </v-list>
+        </div>
 
-            <v-card v-else variant="outlined" class="mb-4 pa-2">
-              <div class="text-subtitle-2 mb-2 px-1">Ventilation</div>
-              <v-row v-for="(line, index) in lines" :key="index" dense align="center">
-                <v-col cols="12" sm="6">
-                  <v-autocomplete
-                    v-model="line.categoryId"
-                    :items="categoryItems"
-                    :label="`Catégorie ${index + 1}`"
-                    density="compact"
-                    hide-details="auto"
-                    clearable
-                  />
-                </v-col>
-                <v-col cols="5" sm="3">
-                  <v-text-field
-                    v-model="line.amount"
-                    label="Montant"
-                    suffix="€"
-                    inputmode="decimal"
-                    density="compact"
-                    hide-details="auto"
-                    :rules="[amountRule]"
-                  />
-                </v-col>
-                <v-col cols="5" sm="2">
-                  <v-text-field
-                    v-model="line.memo"
-                    label="Note"
-                    density="compact"
-                    hide-details
-                    maxlength="200"
-                  />
-                </v-col>
-                <v-col cols="2" sm="1" class="text-right">
-                  <v-btn
-                    :icon="mdiDeleteOutline"
-                    variant="text"
-                    size="small"
-                    :disabled="lines.length <= 1"
-                    :aria-label="`Retirer la ligne ${index + 1}`"
-                    @click="lines.splice(index, 1)"
-                  />
-                </v-col>
-              </v-row>
+        <template v-else>
+          <div v-if="shortcuts.length" class="mb-3" data-testid="shortcuts">
+            <div class="text-caption text-medium-emphasis mb-1">Refaire une opération récente</div>
+            <v-chip-group column>
+              <v-chip
+                v-for="t in shortcuts"
+                :key="t.id"
+                :prepend-icon="mdiHistory"
+                size="small"
+                @click="useShortcut(t)"
+              >
+                {{ similarTitle(t) }} · {{ formatSignedAmount(t.amount) }}
+              </v-chip>
+            </v-chip-group>
+          </div>
+
+          <v-btn-toggle
+            v-model="kind"
+            mandatory
+            divided
+            variant="outlined"
+            color="primary"
+            class="mb-4 w-100"
+            :disabled="isEdit"
+          >
+            <v-btn value="expense" class="flex-grow-1">Dépense</v-btn>
+            <v-btn value="income" class="flex-grow-1">Revenu</v-btn>
+            <v-btn value="transfer" class="flex-grow-1">Virement</v-btn>
+          </v-btn-toggle>
+
+          <v-form v-model="valid" @submit.prevent="save">
+            <v-row dense>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-if="!split"
+                  v-model="lines[0]!.amount"
+                  label="Montant"
+                  suffix="€"
+                  inputmode="decimal"
+                  autofocus
+                  :rules="kind === 'transfer' ? [amountRule, positiveRule] : [amountRule]"
+                />
+                <v-text-field v-else :model-value="formatAmount(total)" label="Montant total" readonly />
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field v-model="date" label="Date" type="date" :rules="[required]" />
+              </v-col>
+            </v-row>
+
+            <v-select
+              v-model="accountId"
+              :items="accounts"
+              :label="kind === 'transfer' ? 'Depuis le compte' : 'Compte'"
+              :rules="[required]"
+            />
+
+            <template v-if="kind === 'transfer'">
+              <v-select
+                v-model="toAccountId"
+                :items="accounts"
+                label="Vers le compte"
+                :rules="[required, differentAccount]"
+              />
+              <v-select
+                v-model="transferCategoryId"
+                :items="savingsCategories"
+                label="Catégorie d'épargne (facultatif)"
+                clearable
+                :no-data-text="'Aucune catégorie de type épargne'"
+              />
+            </template>
+
+            <template v-else>
+              <v-combobox
+                v-model="payeeName"
+                :items="payeeItems"
+                label="Tiers"
+                clearable
+                @update:search="searchPayees"
+                @focus="searchPayees(payeeName)"
+              />
+
+              <v-autocomplete
+                v-if="!split"
+                v-model="lines[0]!.categoryId"
+                :items="categoryItems"
+                label="Catégorie"
+                clearable
+                :hint="
+                  suggestedCategoryId && lines[0]!.categoryId === suggestedCategoryId
+                    ? 'Catégorie habituelle de ce tiers'
+                    : undefined
+                "
+                persistent-hint
+              >
+                <template #item="{ props: itemProps, item }">
+                  <v-list-item v-bind="itemProps" :subtitle="categoryKindTitle(item.kind)" />
+                </template>
+              </v-autocomplete>
+              <v-combobox
+                v-if="!split"
+                v-model="lines[0]!.tags"
+                :items="tagItems"
+                label="Tags"
+                multiple
+                chips
+                closable-chips
+                clearable
+                :delimiters="[',']"
+              />
+
+              <v-card v-else variant="outlined" class="mb-4 pa-2">
+                <div class="text-subtitle-2 mb-2 px-1">Ventilation</div>
+                <v-row v-for="(line, index) in lines" :key="index" dense align="center">
+                  <v-col cols="12" sm="6">
+                    <v-autocomplete
+                      v-model="line.categoryId"
+                      :items="categoryItems"
+                      :label="`Catégorie ${index + 1}`"
+                      density="compact"
+                      hide-details="auto"
+                      clearable
+                    />
+                  </v-col>
+                  <v-col cols="5" sm="3">
+                    <v-text-field
+                      v-model="line.amount"
+                      label="Montant"
+                      suffix="€"
+                      inputmode="decimal"
+                      density="compact"
+                      hide-details="auto"
+                      :rules="[amountRule]"
+                    />
+                  </v-col>
+                  <v-col cols="5" sm="2">
+                    <v-text-field
+                      v-model="line.memo"
+                      label="Note"
+                      density="compact"
+                      hide-details
+                      maxlength="200"
+                    />
+                  </v-col>
+                  <v-col cols="2" sm="1" class="text-right">
+                    <v-btn
+                      :icon="mdiDeleteOutline"
+                      variant="text"
+                      size="small"
+                      :disabled="lines.length <= 1"
+                      :aria-label="`Retirer la ligne ${index + 1}`"
+                      @click="lines.splice(index, 1)"
+                    />
+                  </v-col>
+                  <v-col cols="12" class="pb-3">
+                    <v-combobox
+                      v-model="line.tags"
+                      :items="tagItems"
+                      :label="`Tags ${index + 1}`"
+                      density="compact"
+                      hide-details
+                      multiple
+                      chips
+                      closable-chips
+                      :delimiters="[',']"
+                    />
+                  </v-col>
+                </v-row>
+                <v-btn
+                  :prepend-icon="mdiPlus"
+                  variant="text"
+                  size="small"
+                  class="mt-2"
+                  @click="lines.push(emptyLine())"
+                >
+                  Ajouter une ligne
+                </v-btn>
+              </v-card>
+
               <v-btn
-                :prepend-icon="mdiPlus"
+                :prepend-icon="mdiCallSplit"
                 variant="text"
                 size="small"
-                class="mt-2"
-                @click="lines.push({ categoryId: null, amount: '', memo: '' })"
+                class="mb-4"
+                @click="toggleSplit"
               >
-                Ajouter une ligne
+                {{ split ? 'Ne pas ventiler' : 'Ventiler sur plusieurs catégories' }}
               </v-btn>
-            </v-card>
+            </template>
 
-            <v-btn :prepend-icon="mdiCallSplit" variant="text" size="small" class="mb-4" @click="toggleSplit">
-              {{ split ? 'Ne pas ventiler' : 'Ventiler sur plusieurs catégories' }}
-            </v-btn>
-          </template>
-
-          <v-text-field v-model="label" label="Libellé" maxlength="200" />
-          <v-textarea v-model="notes" label="Note" rows="2" auto-grow maxlength="2000" />
-          <v-checkbox v-if="kind !== 'transfer'" v-model="isCleared" label="Pointée" hide-details />
-          <button type="submit" hidden />
-        </v-form>
+            <v-text-field v-model="label" label="Libellé" maxlength="200" />
+            <v-textarea v-model="notes" label="Note" rows="2" auto-grow maxlength="2000" />
+            <v-checkbox v-if="kind !== 'transfer'" v-model="isCleared" label="Pointée" hide-details />
+            <button type="submit" hidden />
+          </v-form>
+        </template>
       </v-card-text>
 
-      <v-card-actions>
+      <v-card-actions v-if="similar">
+        <v-spacer />
+        <v-btn @click="editor.saved()">Non merci</v-btn>
+        <v-btn color="primary" variant="flat" :loading="applying" @click="applySimilar"
+          >Appliquer aux {{ similar.length }} opération(s)</v-btn
+        >
+      </v-card-actions>
+      <v-card-actions v-else>
         <template v-if="isEdit">
           <v-btn v-if="!confirmDelete" color="error" @click="confirmDelete = true">Supprimer</v-btn>
           <v-btn v-else color="error" variant="flat" :loading="deleting" @click="remove"

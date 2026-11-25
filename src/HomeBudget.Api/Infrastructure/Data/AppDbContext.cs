@@ -5,7 +5,9 @@ using HomeBudget.Api.Domain.Categories;
 using HomeBudget.Api.Domain.Imports;
 using HomeBudget.Api.Domain.Payees;
 using HomeBudget.Api.Domain.Recurrences;
+using HomeBudget.Api.Domain.Rules;
 using HomeBudget.Api.Domain.Settings;
+using HomeBudget.Api.Domain.Tags;
 using HomeBudget.Api.Domain.Transactions;
 using HomeBudget.Api.Domain.Users;
 
@@ -44,6 +46,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<ImportProfile> ImportProfiles => Set<ImportProfile>();
 
     public DbSet<ImportBatch> ImportBatches => Set<ImportBatch>();
+
+    public DbSet<Tag> Tags => Set<Tag>();
+
+    public DbSet<LabelRule> LabelRules => Set<LabelRule>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -121,6 +127,33 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         {
             e.Property(l => l.Memo).HasMaxLength(200);
             e.HasOne<Category>().WithMany().HasForeignKey(l => l.CategoryId).OnDelete(DeleteBehavior.Restrict);
+            e.HasMany(l => l.Tags).WithMany().UsingEntity<Dictionary<string, object>>(
+                "TransactionLineTag",
+                r => r.HasOne<Tag>().WithMany().HasForeignKey("TagId").OnDelete(DeleteBehavior.Cascade),
+                l => l.HasOne<TransactionLine>().WithMany().HasForeignKey("TransactionLineId").OnDelete(DeleteBehavior.Cascade),
+                j =>
+                {
+                    j.HasKey("TransactionLineId", "TagId");
+                    j.HasIndex("TagId");
+                });
+        });
+
+        builder.Entity<Tag>(e =>
+        {
+            ConfigureAudit(e);
+            e.Property(t => t.Name).HasMaxLength(Tag.MaxNameLength);
+            e.Property(t => t.NormalizedName).HasMaxLength(Tag.MaxNameLength);
+            e.HasIndex(t => t.NormalizedName).IsUnique();
+        });
+
+        builder.Entity<LabelRule>(e =>
+        {
+            ConfigureAudit(e);
+            e.Property(r => r.Key).HasMaxLength(LabelKey.MaxLength);
+            e.HasIndex(r => r.Key).IsUnique();
+            // Une catégorie ou un tiers supprimé vide la règle au lieu de bloquer la suppression.
+            e.HasOne<Payee>().WithMany().HasForeignKey(r => r.PayeeId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne<Category>().WithMany().HasForeignKey(r => r.CategoryId).OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<Recurrence>(e =>

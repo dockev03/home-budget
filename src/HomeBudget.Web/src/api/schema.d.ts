@@ -2445,6 +2445,201 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dashboard/{periodKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tableau de bord de la période (clé AAAA-MM) : chiffres clés, dépenses par catégorie, budget comparé au réel et 12 dernières périodes. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    periodKey: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DashboardDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/exports/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Exporte les opérations filtrées (mêmes filtres que la recherche), une ligne par ligne de ventilation. format : csv (défaut) ou xlsx. */
+        get: {
+            parameters: {
+                query?: {
+                    format?: string;
+                    accountId?: string;
+                    categoryId?: string;
+                    payeeId?: string;
+                    from?: string;
+                    to?: string;
+                    minAmount?: number;
+                    maxAmount?: number;
+                    search?: string;
+                    cleared?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/backups/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Télécharge la sauvegarde JSON des données du foyer (sans comptes utilisateurs ni secrets). */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BackupDocument"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/backups/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remplace toutes les données du foyer par la sauvegarde envoyée (validée en entier d'abord, instantané de la base juste avant). Les utilisateurs sont conservés. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["BackupDocument"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RestoreResultDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Payload Too Large */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2498,9 +2693,192 @@ export interface components {
         };
         /** @enum {unknown} */
         AccountType: "Checking" | "Savings" | "Investment" | "Cash" | "Credit";
+        /** @enum {unknown} */
+        AccountVisibility: "Shared" | "Private";
         AuthenticatorSetup: {
             sharedKey: string;
             authenticatorUri: string;
+        };
+        BackupAccount: {
+            /** Format: uuid */
+            id: string;
+            name: null | string;
+            type: components["schemas"]["AccountType"];
+            /** Format: double */
+            initialBalance: number;
+            /** Format: date */
+            initialDate: string;
+            /** Format: uuid */
+            ownerId: null | string;
+            visibility: components["schemas"]["AccountVisibility"];
+            color: null | string;
+            icon: null | string;
+            includeInForecast: boolean;
+            includeInNetWorth: boolean;
+            /** Format: double */
+            overdraftThreshold: number;
+            isArchived: boolean;
+            /** Format: int32 */
+            sortOrder: number;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
+        BackupAudit: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            createdBy: null | string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: uuid */
+            updatedBy: null | string;
+            /** Format: int32 */
+            version: number;
+        };
+        BackupBudget: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            categoryId: string;
+            mode: components["schemas"]["BudgetMode"];
+            /** Format: double */
+            value: number;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
+        BackupCategory: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            parentId: null | string;
+            name: null | string;
+            kind: components["schemas"]["CategoryKind"];
+            color: null | string;
+            icon: null | string;
+            /** Format: int32 */
+            sortOrder: number;
+            isArchived: boolean;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
+        BackupDocument: {
+            format: null | string;
+            /** Format: int32 */
+            formatVersion: number;
+            /** Format: date-time */
+            exportedAt: string;
+            settings: null | components["schemas"]["BackupSettings"];
+            accounts: null | components["schemas"]["BackupAccount"][];
+            categories: null | components["schemas"]["BackupCategory"][];
+            payees: null | components["schemas"]["BackupPayee"][];
+            budgets: null | components["schemas"]["BackupBudget"][];
+            transactions: null | components["schemas"]["BackupTransaction"][];
+            recurrences: null | components["schemas"]["BackupRecurrence"][];
+            occurrences: null | components["schemas"]["BackupOccurrence"][];
+        };
+        BackupOccurrence: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            recurrenceId: string;
+            /** Format: int32 */
+            index: number;
+            /** Format: date */
+            scheduledDate: string;
+            /** Format: date */
+            dueDate: string;
+            status: components["schemas"]["OccurrenceStatus"];
+            /** Format: uuid */
+            transactionId: null | string;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
+        BackupPayee: {
+            /** Format: uuid */
+            id: string;
+            name: null | string;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
+        BackupRecurrence: {
+            /** Format: uuid */
+            id: string;
+            label: null | string;
+            /** Format: uuid */
+            accountId: string;
+            /** Format: uuid */
+            toAccountId: null | string;
+            /** Format: uuid */
+            payeeId: null | string;
+            /** Format: uuid */
+            categoryId: null | string;
+            /** Format: double */
+            amount: number;
+            notes: null | string;
+            mode: components["schemas"]["RecurrenceMode"];
+            /** Format: date */
+            startDate: string;
+            unit: components["schemas"]["FrequencyUnit"];
+            /** Format: int32 */
+            interval: number;
+            end: components["schemas"]["RecurrenceEnd"];
+            /** Format: date */
+            endDate: null | string;
+            /** Format: int32 */
+            count: null | number;
+            isInstallment: boolean;
+            /** Format: date */
+            generateFrom: string;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
+        BackupSettings: {
+            /** Format: uuid */
+            id: string;
+            periodMode: components["schemas"]["PeriodMode"];
+            /** Format: int32 */
+            periodStartDay: number;
+            /** Format: double */
+            safetyThreshold: number;
+            forecastIncludesIncome: boolean;
+            /** Format: int32 */
+            budgetWarningPercent: number;
+            /** Format: int32 */
+            budgetAlertPercent: number;
+            defaultCategoriesCreated: boolean;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
+        BackupTransaction: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            accountId: string;
+            /** Format: date */
+            date: string;
+            /** Format: uuid */
+            payeeId: null | string;
+            label: null | string;
+            notes: null | string;
+            isCleared: boolean;
+            /** Format: uuid */
+            transferId: null | string;
+            lines: null | components["schemas"]["BackupTransactionLine"][];
+            audit: null | components["schemas"]["BackupAudit"];
+        };
+        BackupTransactionLine: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            categoryId: null | string;
+            /** Format: double */
+            amount: number;
+            memo: null | string;
+        };
+        BudgetComparisonDto: {
+            /** Format: uuid */
+            categoryId: string;
+            name: string;
+            color: null | string;
+            kind: components["schemas"]["CategoryKind"];
+            /** Format: double */
+            budgeted: number;
+            /** Format: double */
+            actual: number;
+            status: components["schemas"]["BudgetStatus"];
         };
         BudgetDto: {
             period: components["schemas"]["PeriodDto"];
@@ -2548,6 +2926,15 @@ export interface components {
         BudgetMode: "Amount" | "PercentOfIncome" | "Auto" | null;
         /** @enum {unknown} */
         BudgetStatus: "None" | "Ok" | "Warning" | "Exceeded";
+        CategoryAmountDto: {
+            /** Format: uuid */
+            categoryId: string;
+            name: string;
+            color: null | string;
+            kind: components["schemas"]["CategoryKind"];
+            /** Format: double */
+            amount: number;
+        };
         CategoryBudgetDto: {
             /** Format: uuid */
             categoryId: string;
@@ -2616,6 +3003,13 @@ export interface components {
             roles: string[];
             twoFactorEnabled: boolean;
         };
+        DashboardDto: {
+            period: components["schemas"]["PeriodDto"];
+            keyFigures: components["schemas"]["KeyFiguresDto"];
+            expensesByCategory: components["schemas"]["CategoryAmountDto"][];
+            budgetVsActual: components["schemas"]["BudgetComparisonDto"][];
+            history: components["schemas"]["PeriodTotalsDto"][];
+        };
         EnableTwoFactorRequest: {
             code: string;
         };
@@ -2659,6 +3053,24 @@ export interface components {
             errors?: {
                 [key: string]: string[];
             };
+        };
+        KeyFiguresDto: {
+            /** Format: double */
+            income: number;
+            /** Format: double */
+            expenses: number;
+            /** Format: double */
+            savings: number;
+            /** Format: double */
+            balance: null | number;
+            /** Format: date */
+            balanceDate: null | string;
+            /** Format: double */
+            forecastBalance: null | number;
+            /** Format: double */
+            remainingToLive: null | number;
+            /** Format: double */
+            remainingPerDay: null | number;
         };
         KindTotalsDto: {
             /** Format: double */
@@ -2737,6 +3149,19 @@ export interface components {
         };
         /** @enum {unknown} */
         PeriodMode: "Calendar" | "FixedDay";
+        PeriodTotalsDto: {
+            key: string;
+            /** Format: date */
+            start: string;
+            /** Format: date */
+            end: string;
+            /** Format: double */
+            income: number;
+            /** Format: double */
+            expenses: number;
+            /** Format: double */
+            savings: number;
+        };
         PostponeOccurrenceRequest: {
             /** Format: date */
             date: string;
@@ -2834,6 +3259,23 @@ export interface components {
             savings: number;
             /** Format: double */
             safetyThreshold: number;
+        };
+        RestoreResultDto: {
+            /** Format: int32 */
+            accounts: number;
+            /** Format: int32 */
+            categories: number;
+            /** Format: int32 */
+            payees: number;
+            /** Format: int32 */
+            budgets: number;
+            /** Format: int32 */
+            transactions: number;
+            /** Format: int32 */
+            recurrences: number;
+            /** Format: int32 */
+            occurrences: number;
+            snapshot: string;
         };
         SettingsDto: {
             periodMode: components["schemas"]["PeriodMode"];

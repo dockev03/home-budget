@@ -28,7 +28,7 @@ public sealed class AuditInterceptor(IHttpContextAccessor http, TimeProvider clo
 
     private void Stamp(DbContext? context)
     {
-        if (context is null)
+        if (context is null or AppDbContext { PreserveAuditFields: true })
         {
             return;
         }

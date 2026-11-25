@@ -53,53 +53,8 @@ public static class TransactionEndpoints
         string? cursor,
         int? limit)
     {
-        var query = db.Transactions.AsNoTracking();
-        if (accountId is { } account)
-        {
-            query = query.Where(t => t.AccountId == account);
-        }
-        if (categoryId is { } category)
-        {
-            // Une catégorie principale inclut ses sous-catégories.
-            var ids = await db.Categories.Where(c => c.Id == category || c.ParentId == category).Select(c => c.Id).ToListAsync();
-            query = query.Where(t => t.Lines.Any(l => l.CategoryId != null && ids.Contains(l.CategoryId.Value)));
-        }
-        if (payeeId is { } payee)
-        {
-            query = query.Where(t => t.PayeeId == payee);
-        }
-        if (from is { } start)
-        {
-            query = query.Where(t => t.Date >= start);
-        }
-        if (to is { } end)
-        {
-            query = query.Where(t => t.Date <= end);
-        }
-        // Les bornes de montant portent sur la valeur absolue : « 50 € minimum » vaut pour une dépense comme pour un revenu.
-        if (minAmount is { } min)
-        {
-            var bound = Math.Abs(min);
-            query = query.Where(t => t.Amount >= bound || t.Amount <= -bound);
-        }
-        if (maxAmount is { } max)
-        {
-            var bound = Math.Abs(max);
-            query = query.Where(t => t.Amount <= bound && t.Amount >= -bound);
-        }
-        if (cleared is { } isCleared)
-        {
-            query = query.Where(t => t.IsCleared == isCleared);
-        }
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var pattern = "%" + EscapeLike(search.Trim()) + "%";
-            query = query.Where(t =>
-                EF.Functions.Like(t.Label, pattern, "\\")
-                || EF.Functions.Like(t.Notes, pattern, "\\")
-                || db.Payees.Any(p => p.Id == t.PayeeId && EF.Functions.Like(p.Name, pattern, "\\"))
-                || t.Lines.Any(l => EF.Functions.Like(l.Memo, pattern, "\\")));
-        }
+        var query = await new TransactionFilter(accountId, categoryId, payeeId, from, to, minAmount, maxAmount, search, cleared)
+            .ApplyAsync(db, db.Transactions.AsNoTracking());
         if (cursor is not null)
         {
             if (!TryDecodeCursor(cursor, out var cursorDate, out var cursorId))
@@ -280,11 +235,6 @@ public static class TransactionEndpoints
         detail: "Modifiez ou supprimez le virement lui-même.");
 
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
-    private static string EscapeLike(string value) =>
-        value.Replace("\\", "\\\\", StringComparison.Ordinal)
-            .Replace("%", "\\%", StringComparison.Ordinal)
-            .Replace("_", "\\_", StringComparison.Ordinal);
 
     private static string EncodeCursor(Transaction last) =>
         Convert.ToBase64String(Encoding.UTF8.GetBytes($"{last.Date:yyyy-MM-dd}|{last.Id}"));

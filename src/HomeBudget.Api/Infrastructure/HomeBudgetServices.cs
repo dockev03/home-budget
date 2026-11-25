@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 
 using HomeBudget.Api.Domain.Users;
+using HomeBudget.Api.Features.Backups;
 using HomeBudget.Api.Features.Budgets;
 using HomeBudget.Api.Features.Forecasts;
 using HomeBudget.Api.Features.Recurrences;
@@ -103,6 +104,7 @@ public static class HomeBudgetServices
         services.AddScoped<IBudgetScheduleSource, RecurrenceBudgetSource>();
         services.AddScoped<RecurrenceGenerator>();
         services.AddScoped<ForecastService>();
+        services.AddScoped<BackupRestorer>();
         services.AddHostedService<BackupWorker>();
         services.AddHostedService<RecurrenceWorker>();
         return builder;

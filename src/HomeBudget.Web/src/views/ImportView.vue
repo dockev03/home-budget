@@ -80,6 +80,16 @@ function detail(l: ImportLine): string | null {
   return null
 }
 
+/** Tiers et catégorie d'une règle apprise (I3), posés sur l'opération créée. */
+function suggestion(l: ImportLine): string | null {
+  if (l.status === 'Duplicate' || (l.status === 'Match' && acceptMatch.value.has(l.line))) return null
+  const parts = [
+    l.suggestedPayeeName,
+    l.suggestedCategoryId ? reference.categoryLabel(l.suggestedCategoryId) : null,
+  ].filter(Boolean)
+  return parts.length ? `Règle apprise : ${parts.join(' · ')}` : null
+}
+
 function toggleMatch(line: number, value: boolean | null) {
   const next = new Set(acceptMatch.value)
   if (value) next.add(line)
@@ -289,6 +299,7 @@ onMounted(async () => {
             </v-chip>
           </v-list-item-subtitle>
           <div v-if="detail(l)" class="text-caption text-medium-emphasis">{{ detail(l) }}</div>
+          <div v-if="suggestion(l)" class="text-caption text-primary">{{ suggestion(l) }}</div>
           <v-switch
             v-if="l.status === 'Match'"
             :model-value="acceptMatch.has(l.line)"

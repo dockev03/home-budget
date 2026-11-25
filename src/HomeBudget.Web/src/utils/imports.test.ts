@@ -10,6 +10,8 @@ const line = (n: number, status: ImportLine['status'], amount = -10): ImportLine
   duplicateOfId: null,
   duplicateOfLabel: null,
   duplicateOfDate: null,
+  suggestedPayeeName: null,
+  suggestedCategoryId: null,
   occurrence: null,
 })
 

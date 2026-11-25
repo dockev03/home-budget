@@ -30,8 +30,8 @@ public sealed class BackupRestoreTests
             notes = "Ventilée",
             lines = new object[]
             {
-                new { categoryId = groceries, amount = -82.35m, memo = "Alimentation" },
-                new { categoryId = cinema, amount = -19.90m, memo = (string?)null },
+                new { categoryId = groceries, amount = -82.35m, memo = "Alimentation", tags = new[] { "Vacances", "Famille" } },
+                new { categoryId = cinema, amount = -19.90m, memo = (string?)null, tags = new[] { "Vacances" } },
             },
         });
         await admin.CreateAsync("/api/transfers", new
@@ -65,6 +65,15 @@ public sealed class BackupRestoreTests
             content,
             lines = new[] { new { line = 1, acceptMatch = true } },
         });
+        // Correction de l'opération importée : une règle est apprise.
+        var imported = (await admin.GetJsonAsync("/api/transactions?search=BOULANGERIE")).GetProperty("items")[0];
+        await admin.PutAsync($"/api/transactions/{imported.GetProperty("id").GetGuid()}", new
+        {
+            accountId = checking,
+            date = imported.GetProperty("date").GetString(),
+            payeeName = "Boulangerie Paul",
+            lines = new[] { new { categoryId = groceries, amount = -12.34m } },
+        }, imported.Version());
     }
 
     private static async Task<string> ExportAsync(ApiClient client)
@@ -102,8 +111,10 @@ public sealed class BackupRestoreTests
 
         var document = JsonNode.Parse(backup)!;
         document["format"]!.GetValue<string>().ShouldBe("home-budget-backup");
-        document["formatVersion"]!.GetValue<int>().ShouldBe(2);
+        document["formatVersion"]!.GetValue<int>().ShouldBe(3);
         document["transactions"]!.AsArray().Count.ShouldBe(4);
+        document["tags"]!.AsArray().Count.ShouldBe(2);
+        document["labelRules"]!.AsArray().ShouldHaveSingleItem()!["key"]!.GetValue<string>().ShouldBe("BOULANGERIE");
         document["importBatches"]!.AsArray().Count.ShouldBe(1);
         document["importProfiles"]!.AsArray().Count.ShouldBe(1);
         document["occurrences"]!.AsArray().Count.ShouldBeGreaterThan(0);
@@ -149,11 +160,17 @@ public sealed class BackupRestoreTests
         node["formatVersion"] = 1;
         node.Remove("importProfiles");
         node.Remove("importBatches");
+        node.Remove("tags");
+        node.Remove("labelRules");
         foreach (var t in node["transactions"]!.AsArray())
         {
             t!.AsObject().Remove("rawLabel");
             t.AsObject().Remove("importBatchId");
             t.AsObject().Remove("importHash");
+            foreach (var line in t["lines"]!.AsArray())
+            {
+                line!.AsObject().Remove("tagIds");
+            }
         }
         foreach (var r in node["recurrences"]!.AsArray())
         {
@@ -166,6 +183,8 @@ public sealed class BackupRestoreTests
         var restored = JsonNode.Parse(await ExportAsync(admin))!;
         restored["importBatches"]!.AsArray().ShouldBeEmpty();
         restored["importProfiles"]!.AsArray().Count.ShouldBe(1);
+        restored["tags"]!.AsArray().ShouldBeEmpty();
+        restored["labelRules"]!.AsArray().ShouldBeEmpty();
         restored["recurrences"]![0]!["toleranceUnit"]!.GetValue<string>().ShouldBe("Amount");
     }
 

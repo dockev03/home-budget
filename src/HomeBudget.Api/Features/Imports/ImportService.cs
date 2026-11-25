@@ -1,7 +1,9 @@
 using HomeBudget.Api.Domain.Imports;
 using HomeBudget.Api.Domain.Recurrences;
+using HomeBudget.Api.Domain.Rules;
 using HomeBudget.Api.Domain.Transactions;
 using HomeBudget.Api.Features.Recurrences;
+using HomeBudget.Api.Features.Rules;
 using HomeBudget.Api.Infrastructure.Data;
 
 using Microsoft.EntityFrameworkCore;
@@ -23,8 +25,9 @@ public sealed record OccurrenceCandidate(
 /// <summary>Opération existante du compte, telle que vue par l'analyse.</summary>
 public sealed record ExistingTransaction(Guid Id, DateOnly Date, decimal Amount, string? Label, string? ImportHash, bool IsSimple);
 
+/// <param name="Suggestion">Tiers et catégorie donnés par une règle apprise (I2, I3), appliqués à l'opération créée.</param>
 public sealed record AnalyzedLine(
-    FingerprintedLine Source, ImportLineStatus Status, ExistingTransaction? Duplicate, OccurrenceCandidate? Match);
+    FingerprintedLine Source, ImportLineStatus Status, ExistingTransaction? Duplicate, OccurrenceCandidate? Match, LabelSuggestion? Suggestion = null);
 
 public sealed record ImportAnalysis(
     Account Account, string FileName, ImportFormat Format, ImportProfile? Profile, IReadOnlyList<AnalyzedLine> Lines, IReadOnlyList<StatementError> Errors);
@@ -104,7 +107,26 @@ public sealed class ImportService(AppDbContext db, RecurrenceGenerator generator
                 lines.Add(line);
             }
         }
-        return (new ImportAnalysis(account!, fileName.Trim(), format, profile, await AnalyzeLinesAsync(account!.Id, lines, ct), readErrors), errors);
+        var analyzed = await AnalyzeLinesAsync(account!.Id, lines, ct);
+        return (new ImportAnalysis(account!, fileName.Trim(), format, profile, await SuggestAsync(analyzed, ct), readErrors), errors);
+    }
+
+    /// <summary>Tiers et catégorie des règles apprises, pour les opérations qui ne sont pas des doublons certains.</summary>
+    private async Task<List<AnalyzedLine>> SuggestAsync(List<AnalyzedLine> lines, CancellationToken ct)
+    {
+        var open = lines.Where(l => l.Status != ImportLineStatus.Duplicate).ToList();
+        var suggestions = await LabelRules.SuggestByLabelAsync(db, open.Select(l => l.Source.Line.Label), ct);
+        if (suggestions.Count == 0)
+        {
+            return lines;
+        }
+        return
+        [
+            .. lines.Select(l => l.Status != ImportLineStatus.Duplicate
+                && suggestions.TryGetValue(LabelKey.From(l.Source.Line.Label), out var suggestion)
+                    ? l with { Suggestion = suggestion }
+                    : l),
+        ];
     }
 
     private async Task<List<AnalyzedLine>> AnalyzeLinesAsync(Guid accountId, List<FingerprintedLine> lines, CancellationToken ct)
@@ -241,13 +263,15 @@ public sealed class ImportService(AppDbContext db, RecurrenceGenerator generator
             }
             else
             {
+                // Règle apprise (I3) : le tiers remplace le libellé bancaire à l'affichage, la catégorie est posée.
                 transaction = new Transaction
                 {
                     AccountId = analysis.Account.Id,
                     Date = line.Source.Line.Date,
                     Label = TransactionLabel(line.Source.Line.Label),
+                    PayeeId = line.Suggestion?.PayeeId,
                 };
-                transaction.SetLines([new TransactionLine { Amount = line.Source.Line.Amount }]);
+                transaction.SetLines([new TransactionLine { Amount = line.Source.Line.Amount, CategoryId = line.Suggestion?.CategoryId }]);
                 db.Transactions.Add(transaction);
             }
             transaction.RawLabel = string.IsNullOrEmpty(line.Source.Line.Label) ? null : line.Source.Line.Label;

@@ -2,6 +2,8 @@ using HomeBudget.Api.Domain.Imports;
 using HomeBudget.Api.Domain.Payees;
 using HomeBudget.Api.Domain.Periods;
 using HomeBudget.Api.Domain.Recurrences;
+using HomeBudget.Api.Domain.Rules;
+using HomeBudget.Api.Domain.Tags;
 
 namespace HomeBudget.Api.Features.Backups;
 
@@ -43,7 +45,18 @@ public static class BackupValidator
             errors.Add("Fichier invalide : un élément de liste est vide (null).");
             return errors.List;
         }
-        var hasImports = document.FormatVersion >= 2;
+        var hasTags = document.FormatVersion >= BackupDocument.TagsVersion;
+        if (hasTags && (document.Tags is null || document.LabelRules is null))
+        {
+            errors.Add("Fichier incomplet : tags et règles apprises attendus.");
+            return errors.List;
+        }
+        if (hasTags && (document.Tags!.Contains(null) || document.LabelRules!.Contains(null)))
+        {
+            errors.Add("Fichier invalide : un élément de liste est vide (null).");
+            return errors.List;
+        }
+        var hasImports = document.FormatVersion >= BackupDocument.ImportsVersion;
         if (hasImports && (document.ImportProfiles is null || document.ImportBatches is null))
         {
             errors.Add("Fichier incomplet : profils de lecture et historique des imports attendus.");
@@ -65,6 +78,32 @@ public static class BackupValidator
         UniqueIds("échéance", occurrences.Select(o => o!.Id), errors);
         var batchIds = UniqueIds("import", (document.ImportBatches ?? []).Select(b => b!.Id), errors);
         UniqueIds("profil de lecture", (document.ImportProfiles ?? []).Select(p => p!.Id), errors);
+        var tagIds = UniqueIds("tag", (document.Tags ?? []).Select(t => t!.Id), errors);
+        UniqueIds("règle", (document.LabelRules ?? []).Select(r => r!.Id), errors);
+
+        var tagNames = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var g in (document.Tags ?? []).OfType<BackupTag>())
+        {
+            var where = $"Tag {g.Id}";
+            if (Text(where, "nom", g.Name, Tag.MaxNameLength, required: true, errors) && !tagNames.Add(Tag.Normalize(g.Name!)))
+            {
+                errors.Add($"{where} : nom en double.");
+            }
+            Audit(where, g.Audit, errors);
+        }
+
+        var ruleKeys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var r in (document.LabelRules ?? []).OfType<BackupLabelRule>())
+        {
+            var where = $"Règle {r.Id}";
+            if (Text(where, "clé", r.Key, LabelKey.MaxLength, required: true, errors) && !ruleKeys.Add(r.Key!))
+            {
+                errors.Add($"{where} : clé en double.");
+            }
+            OptionalReference(where, "tiers", r.PayeeId, payeeIds, errors);
+            OptionalReference(where, "catégorie", r.CategoryId, categoryIds, errors);
+            Audit(where, r.Audit, errors);
+        }
 
         foreach (var a in accounts.OfType<BackupAccount>())
         {
@@ -164,6 +203,17 @@ public static class BackupValidator
                 OptionalReference(where, "catégorie", line.CategoryId, categoryIds, errors);
                 Amount(where, line.Amount, errors);
                 Text(where, "mémo", line.Memo, 200, required: false, errors);
+                if (line.TagIds is { } lineTags)
+                {
+                    if (lineTags.Count > Tag.MaxPerLine || lineTags.Distinct().Count() != lineTags.Count)
+                    {
+                        errors.Add($"{where} : tags en double ou trop nombreux sur une ligne.");
+                    }
+                    foreach (var tagId in lineTags)
+                    {
+                        Reference(where, "tag", tagId, tagIds, errors);
+                    }
+                }
             }
         }
 

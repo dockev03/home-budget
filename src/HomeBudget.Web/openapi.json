@@ -847,6 +847,65 @@
         }
       }
     },
+    "/api/tags": {
+      "get": {
+        "tags": [
+          "Tags"
+        ],
+        "summary": "Tags pos\u00E9s sur au moins une ligne d\u0027op\u00E9ration, les plus utilis\u00E9s en premier.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TagDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/suggestions": {
+      "get": {
+        "tags": [
+          "Rules"
+        ],
+        "summary": "Tiers et cat\u00E9gorie propos\u00E9s d\u0027apr\u00E8s un libell\u00E9 (r\u00E8gles apprises) et l\u0027historique du tiers.",
+        "parameters": [
+          {
+            "name": "label",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "payeeName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/transactions": {
       "get": {
         "tags": [
@@ -922,6 +981,14 @@
             "in": "query",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "tagId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -1227,6 +1294,83 @@
           },
           "404": {
             "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/transactions/{id}/similar": {
+      "get": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Op\u00E9rations de m\u00EAme libell\u00E9 bancaire dont le tiers ou la cat\u00E9gorie diff\u00E8re : candidates \u00E0 la m\u00EAme correction.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TransactionDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/transactions/bulk": {
+      "post": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Modifie plusieurs op\u00E9rations en une fois (cat\u00E9gorie, tiers, compte, pointage, tags), dans une seule transaction.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkUpdateResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -2442,6 +2586,14 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "name": "tagId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -2849,6 +3001,93 @@
               "application/problem\u002Bjson": {
                 "schema": {
                   "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rules": {
+      "get": {
+        "tags": [
+          "Rules"
+        ],
+        "summary": "R\u00E8gles apprises des corrections : cl\u00E9 du libell\u00E9 bancaire \u2192 tiers et cat\u00E9gorie.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RuleDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rules/{id}": {
+      "delete": {
+        "tags": [
+          "Rules"
+        ],
+        "summary": "Supprime une r\u00E8gle apprise (If-Match requis). Les op\u00E9rations ne sont pas modifi\u00E9es.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -3427,6 +3666,24 @@
             "items": {
               "$ref": "#/components/schemas/BackupImportBatch"
             }
+          },
+          "tags": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BackupTag"
+            }
+          },
+          "labelRules": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BackupLabelRule"
+            }
           }
         }
       },
@@ -3556,6 +3813,52 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "audit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BackupAudit"
+              }
+            ]
+          }
+        }
+      },
+      "BackupLabelRule": {
+        "required": [
+          "id",
+          "key",
+          "payeeId",
+          "categoryId",
+          "audit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "payeeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           },
           "audit": {
             "oneOf": [
@@ -3835,6 +4138,36 @@
           }
         }
       },
+      "BackupTag": {
+        "required": [
+          "id",
+          "name",
+          "audit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "audit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BackupAudit"
+              }
+            ]
+          }
+        }
+      },
       "BackupTransaction": {
         "required": [
           "id",
@@ -3960,6 +4293,16 @@
               "null",
               "string"
             ]
+          },
+          "tagIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         }
       },
@@ -4174,6 +4517,110 @@
           "Warning",
           "Exceeded"
         ]
+      },
+      "BulkCategory": {
+        "required": [
+          "categoryId"
+        ],
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "BulkUpdateRequest": {
+        "required": [
+          "ids",
+          "category",
+          "payeeName",
+          "accountId",
+          "isCleared",
+          "addTags",
+          "removeTags"
+        ],
+        "type": "object",
+        "properties": {
+          "ids": {
+            "maxItems": 500,
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "category": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BulkCategory"
+              }
+            ]
+          },
+          "payeeName": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "accountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "isCleared": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "addTags": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "removeTags": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "BulkUpdateResult": {
+        "required": [
+          "updated",
+          "skipped"
+        ],
+        "type": "object",
+        "properties": {
+          "updated": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "skipped": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
       },
       "CategoryAmountDto": {
         "required": [
@@ -4897,7 +5344,9 @@
           "duplicateOfId",
           "duplicateOfLabel",
           "duplicateOfDate",
-          "occurrence"
+          "occurrence",
+          "suggestedPayeeName",
+          "suggestedCategoryId"
         ],
         "type": "object",
         "properties": {
@@ -4948,6 +5397,19 @@
                 "$ref": "#/components/schemas/ImportOccurrenceDto"
               }
             ]
+          },
+          "suggestedPayeeName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "suggestedCategoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -5886,6 +6348,55 @@
           }
         }
       },
+      "RuleDto": {
+        "required": [
+          "id",
+          "key",
+          "payeeId",
+          "payeeName",
+          "categoryId",
+          "updatedAt",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "payeeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "payeeName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "SettingsDto": {
         "required": [
           "periodMode",
@@ -5973,6 +6484,49 @@
           },
           "message": {
             "type": "string"
+          }
+        }
+      },
+      "SuggestionDto": {
+        "required": [
+          "payeeName",
+          "categoryId"
+        ],
+        "type": "object",
+        "properties": {
+          "payeeName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "TagDto": {
+        "required": [
+          "id",
+          "name",
+          "usageCount"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "usageCount": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -6085,7 +6639,8 @@
           "id",
           "categoryId",
           "amount",
-          "memo"
+          "memo",
+          "tags"
         ],
         "type": "object",
         "properties": {
@@ -6109,6 +6664,12 @@
               "null",
               "string"
             ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -6140,6 +6701,15 @@
               "null",
               "string"
             ]
+          },
+          "tags": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -6399,6 +6969,12 @@
     },
     {
       "name": "Payees"
+    },
+    {
+      "name": "Tags"
+    },
+    {
+      "name": "Rules"
     },
     {
       "name": "Transactions"

@@ -4,6 +4,7 @@ import { isRestoreConfirmed, transactionsExportUrl, type TransactionFilters } fr
 const empty: TransactionFilters = {
   accountId: null,
   categoryId: null,
+  tagId: null,
   search: '',
   from: '',
   to: '',
@@ -22,6 +23,7 @@ describe('transactionsExportUrl', () => {
       {
         accountId: 'acc',
         categoryId: 'cat',
+        tagId: 'tag',
         search: ' cinéma & co ',
         from: '2026-01-01',
         to: '2026-01-31',
@@ -35,6 +37,7 @@ describe('transactionsExportUrl', () => {
     expect(query.get('format')).toBe('xlsx')
     expect(query.get('accountId')).toBe('acc')
     expect(query.get('categoryId')).toBe('cat')
+    expect(query.get('tagId')).toBe('tag')
     expect(query.get('search')).toBe('cinéma & co')
     expect(query.get('from')).toBe('2026-01-01')
     expect(query.get('to')).toBe('2026-01-31')

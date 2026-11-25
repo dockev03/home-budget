@@ -1001,6 +1001,81 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tags posés sur au moins une ligne d'opération, les plus utilisés en premier. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TagDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tiers et catégorie proposés d'après un libellé (règles apprises) et l'historique du tiers. */
+        get: {
+            parameters: {
+                query?: {
+                    label?: string;
+                    payeeName?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SuggestionDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/transactions": {
         parameters: {
             query?: never;
@@ -1021,6 +1096,7 @@ export interface paths {
                     maxAmount?: number;
                     search?: string;
                     cleared?: boolean;
+                    tagId?: string;
                     cursor?: string;
                     limit?: number;
                 };
@@ -1303,6 +1379,100 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transactions/{id}/similar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Opérations de même libellé bancaire dont le tiers ou la catégorie diffère : candidates à la même correction. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TransactionDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transactions/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Modifie plusieurs opérations en une fois (catégorie, tiers, compte, pointage, tags), dans une seule transaction. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["BulkUpdateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BulkUpdateResult"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
                 };
             };
         };
@@ -2513,6 +2683,7 @@ export interface paths {
                     maxAmount?: number;
                     search?: string;
                     cleared?: boolean;
+                    tagId?: string;
                 };
                 header?: never;
                 path?: never;
@@ -2979,6 +3150,114 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Règles apprises des corrections : clé du libellé bancaire → tiers et catégorie. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuleDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rules/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Supprime une règle apprise (If-Match requis). Les opérations ne sont pas modifiées. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3113,6 +3392,8 @@ export interface components {
             occurrences: null | components["schemas"]["BackupOccurrence"][];
             importProfiles?: null | components["schemas"]["BackupImportProfile"][];
             importBatches?: null | components["schemas"]["BackupImportBatch"][];
+            tags?: null | components["schemas"]["BackupTag"][];
+            labelRules?: null | components["schemas"]["BackupLabelRule"][];
         };
         BackupImportBatch: {
             /** Format: uuid */
@@ -3148,6 +3429,16 @@ export interface components {
             debitColumn: null | number;
             /** Format: int32 */
             creditColumn: null | number;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
+        BackupLabelRule: {
+            /** Format: uuid */
+            id: string;
+            key: null | string;
+            /** Format: uuid */
+            payeeId: null | string;
+            /** Format: uuid */
+            categoryId: null | string;
             audit: null | components["schemas"]["BackupAudit"];
         };
         BackupOccurrence: {
@@ -3225,6 +3516,12 @@ export interface components {
             defaultCategoriesCreated: boolean;
             audit: null | components["schemas"]["BackupAudit"];
         };
+        BackupTag: {
+            /** Format: uuid */
+            id: string;
+            name: null | string;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
         BackupTransaction: {
             /** Format: uuid */
             id: string;
@@ -3254,6 +3551,7 @@ export interface components {
             /** Format: double */
             amount: number;
             memo: null | string;
+            tagIds?: null | string[];
         };
         BudgetComparisonDto: {
             /** Format: uuid */
@@ -3313,6 +3611,26 @@ export interface components {
         BudgetMode: "Amount" | "PercentOfIncome" | "Auto" | null;
         /** @enum {unknown} */
         BudgetStatus: "None" | "Ok" | "Warning" | "Exceeded";
+        BulkCategory: {
+            /** Format: uuid */
+            categoryId: null | string;
+        };
+        BulkUpdateRequest: {
+            ids: string[];
+            category: null | components["schemas"]["BulkCategory"];
+            payeeName: null | string;
+            /** Format: uuid */
+            accountId: null | string;
+            isCleared: null | boolean;
+            addTags: null | string[];
+            removeTags: null | string[];
+        };
+        BulkUpdateResult: {
+            /** Format: int32 */
+            updated: number;
+            /** Format: int32 */
+            skipped: number;
+        };
         CategoryAmountDto: {
             /** Format: uuid */
             categoryId: string;
@@ -3515,6 +3833,9 @@ export interface components {
             /** Format: date */
             duplicateOfDate: null | string;
             occurrence: null | components["schemas"]["ImportOccurrenceDto"];
+            suggestedPayeeName: null | string;
+            /** Format: uuid */
+            suggestedCategoryId: null | string;
         };
         ImportProfileDto: {
             /** Format: uuid */
@@ -3791,6 +4112,20 @@ export interface components {
             occurrences: number;
             snapshot: string;
         };
+        RuleDto: {
+            /** Format: uuid */
+            id: string;
+            key: string;
+            /** Format: uuid */
+            payeeId: null | string;
+            payeeName: null | string;
+            /** Format: uuid */
+            categoryId: null | string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int32 */
+            version: number;
+        };
         SettingsDto: {
             periodMode: components["schemas"]["PeriodMode"];
             /** Format: int32 */
@@ -3818,6 +4153,18 @@ export interface components {
             /** Format: int32 */
             line: number;
             message: string;
+        };
+        SuggestionDto: {
+            payeeName: null | string;
+            /** Format: uuid */
+            categoryId: null | string;
+        };
+        TagDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: int32 */
+            usageCount: number;
         };
         /** @enum {unknown} */
         ToleranceUnit: "Amount" | "Percent";
@@ -3856,6 +4203,7 @@ export interface components {
             /** Format: double */
             amount: number;
             memo: null | string;
+            tags: string[];
         };
         TransactionLineRequest: {
             /** Format: uuid */
@@ -3863,6 +4211,7 @@ export interface components {
             /** Format: double */
             amount: number;
             memo: null | string;
+            tags?: null | string[];
         };
         TransactionPage: {
             items: components["schemas"]["TransactionDto"][];

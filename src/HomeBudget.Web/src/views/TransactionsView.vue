@@ -3,16 +3,19 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   mdiCheckCircle,
+  mdiCheckboxMarkedOutline,
   mdiCheckboxBlankCircleOutline,
   mdiDownload,
   mdiFileUploadOutline,
   mdiFilterVariant,
   mdiMagnify,
+  mdiPencilBoxMultipleOutline,
   mdiSwapHorizontal,
 } from '@mdi/js'
 import { api, type Schemas } from '@/api/client'
 import type { paths } from '@/api/schema'
 import { ApiError, unwrap } from '@/api/errors'
+import BulkEditDialog from '@/components/BulkEditDialog.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useReferenceStore } from '@/stores/reference'
 import { useTransactionEditor, type Transaction } from '@/stores/transactionEditor'
@@ -33,11 +36,18 @@ const nextCursor = ref<string | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const filtersOpen = ref(false)
+const tags = ref<Schemas['TagDto'][]>([])
+// Sélection pour la modification en masse (B10).
+const selecting = ref(false)
+const selected = ref<string[]>([])
+const bulkOpen = ref(false)
+const success = ref<string | null>(null)
 
 // Filtres, synchronisés avec l'URL (lien partageable, retour arrière).
 const filters = ref<TransactionFilters>({
   accountId: null,
   categoryId: null,
+  tagId: null,
   search: '',
   from: '',
   to: '',
@@ -50,6 +60,7 @@ const accountItems = computed(() => reference.accounts.map((a) => ({ value: a.id
 const categoryItems = computed(() =>
   reference.categories.map((c) => ({ value: c.id, title: reference.categoryLabel(c.id) })),
 )
+const tagItems = computed(() => tags.value.map((t) => ({ value: t.id, title: t.name })))
 const clearedItems = [
   { value: null, title: 'Toutes' },
   { value: false, title: 'Non pointées' },
@@ -59,6 +70,7 @@ const activeFilterCount = computed(
   () =>
     [
       filters.value.categoryId,
+      filters.value.tagId,
       filters.value.from,
       filters.value.to,
       filters.value.minAmount,
@@ -80,6 +92,7 @@ function readRoute() {
   filters.value = {
     accountId: str(q.accountId) || null,
     categoryId: str(q.categoryId) || null,
+    tagId: str(q.tagId) || null,
     search: str(q.search),
     from: str(q.from),
     to: str(q.to),
@@ -94,6 +107,7 @@ function writeRoute() {
   const query: Record<string, string> = {}
   if (f.accountId) query.accountId = f.accountId
   if (f.categoryId) query.categoryId = f.categoryId
+  if (f.tagId) query.tagId = f.tagId
   if (f.search) query.search = f.search
   if (f.from) query.from = f.from
   if (f.to) query.to = f.to
@@ -108,6 +122,7 @@ function apiQuery(cursor: string | null): Query {
   return {
     accountId: f.accountId ?? undefined,
     categoryId: f.categoryId ?? undefined,
+    tagId: f.tagId ?? undefined,
     search: f.search || undefined,
     from: f.from || undefined,
     to: f.to || undefined,
@@ -149,13 +164,14 @@ watch(
 )
 watch(
   () => editor.revision,
-  () => void load(),
+  () => void Promise.all([load(), loadTags()]),
 )
 
 function resetFilters() {
   filters.value = {
     ...filters.value,
     categoryId: null,
+    tagId: null,
     from: '',
     to: '',
     minAmount: '',
@@ -195,7 +211,41 @@ function subtitle(t: Transaction): string {
   }
   if (t.payeeName && t.label) parts.push(t.label)
   if (!filters.value.accountId) parts.push(reference.accountById.get(t.accountId)?.name ?? '')
+  const lineTags = [...new Set(t.lines.flatMap((l) => l.tags))]
+  if (lineTags.length) parts.push(lineTags.map((tag) => `#${tag}`).join(' '))
   return parts.filter(Boolean).join(' · ')
+}
+
+function toggleSelecting() {
+  selecting.value = !selecting.value
+  selected.value = []
+}
+
+function toggleSelected(id: string) {
+  selected.value = selected.value.includes(id)
+    ? selected.value.filter((s) => s !== id)
+    : [...selected.value, id]
+}
+
+function selectAll() {
+  selected.value = selected.value.length === items.value.length ? [] : items.value.map((t) => t.id)
+}
+
+function openItem(t: Transaction) {
+  if (selecting.value) toggleSelected(t.id)
+  else if (auth.canWrite) editor.open('edit', t)
+}
+
+async function bulkDone(message: string) {
+  success.value = message
+  selected.value = []
+  selecting.value = false
+  await Promise.all([load(), loadTags()])
+}
+
+async function loadTags() {
+  const { data } = await api.GET('/api/tags')
+  tags.value = data ?? []
 }
 
 function avatar(t: Transaction) {
@@ -207,19 +257,22 @@ function avatar(t: Transaction) {
 onMounted(async () => {
   readRoute()
   await reference.load().catch(() => (error.value = 'Chargement impossible.'))
-  await load()
+  await Promise.all([load(), loadTags()])
 })
 </script>
 
 <template>
-  <div class="d-flex align-center mb-4">
+  <div class="d-flex flex-wrap align-center ga-2 mb-4">
     <h1 class="text-h5 font-weight-bold mr-auto">Opérations</h1>
     <v-btn
       v-if="auth.canWrite"
       variant="tonal"
-      class="mr-2"
-      :prepend-icon="mdiFileUploadOutline"
-      :to="{ name: 'import' }"
+      :color="selecting ? 'primary' : undefined"
+      :prepend-icon="mdiCheckboxMarkedOutline"
+      @click="toggleSelecting"
+      >{{ selecting ? 'Terminer' : 'Sélectionner' }}</v-btn
+    >
+    <v-btn v-if="auth.canWrite" variant="tonal" :prepend-icon="mdiFileUploadOutline" :to="{ name: 'import' }"
       >Importer</v-btn
     >
     <!-- Export (H5) des opérations filtrées : téléchargement direct, la session suffit (lecture). -->
@@ -248,6 +301,31 @@ onMounted(async () => {
     closable
     @click:close="error = null"
   />
+  <v-alert
+    v-if="success"
+    type="success"
+    variant="tonal"
+    class="mb-4"
+    :text="success"
+    closable
+    @click:close="success = null"
+  />
+
+  <v-toolbar v-if="selecting" density="compact" color="primary" variant="tonal" rounded class="mb-3 px-2">
+    <span class="text-body-2">{{ selected.length }} sélectionnée(s)</span>
+    <v-spacer />
+    <v-btn variant="text" @click="selectAll">{{
+      selected.length === items.length && items.length ? 'Tout désélectionner' : 'Tout sélectionner'
+    }}</v-btn>
+    <v-btn
+      variant="flat"
+      color="primary"
+      :prepend-icon="mdiPencilBoxMultipleOutline"
+      :disabled="!selected.length"
+      @click="bulkOpen = true"
+      >Modifier</v-btn
+    >
+  </v-toolbar>
 
   <v-row dense class="mb-2">
     <v-col cols="12" sm="5">
@@ -297,9 +375,17 @@ onMounted(async () => {
         :key="t.id"
         :data-testid="`transaction-${t.id}`"
         :disabled="false"
-        @click="auth.canWrite && editor.open('edit', t)"
+        :active="selecting && selected.includes(t.id)"
+        @click="openItem(t)"
       >
         <template #prepend>
+          <v-checkbox-btn
+            v-if="selecting"
+            :model-value="selected.includes(t.id)"
+            :aria-label="`Sélectionner ${title(t)}`"
+            class="mr-2"
+            @click.stop="toggleSelected(t.id)"
+          />
           <v-avatar :color="avatar(t).color" variant="tonal" size="36">
             <v-icon :icon="avatar(t).icon" size="20" />
           </v-avatar>
@@ -334,6 +420,7 @@ onMounted(async () => {
     <div class="pa-4">
       <div class="text-h6 mb-4">Filtres</div>
       <v-autocomplete v-model="filters.categoryId" :items="categoryItems" label="Catégorie" clearable />
+      <v-autocomplete v-model="filters.tagId" :items="tagItems" label="Tag" clearable />
       <v-text-field v-model="filters.from" label="Du" type="date" clearable />
       <v-text-field v-model="filters.to" label="Au" type="date" clearable />
       <v-row dense>
@@ -364,4 +451,6 @@ onMounted(async () => {
       </div>
     </div>
   </v-navigation-drawer>
+
+  <BulkEditDialog v-model="bulkOpen" :ids="selected" @done="bulkDone" />
 </template>

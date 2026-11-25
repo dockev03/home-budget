@@ -71,7 +71,9 @@ public static partial class ImportEndpoints
                         m.Date,
                         m.Expected,
                         m.Recurrence.CategoryId)
-                    : null))],
+                    : null,
+                l.Suggestion?.PayeeName,
+                l.Suggestion?.CategoryId))],
             analysis.Errors));
     }
 

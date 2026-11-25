@@ -56,6 +56,8 @@ public enum ImportLineStatus
 public sealed record ImportOccurrenceDto(Guid RecurrenceId, string Label, DateOnly Date, decimal Amount, Guid? CategoryId);
 
 /// <param name="DuplicateOfId">Opération existante, pour un doublon certain ou probable.</param>
+/// <param name="SuggestedPayeeName">Tiers d'une règle apprise, posé sur l'opération créée.</param>
+/// <param name="SuggestedCategoryId">Catégorie d'une règle apprise (ou habituelle du tiers), posée sur l'opération créée.</param>
 public sealed record ImportPreviewLineDto(
     int Line,
     DateOnly Date,
@@ -65,7 +67,9 @@ public sealed record ImportPreviewLineDto(
     Guid? DuplicateOfId,
     string? DuplicateOfLabel,
     DateOnly? DuplicateOfDate,
-    ImportOccurrenceDto? Occurrence);
+    ImportOccurrenceDto? Occurrence,
+    string? SuggestedPayeeName,
+    Guid? SuggestedCategoryId);
 
 public sealed record ImportPreviewDto(
     ImportFormat Format, string? ProfileName, IReadOnlyList<ImportPreviewLineDto> Lines, IReadOnlyList<StatementError> Errors);

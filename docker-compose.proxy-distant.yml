@@ -1,0 +1,37 @@
+# Stack Portainer (« Repository », Compose path : docker-compose.proxy-distant.yml)
+# quand le Nginx Proxy Manager tourne sur un AUTRE serveur.
+# Variables à renseigner dans Portainer (onglet « Environment variables ») :
+#   HB_PUBLIC_URL          URL publique, ex. https://budget.mondomaine.fr
+#   HB_BIND_ADDRESS        IP PRIVÉE du serveur qui héberge la stack (WireGuard, Tailscale,
+#                          réseau privé de l'hébergeur), ex. 10.0.0.2. Jamais 0.0.0.0 :
+#                          Docker contourne UFW, le port serait ouvert à tout Internet.
+#   HB_PORT                port publié sur cette adresse (défaut : 8080)
+#   HB_KNOWN_PROXY_NETWORK IP privée du serveur NPM en CIDR, ex. 10.0.0.1/32
+# Dans le NPM : Proxy Host → schéma http, hôte = HB_BIND_ADDRESS, port = HB_PORT,
+# SSL forcé, HSTS activé. Le lien NPM → stack est en HTTP : il doit passer par le réseau privé.
+
+services:
+  home-budget:
+    build: .
+    image: home-budget:local
+    container_name: home-budget
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Paris
+      HB__PublicUrl: ${HB_PUBLIC_URL:-}
+      HB__KnownProxyNetwork: ${HB_KNOWN_PROXY_NETWORK:?IP privée du serveur NPM requise, ex. 10.0.0.1/32}
+    ports:
+      # Publié uniquement sur l'adresse privée : la variable est obligatoire.
+      - "${HB_BIND_ADDRESS:?IP privée du serveur requise, ex. 10.0.0.2}:${HB_PORT:-8080}:8080"
+    volumes:
+      - home-budget-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  home-budget-data:

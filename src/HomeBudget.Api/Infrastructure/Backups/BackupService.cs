@@ -39,9 +39,29 @@ public sealed partial class BackupService(
     /// <summary>Sauvegarde du jour (remplace celle déjà faite aujourd'hui), puis rotation.</summary>
     public async Task<string> RunAsync(CancellationToken ct = default)
     {
+        var target = PathFor(Today);
+        await VacuumIntoAsync(target, ct);
+        LogBackupCreated(target);
+        Rotate();
+        return target;
+    }
+
+    /// <summary>
+    /// Instantané fait avant une opération risquée (restauration), nommé <c>avant-restauration-AAAAMMJJ-HHmmss.db</c> :
+    /// ce nom ne suit pas celui des sauvegardes quotidiennes, il échappe donc à la rotation.
+    /// </summary>
+    public async Task<string> SnapshotAsync(string label, CancellationToken ct = default)
+    {
+        var stamp = clock.GetLocalNow().ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+        var target = Path.Combine(Folder, $"{label}-{stamp}{Extension}");
+        await VacuumIntoAsync(target, ct);
+        LogSnapshotCreated(target);
+        return target;
+    }
+
+    private async Task VacuumIntoAsync(string target, CancellationToken ct)
+    {
         Directory.CreateDirectory(Folder);
-        var today = Today;
-        var target = PathFor(today);
         var temporary = Path.Combine(Folder, $".tmp-{Guid.NewGuid():N}{Extension}");
         try
         {
@@ -57,10 +77,6 @@ public sealed partial class BackupService(
         {
             File.Delete(temporary);
         }
-
-        LogBackupCreated(target);
-        Rotate();
-        return target;
     }
 
     private void Rotate()
@@ -85,6 +101,9 @@ public sealed partial class BackupService(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Sauvegarde créée : {Path}")]
     private partial void LogBackupCreated(string path);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Instantané créé : {Path}")]
+    private partial void LogSnapshotCreated(string path);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Rotation : sauvegarde du {Date} supprimée.")]
     private partial void LogBackupDeleted(DateOnly date);

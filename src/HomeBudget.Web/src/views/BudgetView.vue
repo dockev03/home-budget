@@ -1,20 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { mdiAlertOutline, mdiCalendarToday, mdiChevronLeft, mdiChevronRight } from '@mdi/js'
+import { mdiAlertOutline } from '@mdi/js'
 import { api, type Schemas } from '@/api/client'
 import { ApiError, unwrap } from '@/api/errors'
 import BudgetDialog from '@/components/BudgetDialog.vue'
+import PeriodNavigator from '@/components/PeriodNavigator.vue'
 import { useAuthStore } from '@/stores/auth'
-import {
-  budgetModeLabel,
-  gaugeValue,
-  periodLabel,
-  periodRange,
-  remainingLabel,
-  statusColor,
-  type BudgetLine,
-} from '@/utils/budget'
+import { budgetModeLabel, gaugeValue, remainingLabel, statusColor, type BudgetLine } from '@/utils/budget'
 import { formatAmount, formatSignedAmount } from '@/utils/format'
 import { iconPath } from '@/utils/icons'
 import { categoryKinds } from '@/utils/labels'
@@ -80,37 +73,7 @@ watch(periodKey, load, { immediate: true })
 <template>
   <div class="d-flex align-center flex-wrap ga-2 mb-4">
     <h1 class="text-h5 font-weight-bold mr-auto">Budget</h1>
-    <div class="d-flex align-center">
-      <v-btn
-        :icon="mdiChevronLeft"
-        variant="text"
-        aria-label="Période précédente"
-        :disabled="!budget"
-        @click="goTo(budget!.period.previousKey)"
-      />
-      <div class="text-center" style="min-width: 190px">
-        <div class="text-subtitle-1 font-weight-bold">
-          {{ budget ? periodLabel(budget.period.key) : '…' }}
-        </div>
-        <div v-if="budget" class="text-caption text-medium-emphasis">
-          {{ periodRange(budget.period.start, budget.period.end) }}
-        </div>
-      </div>
-      <v-btn
-        :icon="mdiChevronRight"
-        variant="text"
-        aria-label="Période suivante"
-        :disabled="!budget"
-        @click="goTo(budget!.period.nextKey)"
-      />
-      <v-btn
-        v-if="budget && !budget.period.isCurrent"
-        :icon="mdiCalendarToday"
-        variant="text"
-        aria-label="Période en cours"
-        @click="goTo(null)"
-      />
-    </div>
+    <PeriodNavigator :period="budget?.period ?? null" @go="goTo" />
   </div>
 
   <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-2" />

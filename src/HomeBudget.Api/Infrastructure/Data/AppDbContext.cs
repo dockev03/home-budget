@@ -16,6 +16,12 @@ namespace HomeBudget.Api.Infrastructure.Data;
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     : IdentityDbContext<AppUser, AppRole, Guid>(options)
 {
+    /// <summary>
+    /// Restauration d'une sauvegarde : les auteurs, dates et versions des entités ajoutées sont conservés
+    /// au lieu d'être renseignés par <see cref="AuditInterceptor"/>.
+    /// </summary>
+    public bool PreserveAuditFields { get; set; }
+
     public DbSet<HouseholdSettings> HouseholdSettings => Set<HouseholdSettings>();
 
     public DbSet<Account> Accounts => Set<Account>();

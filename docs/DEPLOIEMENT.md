@@ -67,7 +67,7 @@ Toutes les données sont dans le volume `home-budget-data`, monté sur `/data` :
 
 - `homebudget.db` : la base, en mode WAL ;
 - `keys/` : les clés de chiffrement des cookies. Si elles sont perdues, il faut se reconnecter, mais aucune donnée n'est perdue ;
-- `backups/` : les sauvegardes automatiques `homebudget-AAAAMMJJ.db`.
+- `backups/` : les sauvegardes automatiques `homebudget-AAAAMMJJ.db`, et les instantanés `avant-restauration-AAAAMMJJ-HHmmss.db` pris avant chaque restauration JSON.
 
 ### Sauvegardes automatiques
 
@@ -80,3 +80,12 @@ Ces copies restent sur le même volume que la base : **elles ne protègent pas d
 1. Arrêter la stack dans Portainer.
 2. Dans le volume, remplacer `homebudget.db` par la sauvegarde choisie (renommée `homebudget.db`) et supprimer `homebudget.db-wal` et `homebudget.db-shm` s'ils existent.
 3. Redémarrer la stack.
+
+### Sauvegarde et restauration JSON (depuis l'application)
+
+Dans **Paramètres**, un administrateur peut télécharger une sauvegarde JSON des données du foyer (paramètres, comptes, catégories, tiers, budgets, opérations, récurrences et échéances), et la restaurer plus tard, éventuellement sur une autre instance.
+
+- Le fichier ne contient ni les comptes utilisateurs, ni les mots de passe, ni les secrets de double authentification. Il contient en revanche toutes les données financières : le conserver en lieu sûr.
+- La restauration **remplace toutes les données du foyer**. Le fichier (64 Mio au plus) est validé en entier avant de toucher à la base, puis tout est restauré dans une seule transaction. Les utilisateurs existants sont conservés ; une référence à un utilisateur inconnu (auteur, propriétaire) est vidée.
+- Juste avant, un instantané de la base est écrit dans `/data/backups/avant-restauration-AAAAMMJJ-HHmmss.db`. Ces instantanés échappent à la rotation : les supprimer à la main quand ils ne servent plus. Pour annuler une restauration, restaurer cet instantané comme ci-dessus.
+- Exports et restaurations sont tracés dans les logs du conteneur ; le journal d'audit arrivera avec le lot L3.

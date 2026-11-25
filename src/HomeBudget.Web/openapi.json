@@ -2318,6 +2318,218 @@
           }
         }
       }
+    },
+    "/api/dashboard/{periodKey}": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Tableau de bord de la p\u00E9riode (cl\u00E9 AAAA-MM) : chiffres cl\u00E9s, d\u00E9penses par cat\u00E9gorie, budget compar\u00E9 au r\u00E9el et 12 derni\u00E8res p\u00E9riodes.",
+        "parameters": [
+          {
+            "name": "periodKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/exports/transactions": {
+      "get": {
+        "tags": [
+          "Exports"
+        ],
+        "summary": "Exporte les op\u00E9rations filtr\u00E9es (m\u00EAmes filtres que la recherche), une ligne par ligne de ventilation. format : csv (d\u00E9faut) ou xlsx.",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "accountId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "payeeId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "minAmount",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "maxAmount",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cleared",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/backups/export": {
+      "get": {
+        "tags": [
+          "Backups"
+        ],
+        "summary": "T\u00E9l\u00E9charge la sauvegarde JSON des donn\u00E9es du foyer (sans comptes utilisateurs ni secrets).",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupDocument"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/backups/restore": {
+      "post": {
+        "tags": [
+          "Backups"
+        ],
+        "summary": "Remplace toutes les donn\u00E9es du foyer par la sauvegarde envoy\u00E9e (valid\u00E9e en entier d\u0027abord, instantan\u00E9 de la base juste avant). Les utilisateurs sont conserv\u00E9s.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BackupDocument"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestoreResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload Too Large",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2517,6 +2729,12 @@
           "Credit"
         ]
       },
+      "AccountVisibility": {
+        "enum": [
+          "Shared",
+          "Private"
+        ]
+      },
       "AuthenticatorSetup": {
         "required": [
           "sharedKey",
@@ -2529,6 +2747,751 @@
           },
           "authenticatorUri": {
             "type": "string"
+          }
+        }
+      },
+      "BackupAccount": {
+        "required": [
+          "id",
+          "name",
+          "type",
+          "initialBalance",
+          "initialDate",
+          "ownerId",
+          "visibility",
+          "color",
+          "icon",
+          "includeInForecast",
+          "includeInNetWorth",
+          "overdraftThreshold",
+          "isArchived",
+          "sortOrder",
+          "audit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "type": {
+            "$ref": "#/components/schemas/AccountType"
+          },
+          "initialBalance": {
+            "type": "number",
+            "format": "double"
+          },
+          "initialDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "ownerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/AccountVisibility"
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "icon": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "includeInForecast": {
+            "type": "boolean"
+          },
+          "includeInNetWorth": {
+            "type": "boolean"
+          },
+          "overdraftThreshold": {
+            "type": "number",
+            "format": "double"
+          },
+          "isArchived": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "audit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BackupAudit"
+              }
+            ]
+          }
+        }
+      },
+      "BackupAudit": {
+        "required": [
+          "createdAt",
+          "createdBy",
+          "updatedAt",
+          "updatedBy",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "BackupBudget": {
+        "required": [
+          "id",
+          "categoryId",
+          "mode",
+          "value",
+          "audit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/BudgetMode"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "audit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BackupAudit"
+              }
+            ]
+          }
+        }
+      },
+      "BackupCategory": {
+        "required": [
+          "id",
+          "parentId",
+          "name",
+          "kind",
+          "color",
+          "icon",
+          "sortOrder",
+          "isArchived",
+          "audit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "parentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/CategoryKind"
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "icon": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isArchived": {
+            "type": "boolean"
+          },
+          "audit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BackupAudit"
+              }
+            ]
+          }
+        }
+      },
+      "BackupDocument": {
+        "required": [
+          "format",
+          "formatVersion",
+          "exportedAt",
+          "settings",
+          "accounts",
+          "categories",
+          "payees",
+          "budgets",
+          "transactions",
+          "recurrences",
+          "occurrences"
+        ],
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "formatVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "exportedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "settings": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BackupSettings"
+              }
+            ]
+          },
+          "accounts": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BackupAccount"
+            }
+          },
+          "categories": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BackupCategory"
+            }
+          },
+          "payees": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BackupPayee"
+            }
+          },
+          "budgets": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BackupBudget"
+            }
+          },
+          "transactions": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BackupTransaction"
+            }
+          },
+          "recurrences": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BackupRecurrence"
+            }
+          },
+          "occurrences": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BackupOccurrence"
+            }
+          }
+        }
+      },
+      "BackupOccurrence": {
+        "required": [
+          "id",
+          "recurrenceId",
+          "index",
+          "scheduledDate",
+          "dueDate",
+          "status",
+          "transactionId",
+          "audit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recurrenceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "index": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scheduledDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OccurrenceStatus"
+          },
+          "transactionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "audit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BackupAudit"
+              }
+            ]
+          }
+        }
+      },
+      "BackupPayee": {
+        "required": [
+          "id",
+          "name",
+          "audit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "audit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BackupAudit"
+              }
+            ]
+          }
+        }
+      },
+      "BackupRecurrence": {
+        "required": [
+          "id",
+          "label",
+          "accountId",
+          "toAccountId",
+          "payeeId",
+          "categoryId",
+          "amount",
+          "notes",
+          "mode",
+          "startDate",
+          "unit",
+          "interval",
+          "end",
+          "endDate",
+          "count",
+          "isInstallment",
+          "generateFrom",
+          "audit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "toAccountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "payeeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "mode": {
+            "$ref": "#/components/schemas/RecurrenceMode"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/FrequencyUnit"
+          },
+          "interval": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "end": {
+            "$ref": "#/components/schemas/RecurrenceEnd"
+          },
+          "endDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "count": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "isInstallment": {
+            "type": "boolean"
+          },
+          "generateFrom": {
+            "type": "string",
+            "format": "date"
+          },
+          "audit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BackupAudit"
+              }
+            ]
+          }
+        }
+      },
+      "BackupSettings": {
+        "required": [
+          "id",
+          "periodMode",
+          "periodStartDay",
+          "safetyThreshold",
+          "forecastIncludesIncome",
+          "budgetWarningPercent",
+          "budgetAlertPercent",
+          "defaultCategoriesCreated",
+          "audit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "periodMode": {
+            "$ref": "#/components/schemas/PeriodMode"
+          },
+          "periodStartDay": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "safetyThreshold": {
+            "type": "number",
+            "format": "double"
+          },
+          "forecastIncludesIncome": {
+            "type": "boolean"
+          },
+          "budgetWarningPercent": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "budgetAlertPercent": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "defaultCategoriesCreated": {
+            "type": "boolean"
+          },
+          "audit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BackupAudit"
+              }
+            ]
+          }
+        }
+      },
+      "BackupTransaction": {
+        "required": [
+          "id",
+          "accountId",
+          "date",
+          "payeeId",
+          "label",
+          "notes",
+          "isCleared",
+          "transferId",
+          "lines",
+          "audit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "payeeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isCleared": {
+            "type": "boolean"
+          },
+          "transferId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "lines": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BackupTransactionLine"
+            }
+          },
+          "audit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BackupAudit"
+              }
+            ]
+          }
+        }
+      },
+      "BackupTransactionLine": {
+        "required": [
+          "id",
+          "categoryId",
+          "amount",
+          "memo"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "memo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "BudgetComparisonDto": {
+        "required": [
+          "categoryId",
+          "name",
+          "color",
+          "kind",
+          "budgeted",
+          "actual",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/CategoryKind"
+          },
+          "budgeted": {
+            "type": "number",
+            "format": "double"
+          },
+          "actual": {
+            "type": "number",
+            "format": "double"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BudgetStatus"
           }
         }
       },
@@ -2702,6 +3665,38 @@
           "Warning",
           "Exceeded"
         ]
+      },
+      "CategoryAmountDto": {
+        "required": [
+          "categoryId",
+          "name",
+          "color",
+          "kind",
+          "amount"
+        ],
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/CategoryKind"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          }
+        }
       },
       "CategoryBudgetDto": {
         "required": [
@@ -2976,6 +3971,42 @@
           }
         }
       },
+      "DashboardDto": {
+        "required": [
+          "period",
+          "keyFigures",
+          "expensesByCategory",
+          "budgetVsActual",
+          "history"
+        ],
+        "type": "object",
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/PeriodDto"
+          },
+          "keyFigures": {
+            "$ref": "#/components/schemas/KeyFiguresDto"
+          },
+          "expensesByCategory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategoryAmountDto"
+            }
+          },
+          "budgetVsActual": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BudgetComparisonDto"
+            }
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PeriodTotalsDto"
+            }
+          }
+        }
+      },
       "EnableTwoFactorRequest": {
         "required": [
           "code"
@@ -3130,6 +4161,68 @@
                 "type": "string"
               }
             }
+          }
+        }
+      },
+      "KeyFiguresDto": {
+        "required": [
+          "income",
+          "expenses",
+          "savings",
+          "balance",
+          "balanceDate",
+          "forecastBalance",
+          "remainingToLive",
+          "remainingPerDay"
+        ],
+        "type": "object",
+        "properties": {
+          "income": {
+            "type": "number",
+            "format": "double"
+          },
+          "expenses": {
+            "type": "number",
+            "format": "double"
+          },
+          "savings": {
+            "type": "number",
+            "format": "double"
+          },
+          "balance": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "balanceDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "forecastBalance": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "remainingToLive": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "remainingPerDay": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
           }
         }
       },
@@ -3382,6 +4475,42 @@
           "Calendar",
           "FixedDay"
         ]
+      },
+      "PeriodTotalsDto": {
+        "required": [
+          "key",
+          "start",
+          "end",
+          "income",
+          "expenses",
+          "savings"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "format": "date"
+          },
+          "income": {
+            "type": "number",
+            "format": "double"
+          },
+          "expenses": {
+            "type": "number",
+            "format": "double"
+          },
+          "savings": {
+            "type": "number",
+            "format": "double"
+          }
+        }
       },
       "PostponeOccurrenceRequest": {
         "required": [
@@ -3733,6 +4862,52 @@
           "safetyThreshold": {
             "type": "number",
             "format": "double"
+          }
+        }
+      },
+      "RestoreResultDto": {
+        "required": [
+          "accounts",
+          "categories",
+          "payees",
+          "budgets",
+          "transactions",
+          "recurrences",
+          "occurrences",
+          "snapshot"
+        ],
+        "type": "object",
+        "properties": {
+          "accounts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "categories": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "payees": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "budgets": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "transactions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "recurrences": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "occurrences": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "snapshot": {
+            "type": "string"
           }
         }
       },
@@ -4248,6 +5423,15 @@
     },
     {
       "name": "Forecast"
+    },
+    {
+      "name": "Dashboard"
+    },
+    {
+      "name": "Exports"
+    },
+    {
+      "name": "Backups"
     }
   ]
 }

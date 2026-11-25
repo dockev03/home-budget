@@ -1,8 +1,20 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { mdiDownload, mdiFileUploadOutline } from '@mdi/js'
 import { api, type Schemas } from '@/api/client'
 import { ifMatch } from '@/api/concurrency'
 import { ApiError, unwrap } from '@/api/errors'
+import { usePendingStore } from '@/stores/pending'
+import { useReferenceStore } from '@/stores/reference'
+import { isRestoreConfirmed, RESTORE_CONFIRMATION } from '@/utils/exports'
+
+const reference = useReferenceStore()
+const pending = usePendingStore()
+const restoreFile = ref<File | File[] | null>(null)
+const restoreConfirmation = ref('')
+const restoring = ref(false)
+const restored = ref<Schemas['RestoreResultDto'] | null>(null)
+const restoreError = ref<string | null>(null)
 
 const settings = ref<Schemas['SettingsDto'] | null>(null)
 const form = ref<Schemas['SettingsRequest']>({
@@ -59,6 +71,31 @@ async function save() {
   }
 }
 
+async function restore() {
+  const file = Array.isArray(restoreFile.value) ? restoreFile.value[0] : restoreFile.value
+  if (!file || !isRestoreConfirmed(restoreConfirmation.value)) return
+  restoring.value = true
+  restored.value = null
+  restoreError.value = null
+  try {
+    // Le fichier est envoyé tel quel : le serveur le valide en entier avant de toucher à la base.
+    restored.value = await unwrap(
+      api.POST('/api/backups/restore', {
+        body: file as unknown as Schemas['BackupDocument'],
+        bodySerializer: (body) => body as unknown as BodyInit,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+    restoreFile.value = null
+    restoreConfirmation.value = ''
+    await Promise.all([load(), reference.load(true), pending.load()])
+  } catch (e) {
+    restoreError.value = e instanceof ApiError ? e.message : 'Restauration impossible.'
+  } finally {
+    restoring.value = false
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -110,4 +147,50 @@ onMounted(load)
 
     <v-btn type="submit" color="primary" :loading="saving" :disabled="!valid">Enregistrer</v-btn>
   </v-form>
+
+  <!-- H6 : sauvegarde et restauration complètes au format JSON. -->
+  <v-card class="mt-8" title="Sauvegarde et restauration" data-testid="backup">
+    <v-card-text>
+      <p class="mb-4">
+        Le fichier JSON contient les paramètres, comptes, catégories, tiers, budgets, opérations, récurrences
+        et échéances. Il ne contient ni les comptes utilisateurs, ni les mots de passe, ni les secrets de
+        double authentification. Conservez-le en lieu sûr : il contient toutes vos données financières.
+      </p>
+      <v-btn href="/api/backups/export" download color="primary" variant="tonal" :prepend-icon="mdiDownload"
+        >Télécharger la sauvegarde</v-btn
+      >
+    </v-card-text>
+    <v-divider />
+    <v-card-text>
+      <v-alert type="warning" variant="tonal" density="compact" class="mb-4">
+        La restauration <strong>remplace toutes les données du foyer</strong> par celles du fichier. Les
+        utilisateurs sont conservés, et un instantané de la base est pris juste avant.
+      </v-alert>
+      <v-alert v-if="restoreError" type="error" variant="tonal" class="mb-4" :text="restoreError" />
+      <v-alert v-if="restored" type="success" variant="tonal" class="mb-4" closable>
+        Données restaurées : {{ restored.accounts }} comptes, {{ restored.transactions }} opérations,
+        {{ restored.recurrences }} récurrences. Instantané préalable : {{ restored.snapshot }}.
+      </v-alert>
+      <v-file-input
+        v-model="restoreFile"
+        label="Fichier de sauvegarde (.json)"
+        accept="application/json,.json"
+        :prepend-icon="mdiFileUploadOutline"
+        style="max-width: 520px"
+      />
+      <v-text-field
+        v-model="restoreConfirmation"
+        :label="`Saisissez ${RESTORE_CONFIRMATION} pour confirmer`"
+        autocomplete="off"
+        style="max-width: 520px"
+      />
+      <v-btn
+        color="error"
+        :loading="restoring"
+        :disabled="!restoreFile || !isRestoreConfirmed(restoreConfirmation)"
+        @click="restore"
+        >Restaurer</v-btn
+      >
+    </v-card-text>
+  </v-card>
 </template>

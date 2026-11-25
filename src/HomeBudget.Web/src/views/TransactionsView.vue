@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   mdiCheckCircle,
   mdiCheckboxBlankCircleOutline,
+  mdiDownload,
   mdiFilterVariant,
   mdiMagnify,
   mdiSwapHorizontal,
@@ -14,6 +15,7 @@ import { ApiError, unwrap } from '@/api/errors'
 import { useAuthStore } from '@/stores/auth'
 import { useReferenceStore } from '@/stores/reference'
 import { useTransactionEditor, type Transaction } from '@/stores/transactionEditor'
+import { transactionsExportUrl, type TransactionFilters } from '@/utils/exports'
 import { formatDayHeading, formatSignedAmount, parseAmount } from '@/utils/format'
 import { iconPath } from '@/utils/icons'
 
@@ -32,15 +34,15 @@ const error = ref<string | null>(null)
 const filtersOpen = ref(false)
 
 // Filtres, synchronisés avec l'URL (lien partageable, retour arrière).
-const filters = ref({
-  accountId: null as string | null,
-  categoryId: null as string | null,
+const filters = ref<TransactionFilters>({
+  accountId: null,
+  categoryId: null,
   search: '',
   from: '',
   to: '',
   minAmount: '',
   maxAmount: '',
-  cleared: null as boolean | null,
+  cleared: null,
 })
 
 const accountItems = computed(() => reference.accounts.map((a) => ({ value: a.id, title: a.name })))
@@ -209,7 +211,24 @@ onMounted(async () => {
 </script>
 
 <template>
-  <h1 class="text-h5 font-weight-bold mb-4">Opérations</h1>
+  <div class="d-flex align-center mb-4">
+    <h1 class="text-h5 font-weight-bold mr-auto">Opérations</h1>
+    <!-- Export (H5) des opérations filtrées : téléchargement direct, la session suffit (lecture). -->
+    <v-menu>
+      <template #activator="{ props }">
+        <v-btn v-bind="props" variant="tonal" :prepend-icon="mdiDownload">Exporter</v-btn>
+      </template>
+      <v-list density="compact">
+        <v-list-item
+          :href="transactionsExportUrl(filters, 'csv')"
+          download
+          title="CSV (Excel en français)"
+          subtitle="Séparateur « ; », virgule décimale"
+        />
+        <v-list-item :href="transactionsExportUrl(filters, 'xlsx')" download title="Classeur Excel (.xlsx)" />
+      </v-list>
+    </v-menu>
+  </div>
 
   <v-alert
     v-if="error"

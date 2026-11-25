@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import {
   mdiApi,
   mdiBankOutline,
+  mdiCalendarCheckOutline,
+  mdiCalendarSync,
   mdiCogOutline,
   mdiChartDonut,
   mdiFormatListBulleted,
@@ -19,17 +21,22 @@ import {
 } from '@mdi/js'
 import TransactionDialog from '@/components/TransactionDialog.vue'
 import { useAuthStore } from '@/stores/auth'
+import { usePendingStore } from '@/stores/pending'
 import { useReferenceStore } from '@/stores/reference'
 import { useTransactionEditor } from '@/stores/transactionEditor'
 import { useThemePreference } from '@/composables/useThemePreference'
 
 const auth = useAuthStore()
 const reference = useReferenceStore()
+const pending = usePendingStore()
 const editor = useTransactionEditor()
 const router = useRouter()
 const { mdAndUp } = useDisplay()
 const { preference } = useThemePreference()
 const loggingOut = ref(false)
+
+// Badge « À valider » : rafraîchi aussi par l'accueil et par l'écran des échéances.
+onMounted(() => pending.load().catch(() => undefined))
 
 // Menu du bas (mobile) : 5 entrées au plus ; les autres sont dans le menu du compte.
 const navigation = computed(() =>
@@ -45,6 +52,15 @@ const navigation = computed(() =>
     { title: 'Budget', icon: mdiChartDonut, to: { name: 'budget' }, exact: false, bottom: true },
     { title: 'Comptes', icon: mdiBankOutline, to: { name: 'accounts' }, exact: true, bottom: true },
     { title: 'Catégories', icon: mdiShapeOutline, to: { name: 'categories' }, exact: true, bottom: true },
+    { title: 'Récurrences', icon: mdiCalendarSync, to: { name: 'recurrences' }, exact: true, bottom: false },
+    {
+      title: 'À valider',
+      icon: mdiCalendarCheckOutline,
+      to: { name: 'pending' },
+      exact: true,
+      bottom: false,
+      badge: pending.count,
+    },
     { title: 'Sécurité', icon: mdiShieldLockOutline, to: { name: 'security' }, exact: true, bottom: false },
     {
       title: 'Paramètres',
@@ -73,6 +89,7 @@ async function logout() {
     await auth.logout()
   } finally {
     reference.reset()
+    pending.reset()
     loggingOut.value = false
     await router.push({ name: 'login' })
   }
@@ -121,7 +138,11 @@ async function logout() {
             :to="item.to"
             :prepend-icon="item.icon"
             :title="item.title"
-          />
+          >
+            <template v-if="item.badge" #append>
+              <v-badge :content="item.badge" color="warning" inline />
+            </template>
+          </v-list-item>
         </template>
         <v-list-item
           v-if="auth.isAdmin"
@@ -150,7 +171,11 @@ async function logout() {
         :prepend-icon="item.icon"
         :title="item.title"
         :exact="item.exact"
-      />
+      >
+        <template v-if="item.badge" #append>
+          <v-badge :content="item.badge" color="warning" inline />
+        </template>
+      </v-list-item>
     </v-list>
   </v-navigation-drawer>
 

@@ -50,6 +50,8 @@ Le jeton change à chaque redémarrage tant qu'aucun utilisateur n'existe. Il es
 | `HB__Backup__Enabled` | `true` | Sauvegarde automatique quotidienne de la base |
 | `HB__Backup__Hour` | `3` | Heure locale de la sauvegarde (fuseau `TZ` du conteneur) |
 | `HB__Backup__KeepDaily` / `__KeepWeekly` / `__KeepMonthly` | `7` / `4` / `12` | Rotation : derniers jours, dernière sauvegarde de chaque semaine, de chaque mois |
+| `HB__Recurrences__Enabled` | `true` | Traitement automatique des échéances de récurrence (au démarrage, puis chaque jour) |
+| `HB__Recurrences__Hour` | `0` | Heure locale du traitement quotidien des échéances (fuseau `TZ` du conteneur) |
 | `HB__SetupToken` | — | Impose le jeton de premier lancement (automatisation et tests uniquement) |
 | `HB__Security__AllowInsecureHttp` | `false` | Autorise les cookies en HTTP non chiffré. **Développement et tests uniquement, jamais en production** |
 

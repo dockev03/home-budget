@@ -28,6 +28,18 @@ export const router = createRouter({
       meta: { title: 'Budget' },
     },
     {
+      path: '/recurrences',
+      name: 'recurrences',
+      component: () => import('@/views/RecurrencesView.vue'),
+      meta: { title: 'Récurrences' },
+    },
+    {
+      path: '/a-valider',
+      name: 'pending',
+      component: () => import('@/views/PendingView.vue'),
+      meta: { title: 'À valider' },
+    },
+    {
       path: '/comptes',
       name: 'accounts',
       component: () => import('@/views/AccountsView.vue'),

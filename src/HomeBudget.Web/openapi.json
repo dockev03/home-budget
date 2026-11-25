@@ -1806,6 +1806,518 @@
           }
         }
       }
+    },
+    "/api/recurrences": {
+      "get": {
+        "tags": [
+          "Recurrences"
+        ],
+        "summary": "R\u00E9currences, avec leur prochaine \u00E9ch\u00E9ance.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RecurrenceDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Recurrences"
+        ],
+        "summary": "Cr\u00E9e une r\u00E9currence. Les \u00E9ch\u00E9ances ant\u00E9rieures \u00E0 aujourd\u0027hui ne sont pas g\u00E9n\u00E9r\u00E9es.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecurrenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecurrenceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recurrences/{id}": {
+      "get": {
+        "tags": [
+          "Recurrences"
+        ],
+        "summary": "Une r\u00E9currence.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecurrenceDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Recurrences"
+        ],
+        "summary": "Modifie une r\u00E9currence (If-Match requis). Les \u00E9ch\u00E9ances d\u00E9j\u00E0 trait\u00E9es ne changent pas.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecurrenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecurrenceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Recurrences"
+        ],
+        "summary": "Supprime une r\u00E9currence (If-Match requis). Les op\u00E9rations d\u00E9j\u00E0 cr\u00E9\u00E9es sont conserv\u00E9es.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recurrences/pending": {
+      "get": {
+        "tags": [
+          "Recurrences"
+        ],
+        "summary": "\u00C9ch\u00E9ances \u00E0 valider (E5), \u00E9chues ou dont le report est arriv\u00E9 \u00E0 terme.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PendingOccurrenceDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recurrences/occurrences/{id}/confirm": {
+      "post": {
+        "tags": [
+          "Recurrences"
+        ],
+        "summary": "Confirme une \u00E9ch\u00E9ance \u00E0 valider : cr\u00E9e l\u0027op\u00E9ration, avec un montant ajust\u00E9 si besoin.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmOccurrenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OccurrenceResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recurrences/occurrences/{id}/skip": {
+      "post": {
+        "tags": [
+          "Recurrences"
+        ],
+        "summary": "Saute une \u00E9ch\u00E9ance \u00E0 valider : elle n\u0027aura pas lieu.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OccurrenceResultDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recurrences/occurrences/{id}/postpone": {
+      "post": {
+        "tags": [
+          "Recurrences"
+        ],
+        "summary": "Reporte une \u00E9ch\u00E9ance \u00E0 valider \u00E0 une date ult\u00E9rieure.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostponeOccurrenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OccurrenceResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast": {
+      "get": {
+        "tags": [
+          "Forecast"
+        ],
+        "summary": "Solde pr\u00E9vu en fin de p\u00E9riode, courbe jour par jour, alerte de seuil et reste \u00E0 vivre de la p\u00E9riode en cours.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForecastDto"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2366,6 +2878,31 @@
           }
         }
       },
+      "ConfirmOccurrenceRequest": {
+        "required": [
+          "amount",
+          "date"
+        ],
+        "type": "object",
+        "properties": {
+          "amount": {
+            "maximum": 999999999,
+            "minimum": -999999999,
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "date": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          }
+        }
+      },
       "CreateAdminRequest": {
         "required": [
           "token",
@@ -2449,6 +2986,107 @@
             "type": "string"
           }
         }
+      },
+      "ForecastDto": {
+        "required": [
+          "period",
+          "accountIds",
+          "includesIncome",
+          "currentBalance",
+          "endBalance",
+          "futureTransactions",
+          "scheduled",
+          "budget",
+          "threshold",
+          "thresholdDate",
+          "remainingToLive",
+          "daily"
+        ],
+        "type": "object",
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/PeriodDto"
+          },
+          "accountIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "includesIncome": {
+            "type": "boolean"
+          },
+          "currentBalance": {
+            "type": "number",
+            "format": "double"
+          },
+          "endBalance": {
+            "type": "number",
+            "format": "double"
+          },
+          "futureTransactions": {
+            "type": "number",
+            "format": "double"
+          },
+          "scheduled": {
+            "type": "number",
+            "format": "double"
+          },
+          "budget": {
+            "type": "number",
+            "format": "double"
+          },
+          "threshold": {
+            "type": "number",
+            "format": "double"
+          },
+          "thresholdDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "remainingToLive": {
+            "$ref": "#/components/schemas/RemainingToLiveDto"
+          },
+          "daily": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ForecastPointDto"
+            }
+          }
+        }
+      },
+      "ForecastPointDto": {
+        "required": [
+          "date",
+          "balance",
+          "isForecast"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "balance": {
+            "type": "number",
+            "format": "double"
+          },
+          "isForecast": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FrequencyUnit": {
+        "enum": [
+          "Day",
+          "Week",
+          "Month",
+          "Year"
+        ]
       },
       "HttpValidationProblemDetails": {
         "type": "object",
@@ -2574,6 +3212,42 @@
           "RequiresTwoFactor"
         ]
       },
+      "OccurrenceResultDto": {
+        "required": [
+          "id",
+          "status",
+          "dueDate",
+          "transactionId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OccurrenceStatus"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "transactionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "OccurrenceStatus": {
+        "enum": [
+          "Pending",
+          "Generated",
+          "Skipped"
+        ]
+      },
       "PasswordConfirmation": {
         "required": [
           "password"
@@ -2603,6 +3277,70 @@
           "usageCount": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "PendingOccurrenceDto": {
+        "required": [
+          "id",
+          "recurrenceId",
+          "label",
+          "accountId",
+          "toAccountId",
+          "payeeName",
+          "categoryId",
+          "amount",
+          "scheduledDate",
+          "dueDate"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recurrenceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "label": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "toAccountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "payeeName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "scheduledDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
           }
         }
       },
@@ -2644,6 +3382,18 @@
           "Calendar",
           "FixedDay"
         ]
+      },
+      "PostponeOccurrenceRequest": {
+        "required": [
+          "date"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          }
+        }
       },
       "ProblemDetails": {
         "type": "object",
@@ -2703,6 +3453,286 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "RecurrenceDto": {
+        "required": [
+          "id",
+          "label",
+          "accountId",
+          "toAccountId",
+          "payeeId",
+          "payeeName",
+          "categoryId",
+          "amount",
+          "notes",
+          "mode",
+          "startDate",
+          "unit",
+          "interval",
+          "end",
+          "endDate",
+          "count",
+          "isInstallment",
+          "nextDate",
+          "pendingCount",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "label": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "toAccountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "payeeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "payeeName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "mode": {
+            "$ref": "#/components/schemas/RecurrenceMode"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/FrequencyUnit"
+          },
+          "interval": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "end": {
+            "$ref": "#/components/schemas/RecurrenceEnd"
+          },
+          "endDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "count": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "isInstallment": {
+            "type": "boolean"
+          },
+          "nextDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "pendingCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "RecurrenceEnd": {
+        "enum": [
+          "Never",
+          "OnDate",
+          "AfterCount"
+        ]
+      },
+      "RecurrenceMode": {
+        "enum": [
+          "Automatic",
+          "ToValidate"
+        ]
+      },
+      "RecurrenceRequest": {
+        "required": [
+          "label",
+          "accountId",
+          "toAccountId",
+          "payeeName",
+          "categoryId",
+          "amount",
+          "notes",
+          "mode",
+          "startDate",
+          "unit",
+          "interval",
+          "end",
+          "endDate",
+          "count",
+          "isInstallment"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "toAccountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "payeeName": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "amount": {
+            "maximum": 999999999,
+            "minimum": -999999999,
+            "type": "number",
+            "format": "double"
+          },
+          "notes": {
+            "maxLength": 2000,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "mode": {
+            "$ref": "#/components/schemas/RecurrenceMode"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/FrequencyUnit"
+          },
+          "interval": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "end": {
+            "$ref": "#/components/schemas/RecurrenceEnd"
+          },
+          "endDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "count": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "isInstallment": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RemainingToLiveDto": {
+        "required": [
+          "total",
+          "perDay",
+          "daysLeft",
+          "income",
+          "fixed",
+          "savings",
+          "safetyThreshold"
+        ],
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "format": "double"
+          },
+          "perDay": {
+            "type": "number",
+            "format": "double"
+          },
+          "daysLeft": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "income": {
+            "type": "number",
+            "format": "double"
+          },
+          "fixed": {
+            "type": "number",
+            "format": "double"
+          },
+          "savings": {
+            "type": "number",
+            "format": "double"
+          },
+          "safetyThreshold": {
+            "type": "number",
+            "format": "double"
           }
         }
       },
@@ -3212,6 +4242,12 @@
     },
     {
       "name": "Budgets"
+    },
+    {
+      "name": "Recurrences"
+    },
+    {
+      "name": "Forecast"
     }
   ]
 }

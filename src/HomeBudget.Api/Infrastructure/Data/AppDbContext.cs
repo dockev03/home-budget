@@ -3,6 +3,7 @@ using HomeBudget.Api.Domain.Accounts;
 using HomeBudget.Api.Domain.Budgets;
 using HomeBudget.Api.Domain.Categories;
 using HomeBudget.Api.Domain.Payees;
+using HomeBudget.Api.Domain.Recurrences;
 using HomeBudget.Api.Domain.Settings;
 using HomeBudget.Api.Domain.Transactions;
 using HomeBudget.Api.Domain.Users;
@@ -28,6 +29,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<TransactionLine> TransactionLines => Set<TransactionLine>();
 
     public DbSet<CategoryBudget> CategoryBudgets => Set<CategoryBudget>();
+
+    public DbSet<Recurrence> Recurrences => Set<Recurrence>();
+
+    public DbSet<RecurrenceOccurrence> RecurrenceOccurrences => Set<RecurrenceOccurrence>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -100,6 +105,30 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         {
             e.Property(l => l.Memo).HasMaxLength(200);
             e.HasOne<Category>().WithMany().HasForeignKey(l => l.CategoryId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<Recurrence>(e =>
+        {
+            ConfigureAudit(e);
+            e.Property(r => r.Label).HasMaxLength(200);
+            e.Property(r => r.Notes).HasMaxLength(2000);
+            e.HasOne<Account>().WithMany().HasForeignKey(r => r.AccountId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Account>().WithMany().HasForeignKey(r => r.ToAccountId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Payee>().WithMany().HasForeignKey(r => r.PayeeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Category>().WithMany().HasForeignKey(r => r.CategoryId).OnDelete(DeleteBehavior.Restrict);
+            e.HasMany(r => r.Occurrences).WithOne().HasForeignKey(o => o.RecurrenceId).OnDelete(DeleteBehavior.Cascade);
+            e.Ignore(r => r.Rule);
+            e.Ignore(r => r.States);
+        });
+
+        builder.Entity<RecurrenceOccurrence>(e =>
+        {
+            ConfigureAudit(e);
+            // Idempotence de la génération (R6) : une échéance n'existe qu'une fois.
+            e.HasIndex(o => new { o.RecurrenceId, o.ScheduledDate }).IsUnique();
+            e.HasIndex(o => new { o.Status, o.DueDate });
+            // L'opération générée peut être supprimée : l'échéance reste, pour ne pas être régénérée.
+            e.HasOne<Transaction>().WithMany().HasForeignKey(o => o.TransactionId).OnDelete(DeleteBehavior.SetNull);
         });
     }
 

@@ -26,6 +26,8 @@ public sealed class HomeBudgetOptions
 
     public BackupOptions Backup { get; set; } = new();
 
+    public RecurrenceOptions Recurrences { get; set; } = new();
+
     public string DatabasePath => Path.Combine(DataPath, "homebudget.db");
 
     public string KeysPath => Path.Combine(DataPath, "keys");
@@ -46,6 +48,15 @@ public sealed class BackupOptions
     public int KeepWeekly { get; set; } = 4;
 
     public int KeepMonthly { get; set; } = 12;
+}
+
+public sealed class RecurrenceOptions
+{
+    /// <summary>Traitement automatique des échéances (au démarrage puis chaque jour).</summary>
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>Heure locale (0 à 23) du traitement quotidien.</summary>
+    public int Hour { get; set; }
 }
 
 public sealed class MetricsOptions

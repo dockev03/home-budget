@@ -1911,6 +1911,540 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/recurrences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Récurrences, avec leur prochaine échéance. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RecurrenceDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Crée une récurrence. Les échéances antérieures à aujourd'hui ne sont pas générées. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RecurrenceRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RecurrenceDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recurrences/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Une récurrence. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RecurrenceDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        /** Modifie une récurrence (If-Match requis). Les échéances déjà traitées ne changent pas. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RecurrenceRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RecurrenceDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Supprime une récurrence (If-Match requis). Les opérations déjà créées sont conservées. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recurrences/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Échéances à valider (E5), échues ou dont le report est arrivé à terme. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PendingOccurrenceDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recurrences/occurrences/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirme une échéance à valider : crée l'opération, avec un montant ajusté si besoin. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConfirmOccurrenceRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OccurrenceResultDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recurrences/occurrences/{id}/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Saute une échéance à valider : elle n'aura pas lieu. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OccurrenceResultDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recurrences/occurrences/{id}/postpone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reporte une échéance à valider à une date ultérieure. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PostponeOccurrenceRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OccurrenceResultDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forecast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Solde prévu en fin de période, courbe jour par jour, alerte de seuil et reste à vivre de la période en cours. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ForecastDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2059,6 +2593,12 @@ export interface components {
         ClearRequest: {
             isCleared: boolean;
         };
+        ConfirmOccurrenceRequest: {
+            /** Format: double */
+            amount: null | number;
+            /** Format: date */
+            date: null | string;
+        };
         CreateAdminRequest: {
             token: string;
             userName: string;
@@ -2079,6 +2619,36 @@ export interface components {
         EnableTwoFactorRequest: {
             code: string;
         };
+        ForecastDto: {
+            period: components["schemas"]["PeriodDto"];
+            accountIds: string[];
+            includesIncome: boolean;
+            /** Format: double */
+            currentBalance: number;
+            /** Format: double */
+            endBalance: number;
+            /** Format: double */
+            futureTransactions: number;
+            /** Format: double */
+            scheduled: number;
+            /** Format: double */
+            budget: number;
+            /** Format: double */
+            threshold: number;
+            /** Format: date */
+            thresholdDate: null | string;
+            remainingToLive: components["schemas"]["RemainingToLiveDto"];
+            daily: components["schemas"]["ForecastPointDto"][];
+        };
+        ForecastPointDto: {
+            /** Format: date */
+            date: string;
+            /** Format: double */
+            balance: number;
+            isForecast: boolean;
+        };
+        /** @enum {unknown} */
+        FrequencyUnit: "Day" | "Week" | "Month" | "Year";
         HttpValidationProblemDetails: {
             type?: null | string;
             title?: null | string;
@@ -2114,6 +2684,17 @@ export interface components {
         };
         /** @enum {unknown} */
         LoginStatus: "Succeeded" | "RequiresTwoFactor";
+        OccurrenceResultDto: {
+            /** Format: uuid */
+            id: string;
+            status: components["schemas"]["OccurrenceStatus"];
+            /** Format: date */
+            dueDate: string;
+            /** Format: uuid */
+            transactionId: null | string;
+        };
+        /** @enum {unknown} */
+        OccurrenceStatus: "Pending" | "Generated" | "Skipped";
         PasswordConfirmation: {
             password: string;
         };
@@ -2123,6 +2704,26 @@ export interface components {
             name: string;
             /** Format: int32 */
             usageCount: number;
+        };
+        PendingOccurrenceDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            recurrenceId: string;
+            label: string;
+            /** Format: uuid */
+            accountId: string;
+            /** Format: uuid */
+            toAccountId: null | string;
+            payeeName: null | string;
+            /** Format: uuid */
+            categoryId: null | string;
+            /** Format: double */
+            amount: number;
+            /** Format: date */
+            scheduledDate: string;
+            /** Format: date */
+            dueDate: string;
         };
         PeriodDto: {
             key: string;
@@ -2136,6 +2737,10 @@ export interface components {
         };
         /** @enum {unknown} */
         PeriodMode: "Calendar" | "FixedDay";
+        PostponeOccurrenceRequest: {
+            /** Format: date */
+            date: string;
+        };
         ProblemDetails: {
             type?: null | string;
             title?: null | string;
@@ -2149,6 +2754,86 @@ export interface components {
         };
         RecoveryCodes: {
             codes: string[];
+        };
+        RecurrenceDto: {
+            /** Format: uuid */
+            id: string;
+            label: string;
+            /** Format: uuid */
+            accountId: string;
+            /** Format: uuid */
+            toAccountId: null | string;
+            /** Format: uuid */
+            payeeId: null | string;
+            payeeName: null | string;
+            /** Format: uuid */
+            categoryId: null | string;
+            /** Format: double */
+            amount: number;
+            notes: null | string;
+            mode: components["schemas"]["RecurrenceMode"];
+            /** Format: date */
+            startDate: string;
+            unit: components["schemas"]["FrequencyUnit"];
+            /** Format: int32 */
+            interval: number;
+            end: components["schemas"]["RecurrenceEnd"];
+            /** Format: date */
+            endDate: null | string;
+            /** Format: int32 */
+            count: null | number;
+            isInstallment: boolean;
+            /** Format: date */
+            nextDate: null | string;
+            /** Format: int32 */
+            pendingCount: number;
+            /** Format: int32 */
+            version: number;
+        };
+        /** @enum {unknown} */
+        RecurrenceEnd: "Never" | "OnDate" | "AfterCount";
+        /** @enum {unknown} */
+        RecurrenceMode: "Automatic" | "ToValidate";
+        RecurrenceRequest: {
+            label: string;
+            /** Format: uuid */
+            accountId: string;
+            /** Format: uuid */
+            toAccountId: null | string;
+            payeeName: null | string;
+            /** Format: uuid */
+            categoryId: null | string;
+            /** Format: double */
+            amount: number;
+            notes: null | string;
+            mode: components["schemas"]["RecurrenceMode"];
+            /** Format: date */
+            startDate: string;
+            unit: components["schemas"]["FrequencyUnit"];
+            /** Format: int32 */
+            interval: number;
+            end: components["schemas"]["RecurrenceEnd"];
+            /** Format: date */
+            endDate: null | string;
+            /** Format: int32 */
+            count: null | number;
+            isInstallment: boolean;
+        };
+        RemainingToLiveDto: {
+            /** Format: double */
+            total: number;
+            /** Format: double */
+            perDay: number;
+            /** Format: int32 */
+            daysLeft: number;
+            /** Format: double */
+            income: number;
+            /** Format: double */
+            fixed: number;
+            /** Format: double */
+            savings: number;
+            /** Format: double */
+            safetyThreshold: number;
         };
         SettingsDto: {
             periodMode: components["schemas"]["PeriodMode"];

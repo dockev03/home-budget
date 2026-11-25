@@ -150,6 +150,13 @@ public static class AccountEndpoints
                 title: "Ce compte contient des opérations.",
                 detail: "Archivez-le plutôt : il sera masqué et son historique conservé.");
         }
+        if (await db.Recurrences.AnyAsync(r => r.AccountId == id || r.ToAccountId == id))
+        {
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Ce compte a des récurrences.",
+                detail: "Supprimez d'abord ses récurrences, ou archivez le compte.");
+        }
         db.Accounts.Remove(account);
         return await db.TrySaveAsync() ? TypedResults.NoContent() : Concurrency.Conflict();
     }

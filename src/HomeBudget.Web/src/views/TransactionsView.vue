@@ -5,6 +5,7 @@ import {
   mdiCheckCircle,
   mdiCheckboxBlankCircleOutline,
   mdiDownload,
+  mdiFileUploadOutline,
   mdiFilterVariant,
   mdiMagnify,
   mdiSwapHorizontal,
@@ -213,6 +214,14 @@ onMounted(async () => {
 <template>
   <div class="d-flex align-center mb-4">
     <h1 class="text-h5 font-weight-bold mr-auto">Opérations</h1>
+    <v-btn
+      v-if="auth.canWrite"
+      variant="tonal"
+      class="mr-2"
+      :prepend-icon="mdiFileUploadOutline"
+      :to="{ name: 'import' }"
+      >Importer</v-btn
+    >
     <!-- Export (H5) des opérations filtrées : téléchargement direct, la session suffit (lecture). -->
     <v-menu>
       <template #activator="{ props }">

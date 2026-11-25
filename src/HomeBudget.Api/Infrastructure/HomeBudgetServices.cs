@@ -5,6 +5,7 @@ using HomeBudget.Api.Domain.Users;
 using HomeBudget.Api.Features.Backups;
 using HomeBudget.Api.Features.Budgets;
 using HomeBudget.Api.Features.Forecasts;
+using HomeBudget.Api.Features.Imports;
 using HomeBudget.Api.Features.Recurrences;
 using HomeBudget.Api.Infrastructure.Backups;
 using HomeBudget.Api.Infrastructure.Configuration;
@@ -105,6 +106,7 @@ public static class HomeBudgetServices
         services.AddScoped<RecurrenceGenerator>();
         services.AddScoped<ForecastService>();
         services.AddScoped<BackupRestorer>();
+        services.AddScoped<ImportService>();
         services.AddHostedService<BackupWorker>();
         services.AddHostedService<RecurrenceWorker>();
         return builder;

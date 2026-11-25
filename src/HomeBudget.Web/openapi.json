@@ -2530,6 +2530,331 @@
           }
         }
       }
+    },
+    "/api/import-profiles": {
+      "get": {
+        "tags": [
+          "Imports"
+        ],
+        "summary": "Profils de lecture CSV et TSV, par nom.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ImportProfileDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Imports"
+        ],
+        "summary": "Cr\u00E9e un profil de lecture.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProfileDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/import-profiles/{id}": {
+      "put": {
+        "tags": [
+          "Imports"
+        ],
+        "summary": "Modifie un profil de lecture (If-Match requis).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProfileDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Imports"
+        ],
+        "summary": "Supprime un profil de lecture (If-Match requis).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/imports": {
+      "get": {
+        "tags": [
+          "Imports"
+        ],
+        "summary": "Derniers imports, du plus r\u00E9cent au plus ancien.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ImportBatchDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Imports"
+        ],
+        "summary": "Importe les op\u00E9rations choisies du relev\u00E9, en une seule transaction. Les doublons certains sont \u00E9cart\u00E9s.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportCommitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/imports/preview": {
+      "post": {
+        "tags": [
+          "Imports"
+        ],
+        "summary": "Lit un relev\u00E9 (CSV, TSV, OFX ou QIF) sans rien enregistrer : op\u00E9rations, doublons et \u00E9ch\u00E9ances correspondantes.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportFileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPreviewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3084,6 +3409,163 @@
             "items": {
               "$ref": "#/components/schemas/BackupOccurrence"
             }
+          },
+          "importProfiles": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BackupImportProfile"
+            }
+          },
+          "importBatches": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BackupImportBatch"
+            }
+          }
+        }
+      },
+      "BackupImportBatch": {
+        "required": [
+          "id",
+          "accountId",
+          "fileName",
+          "format",
+          "created",
+          "matched",
+          "duplicates",
+          "audit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "format": {
+            "$ref": "#/components/schemas/ImportFormat"
+          },
+          "created": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "matched": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "duplicates": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "audit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BackupAudit"
+              }
+            ]
+          }
+        }
+      },
+      "BackupImportProfile": {
+        "required": [
+          "id",
+          "name",
+          "delimiter",
+          "dateFormat",
+          "decimalSeparator",
+          "dateColumn",
+          "labelColumn",
+          "amountColumn",
+          "debitColumn",
+          "creditColumn",
+          "audit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "delimiter": {
+            "maxLength": 1,
+            "minLength": 1,
+            "type": "string",
+            "format": "char"
+          },
+          "dateFormat": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "decimalSeparator": {
+            "maxLength": 1,
+            "minLength": 1,
+            "type": "string",
+            "format": "char"
+          },
+          "dateColumn": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "labelColumn": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "amountColumn": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "debitColumn": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "creditColumn": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "audit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BackupAudit"
+              }
+            ]
           }
         }
       },
@@ -3287,6 +3769,14 @@
                 "$ref": "#/components/schemas/BackupAudit"
               }
             ]
+          },
+          "tolerance": {
+            "type": "number",
+            "format": "double",
+            "default": 0
+          },
+          "toleranceUnit": {
+            "$ref": "#/components/schemas/ToleranceUnit"
           }
         }
       },
@@ -3418,6 +3908,25 @@
               {
                 "$ref": "#/components/schemas/BackupAudit"
               }
+            ]
+          },
+          "rawLabel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "importBatchId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "importHash": {
+            "type": [
+              "null",
+              "string"
             ]
           }
         }
@@ -4164,6 +4673,443 @@
           }
         }
       },
+      "ImportBatchDto": {
+        "required": [
+          "id",
+          "accountId",
+          "fileName",
+          "format",
+          "created",
+          "matched",
+          "duplicates",
+          "importedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "format": {
+            "$ref": "#/components/schemas/ImportFormat"
+          },
+          "created": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "matched": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "duplicates": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "importedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ImportCommitRequest": {
+        "required": [
+          "accountId",
+          "fileName",
+          "content",
+          "profileId",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileName": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "content": {
+            "maxLength": 7000000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "profileId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "lines": {
+            "maxItems": 10000,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportLineChoice"
+            }
+          }
+        }
+      },
+      "ImportFileRequest": {
+        "required": [
+          "accountId",
+          "fileName",
+          "content",
+          "profileId"
+        ],
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileName": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "content": {
+            "maxLength": 7000000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "profileId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "ImportFormat": {
+        "enum": [
+          "Csv",
+          "Ofx",
+          "Qif"
+        ]
+      },
+      "ImportLineChoice": {
+        "required": [
+          "line",
+          "acceptMatch"
+        ],
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "acceptMatch": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ImportLineStatus": {
+        "enum": [
+          "New",
+          "Duplicate",
+          "ProbableDuplicate",
+          "Match"
+        ]
+      },
+      "ImportOccurrenceDto": {
+        "required": [
+          "recurrenceId",
+          "label",
+          "date",
+          "amount",
+          "categoryId"
+        ],
+        "type": "object",
+        "properties": {
+          "recurrenceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "label": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "ImportPreviewDto": {
+        "required": [
+          "format",
+          "profileName",
+          "lines",
+          "errors"
+        ],
+        "type": "object",
+        "properties": {
+          "format": {
+            "$ref": "#/components/schemas/ImportFormat"
+          },
+          "profileName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportPreviewLineDto"
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatementError"
+            }
+          }
+        }
+      },
+      "ImportPreviewLineDto": {
+        "required": [
+          "line",
+          "date",
+          "amount",
+          "label",
+          "status",
+          "duplicateOfId",
+          "duplicateOfLabel",
+          "duplicateOfDate",
+          "occurrence"
+        ],
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "label": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ImportLineStatus"
+          },
+          "duplicateOfId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "duplicateOfLabel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "duplicateOfDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "occurrence": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ImportOccurrenceDto"
+              }
+            ]
+          }
+        }
+      },
+      "ImportProfileDto": {
+        "required": [
+          "id",
+          "name",
+          "delimiter",
+          "dateFormat",
+          "decimalSeparator",
+          "dateColumn",
+          "labelColumn",
+          "amountColumn",
+          "debitColumn",
+          "creditColumn",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "delimiter": {
+            "type": "string"
+          },
+          "dateFormat": {
+            "type": "string"
+          },
+          "decimalSeparator": {
+            "type": "string"
+          },
+          "dateColumn": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "labelColumn": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "amountColumn": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "debitColumn": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "creditColumn": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ImportProfileRequest": {
+        "required": [
+          "name",
+          "delimiter",
+          "dateFormat",
+          "decimalSeparator",
+          "dateColumn",
+          "labelColumn",
+          "amountColumn",
+          "debitColumn",
+          "creditColumn"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 60,
+            "minLength": 1,
+            "type": "string"
+          },
+          "delimiter": {
+            "maxLength": 1,
+            "minLength": 1,
+            "type": "string"
+          },
+          "dateFormat": {
+            "maxLength": 16,
+            "minLength": 1,
+            "type": "string"
+          },
+          "decimalSeparator": {
+            "maxLength": 1,
+            "minLength": 1,
+            "type": "string"
+          },
+          "dateColumn": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "labelColumn": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "amountColumn": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "debitColumn": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "creditColumn": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "ImportResultDto": {
+        "required": [
+          "batchId",
+          "created",
+          "matched",
+          "duplicates"
+        ],
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "matched": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "duplicates": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "KeyFiguresDto": {
         "required": [
           "income",
@@ -4338,7 +5284,8 @@
         "enum": [
           "Pending",
           "Generated",
-          "Skipped"
+          "Skipped",
+          "Matched"
         ]
       },
       "PasswordConfirmation": {
@@ -4604,6 +5551,8 @@
           "endDate",
           "count",
           "isInstallment",
+          "tolerance",
+          "toleranceUnit",
           "nextDate",
           "pendingCount",
           "version"
@@ -4691,6 +5640,13 @@
           },
           "isInstallment": {
             "type": "boolean"
+          },
+          "tolerance": {
+            "type": "number",
+            "format": "double"
+          },
+          "toleranceUnit": {
+            "$ref": "#/components/schemas/ToleranceUnit"
           },
           "nextDate": {
             "type": [
@@ -4820,6 +5776,25 @@
           },
           "isInstallment": {
             "type": "boolean"
+          },
+          "tolerance": {
+            "maximum": 999999999,
+            "minimum": 0,
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "toleranceUnit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ToleranceUnit"
+              }
+            ]
           }
         }
       },
@@ -4984,6 +5959,28 @@
             "type": "boolean"
           }
         }
+      },
+      "StatementError": {
+        "required": [
+          "line",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "ToleranceUnit": {
+        "enum": [
+          "Amount",
+          "Percent"
+        ]
       },
       "TransactionDto": {
         "required": [
@@ -5432,6 +6429,9 @@
     },
     {
       "name": "Backups"
+    },
+    {
+      "name": "Imports"
     }
   ]
 }

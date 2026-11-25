@@ -33,6 +33,12 @@ export const router = createRouter({
       meta: { title: 'Budget' },
     },
     {
+      path: '/import',
+      name: 'import',
+      component: () => import('@/views/ImportView.vue'),
+      meta: { title: 'Importer un relevé' },
+    },
+    {
       path: '/recurrences',
       name: 'recurrences',
       component: () => import('@/views/RecurrencesView.vue'),

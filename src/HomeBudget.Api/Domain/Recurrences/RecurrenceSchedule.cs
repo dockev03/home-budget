@@ -10,6 +10,9 @@ public enum OccurrenceStatus
 
     /// <summary>Échéance sautée : elle n'aura pas lieu.</summary>
     Skipped,
+
+    /// <summary>Échéance remplacée par une opération importée du relevé (E6).</summary>
+    Matched,
 }
 
 /// <summary>État d'une échéance déjà traitée : sa date prévue, et sa date d'effet (reportée ou non).</summary>

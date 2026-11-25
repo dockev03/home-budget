@@ -9,6 +9,7 @@ import {
   mdiCalendarSync,
   mdiCogOutline,
   mdiChartDonut,
+  mdiFileUploadOutline,
   mdiFormatListBulleted,
   mdiHomeOutline,
   mdiPlus,
@@ -52,6 +53,14 @@ const navigation = computed(() =>
     { title: 'Budget', icon: mdiChartDonut, to: { name: 'budget' }, exact: false, bottom: true },
     { title: 'Comptes', icon: mdiBankOutline, to: { name: 'accounts' }, exact: true, bottom: true },
     { title: 'Catégories', icon: mdiShapeOutline, to: { name: 'categories' }, exact: true, bottom: true },
+    {
+      title: 'Importer',
+      icon: mdiFileUploadOutline,
+      to: { name: 'import' },
+      exact: true,
+      bottom: false,
+      write: true,
+    },
     { title: 'Récurrences', icon: mdiCalendarSync, to: { name: 'recurrences' }, exact: true, bottom: false },
     {
       title: 'À valider',
@@ -70,7 +79,7 @@ const navigation = computed(() =>
       bottom: false,
       admin: true,
     },
-  ].filter((item) => !item.admin || auth.isAdmin),
+  ].filter((item) => (!item.admin || auth.isAdmin) && (!item.write || auth.canWrite)),
 )
 const bottomNavigation = computed(() => navigation.value.filter((item) => item.bottom))
 const menuNavigation = computed(() => navigation.value.filter((item) => !item.bottom))

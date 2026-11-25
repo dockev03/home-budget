@@ -1,6 +1,7 @@
 using HomeBudget.Api.Domain.Accounts;
 using HomeBudget.Api.Domain.Budgets;
 using HomeBudget.Api.Domain.Categories;
+using HomeBudget.Api.Domain.Imports;
 using HomeBudget.Api.Domain.Recurrences;
 using HomeBudget.Api.Domain.Settings;
 
@@ -23,11 +24,16 @@ public sealed record BackupDocument(
     List<BackupBudget?>? Budgets,
     List<BackupTransaction?>? Transactions,
     List<BackupRecurrence?>? Recurrences,
-    List<BackupOccurrence?>? Occurrences)
+    List<BackupOccurrence?>? Occurrences,
+    List<BackupImportProfile?>? ImportProfiles = null,
+    List<BackupImportBatch?>? ImportBatches = null)
 {
     public const string FormatName = "home-budget-backup";
 
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
+
+    /// <summary>Version 1 : sans profils ni historique d'import (étapes 1 à 4), toujours restaurable.</summary>
+    public const int MinVersion = 1;
 }
 
 /// <summary>Traçabilité (K2) et version de concurrence, conservées à la restauration.</summary>
@@ -80,7 +86,10 @@ public sealed record BackupTransaction(
     bool IsCleared,
     Guid? TransferId,
     List<BackupTransactionLine?>? Lines,
-    BackupAudit? Audit);
+    BackupAudit? Audit,
+    string? RawLabel = null,
+    Guid? ImportBatchId = null,
+    string? ImportHash = null);
 
 public sealed record BackupRecurrence(
     Guid Id,
@@ -100,7 +109,9 @@ public sealed record BackupRecurrence(
     int? Count,
     bool IsInstallment,
     DateOnly GenerateFrom,
-    BackupAudit? Audit);
+    BackupAudit? Audit,
+    decimal Tolerance = 0,
+    ToleranceUnit ToleranceUnit = ToleranceUnit.Amount);
 
 public sealed record BackupOccurrence(
     Guid Id,
@@ -111,6 +122,22 @@ public sealed record BackupOccurrence(
     OccurrenceStatus Status,
     Guid? TransactionId,
     BackupAudit? Audit);
+
+public sealed record BackupImportProfile(
+    Guid Id,
+    string? Name,
+    char Delimiter,
+    string? DateFormat,
+    char DecimalSeparator,
+    int DateColumn,
+    int LabelColumn,
+    int? AmountColumn,
+    int? DebitColumn,
+    int? CreditColumn,
+    BackupAudit? Audit);
+
+public sealed record BackupImportBatch(
+    Guid Id, Guid AccountId, string? FileName, ImportFormat Format, int Created, int Matched, int Duplicates, BackupAudit? Audit);
 
 /// <summary>Nombre d'éléments restaurés, et nom de l'instantané fait juste avant.</summary>
 public sealed record RestoreResultDto(

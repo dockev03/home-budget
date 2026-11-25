@@ -29,6 +29,23 @@ Le conteneur ne publie **aucun port**. Il est joignable uniquement par le NPM, v
 - schéma `http`, hôte `home-budget`, port `8080` ;
 - SSL : certificat Let's Encrypt, **Force SSL**, **HSTS** activé, HTTP/2.
 
+## Variante : NPM sur un autre serveur
+
+Quand le NPM n'est pas sur la même machine, utiliser `docker-compose.proxy-distant.yml` (champ **Compose path** de la stack). Le conteneur publie alors un port, **uniquement sur une adresse privée**.
+
+Prérequis : un réseau privé entre le serveur NPM et le serveur de la stack (WireGuard, Tailscale ou réseau privé de l'hébergeur). Le lien NPM → application est en HTTP : sur Internet, mots de passe et cookies de session circuleraient en clair.
+
+| Variable | Exemple | Rôle |
+|---|---|---|
+| `HB_PUBLIC_URL` | `https://budget.mondomaine.fr` | URL publique |
+| `HB_BIND_ADDRESS` | `10.0.0.2` | IP privée du serveur de la stack, sur laquelle le port est publié (obligatoire) |
+| `HB_PORT` | `8080` | Port publié (défaut `8080`) |
+| `HB_KNOWN_PROXY_NETWORK` | `10.0.0.1/32` | IP privée du serveur NPM (obligatoire) |
+
+- Ne jamais mettre `0.0.0.0` dans `HB_BIND_ADDRESS` : Docker contourne les règles UFW, le port serait ouvert à tout Internet.
+- Dans le NPM, le Proxy Host vise `http://<HB_BIND_ADDRESS>:<HB_PORT>`, avec les mêmes réglages SSL que ci-dessus.
+- Si les logs montrent une adresse cliente en `172.x.x.x` au lieu de l'IP du NPM (proxy « userland » de Docker), ajouter aussi le sous-réseau du réseau de la stack à `HB_KNOWN_PROXY_NETWORK`, séparé par une virgule.
+
 ## 3. Premier lancement
 
 1. Dans Portainer, ouvrir le conteneur `home-budget`, puis **Logs**. Repérer la ligne :

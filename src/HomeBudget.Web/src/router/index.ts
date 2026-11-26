@@ -33,6 +33,12 @@ export const router = createRouter({
       meta: { title: 'Budget' },
     },
     {
+      path: '/bilan/:year(\\d{4})?',
+      name: 'annual',
+      component: () => import('@/views/AnnualReportView.vue'),
+      meta: { title: 'Bilan annuel' },
+    },
+    {
       path: '/import',
       name: 'import',
       component: () => import('@/views/ImportView.vue'),

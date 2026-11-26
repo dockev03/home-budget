@@ -83,6 +83,13 @@ public static partial class CategoryMergeEndpoints
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.CategoryId, targetId), ct);
         await db.Categories.Where(c => c.ParentId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.ParentId, targetId), ct);
+        await db.Provisions.Where(p => p.CategoryId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.CategoryId, targetId), ct);
+        // Budgets de période (D4) : ceux de la cible l'emportent ; les autres sont déplacés.
+        var targetPeriods = db.PeriodBudgets.Where(b => b.CategoryId == targetId).Select(b => b.PeriodKey);
+        await db.PeriodBudgets.Where(b => b.CategoryId == id && targetPeriods.Contains(b.PeriodKey)).ExecuteDeleteAsync(ct);
+        await db.PeriodBudgets.Where(b => b.CategoryId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(b => b.CategoryId, targetId), ct);
         if (result.BudgetMoved)
         {
             await db.CategoryBudgets.Where(b => b.CategoryId == id)

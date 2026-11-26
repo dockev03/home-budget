@@ -76,7 +76,7 @@ public static class DashboardEndpoints
             return PeriodEndpoints.UnknownPeriod();
         }
 
-        var (categories, _, budget, _) = await BudgetEndpoints.ComputeAsync(db, settings, period, schedule, ct);
+        var (categories, _, _, budget, _) = await BudgetEndpoints.ComputeAsync(db, settings, period, schedule, ct);
         var expenses = categories
             .Where(c => c.ParentId is null && c.Kind is CategoryKind.Fixed or CategoryKind.Variable)
             .OrderBy(c => c.Kind).ThenBy(c => c.SortOrder).ThenBy(c => c.Name)

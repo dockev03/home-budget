@@ -234,7 +234,7 @@ public static class RecurrenceEndpoints
 
     private static async Task<ValidationProblem?> ValidateAsync(RecurrenceRequest request, AppDbContext db, Recurrence? existing)
     {
-        var rule = new RecurrenceRule(request.StartDate, request.Unit, request.Interval, request.End, request.EndDate, request.Count);
+        var rule = new RecurrenceRule(request.StartDate, request.Unit, request.Interval, request.End, request.EndDate, request.Count, request.BusinessDayShift);
         var errors = rule.Validate();
         if (!Enum.IsDefined(request.Mode))
         {
@@ -322,6 +322,7 @@ public static class RecurrenceEndpoints
         recurrence.Tolerance = request.Tolerance ?? 0;
         recurrence.ToleranceUnit = request.ToleranceUnit ?? ToleranceUnit.Amount;
         recurrence.IsSubscription = request.IsSubscription && request.ToAccountId is null;
+        recurrence.BusinessDayShift = request.BusinessDayShift;
     }
 
     private static async Task<RecurrenceDto> LoadDtoAsync(AppDbContext db, TimeProvider clock, Guid id)
@@ -349,7 +350,8 @@ public static class RecurrenceEndpoints
                 next.Count > 0 ? next[0].Date : null,
                 r.Occurrences.Count(o => o.Status == OccurrenceStatus.Pending && o.DueDate <= today),
                 r.Version,
-                r.IsSubscription);
+                r.IsSubscription,
+                r.BusinessDayShift);
         })];
     }
 }

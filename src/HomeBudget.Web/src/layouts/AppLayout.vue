@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import {
+  mdiChartBar,
   mdiAccountGroupOutline,
   mdiApi,
   mdiBankOutline,
@@ -57,6 +58,7 @@ const navigation = computed(() =>
       bottom: true,
     },
     { title: 'Budget', icon: mdiChartDonut, to: { name: 'budget' }, exact: false, bottom: true },
+    { title: 'Bilan annuel', icon: mdiChartBar, to: { name: 'annual' }, exact: false, bottom: false },
     { title: 'Comptes', icon: mdiBankOutline, to: { name: 'accounts' }, exact: true, bottom: true },
     { title: 'Catégories', icon: mdiShapeOutline, to: { name: 'categories' }, exact: true, bottom: true },
     {

@@ -24,14 +24,25 @@ public enum RecurrenceEnd
 /// Règle de calcul des échéances (E1, E3, R6) : tous les <see cref="Interval"/> jours, semaines, mois ou années
 /// depuis <see cref="StartDate"/>. Le trimestriel s'écrit « tous les 3 mois ».
 /// </summary>
+/// <param name="Shift">
+/// Report au jour ouvré (E9), appliqué après le calcul de la k-ième échéance (R6). La fin « à une date » porte
+/// sur la date calculée, avant report.
+/// </param>
 public sealed record RecurrenceRule(
     DateOnly StartDate,
     FrequencyUnit Unit,
     int Interval,
     RecurrenceEnd End = RecurrenceEnd.Never,
     DateOnly? EndDate = null,
-    int? Count = null)
+    int? Count = null,
+    BusinessDayShift Shift = BusinessDayShift.None)
 {
+    /// <summary>
+    /// Intervalle minimal, en jours, pour reporter au jour ouvré : deux échéances ne doivent jamais tomber
+    /// le même jour après report.
+    /// </summary>
+    public const int MinShiftIntervalDays = 7;
+
     public const int MaxInterval = 999;
 
     public const int MaxCount = 999;
@@ -62,19 +73,34 @@ public sealed record RecurrenceRule(
         _ => true,
     };
 
-    /// <summary>Échéances (indice, date) comprises entre <paramref name="from"/> et <paramref name="to"/> inclus.</summary>
+    /// <summary>
+    /// Échéances (indice, date reportée au jour ouvré s'il y a lieu) comprises entre <paramref name="from"/> et
+    /// <paramref name="to"/> inclus. Les dates reportées restent croissantes : le report ne dépasse jamais
+    /// l'intervalle entre deux échéances.
+    /// </summary>
     public IEnumerable<ScheduledDate> Between(DateOnly from, DateOnly to)
     {
-        if (to < from || to < StartDate)
+        var margin = Shift == BusinessDayShift.None ? 0 : BusinessDays.MaxShiftDays;
+        if (to < from || to.AddDays(margin) < StartDate)
         {
             yield break;
         }
-        for (var index = FirstIndexOnOrAfter(from); ; index++)
+        for (var index = FirstIndexOnOrAfter(from.AddDays(-margin)); ; index++)
         {
-            var date = DateOf(index);
-            if (date > to || !Includes(index, date))
+            var computed = DateOf(index);
+            if (!Includes(index, computed))
             {
                 yield break;
+            }
+            var date = BusinessDays.Adjust(computed, Shift);
+            if (date > to)
+            {
+                // Une échéance avancée au jour ouvré précédent peut encore suivre une date calculée après « to ».
+                if (computed.AddDays(-margin) > to)
+                {
+                    yield break;
+                }
+                continue;
             }
             if (date >= from)
             {
@@ -94,6 +120,14 @@ public sealed record RecurrenceRule(
         if (Interval is < 1 or > MaxInterval)
         {
             errors["interval"] = [$"L'intervalle va de 1 à {MaxInterval}."];
+        }
+        if (!Enum.IsDefined(Shift))
+        {
+            errors["businessDayShift"] = ["Report inconnu."];
+        }
+        else if (Shift != BusinessDayShift.None && Unit == FrequencyUnit.Day && Interval < MinShiftIntervalDays)
+        {
+            errors["businessDayShift"] = [$"Le report au jour ouvré demande au moins {MinShiftIntervalDays} jours entre deux échéances."];
         }
         switch (End)
         {

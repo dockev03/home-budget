@@ -46,6 +46,17 @@ public static class BackupValidator
             errors.Add("Fichier invalide : un élément de liste est vide (null).");
             return errors.List;
         }
+        var hasProvisions = document.FormatVersion >= BackupDocument.ProvisionsVersion;
+        if (hasProvisions && (document.PeriodBudgets is null || document.Provisions is null || document.TransactionChanges is null))
+        {
+            errors.Add("Fichier incomplet : budgets par période, provisions et historique des opérations attendus.");
+            return errors.List;
+        }
+        if (hasProvisions && (document.PeriodBudgets!.Contains(null) || document.Provisions!.Contains(null) || document.TransactionChanges!.Contains(null)))
+        {
+            errors.Add("Fichier invalide : un élément de liste est vide (null).");
+            return errors.List;
+        }
         var hasReconciliations = document.FormatVersion >= BackupDocument.ReconciliationsVersion;
         if (hasReconciliations && (document.Reconciliations is null || document.Advances is null))
         {
@@ -278,6 +289,7 @@ public static class BackupValidator
             Defined(where, r.Mode, errors);
             Defined(where, r.Unit, errors);
             Defined(where, r.End, errors);
+            Defined(where, r.BusinessDayShift, errors);
             if (!new AmountTolerance(r.Tolerance, r.ToleranceUnit).IsValid)
             {
                 errors.Add($"{where} : tolérance invalide.");
@@ -287,6 +299,54 @@ public static class BackupValidator
                 errors.Add($"{where} : intervalle ou nombre d'échéances invalide.");
             }
             Audit(where, r.Audit, errors);
+        }
+
+        var periodCalculator = new PeriodCalculator(Domain.Settings.PeriodMode.Calendar, 1);
+        UniqueIds("budget de période", (document.PeriodBudgets ?? []).Select(b => b!.Id), errors);
+        var periodBudgets = new HashSet<(Guid, string)>();
+        foreach (var b in (document.PeriodBudgets ?? []).OfType<BackupPeriodBudget>())
+        {
+            var where = $"Budget de période {b.Id}";
+            Reference(where, "catégorie", b.CategoryId, categoryIds, errors);
+            if (!periodCalculator.TryParse(b.PeriodKey, out _))
+            {
+                errors.Add($"{where} : période invalide.");
+            }
+            else if (!periodBudgets.Add((b.CategoryId, b.PeriodKey!)))
+            {
+                errors.Add($"{where} : un seul budget par catégorie et par période.");
+            }
+            Defined(where, b.Mode, errors);
+            if (b.Value < 0 || b.Value > MaxAmount || decimal.Round(b.Value, 2) != b.Value)
+            {
+                errors.Add($"{where} : valeur invalide.");
+            }
+            Audit(where, b.Audit, errors);
+        }
+
+        UniqueIds("provision", (document.Provisions ?? []).Select(p => p!.Id), errors);
+        foreach (var p in (document.Provisions ?? []).OfType<BackupProvision>())
+        {
+            var where = $"Provision {p.Id}";
+            Text(where, "libellé", p.Label, Domain.Budgets.Provision.MaxLabelLength, required: true, errors);
+            Reference(where, "catégorie", p.CategoryId, categoryIds, errors);
+            if (p.Amount <= 0)
+            {
+                errors.Add($"{where} : montant positif requis.");
+            }
+            Amount(where, p.Amount, errors);
+            Audit(where, p.Audit, errors);
+        }
+
+        UniqueIds("modification d'opération", (document.TransactionChanges ?? []).Select(c => c!.Id), errors);
+        foreach (var c in (document.TransactionChanges ?? []).OfType<BackupTransactionChange>())
+        {
+            var where = $"Modification d'opération {c.Id}";
+            Reference(where, "opération", c.TransactionId, transactionIds, errors);
+            if (Text(where, "détail", c.Changes, 1_000_000, required: true, errors) && !IsJsonArray(c.Changes!))
+            {
+                errors.Add($"{where} : détail illisible.");
+            }
         }
 
         var scheduled = new HashSet<(Guid, DateOnly)>();
@@ -338,6 +398,19 @@ public static class BackupValidator
         }
 
         return errors.List;
+    }
+
+    private static bool IsJsonArray(string json)
+    {
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<List<Domain.Transactions.TransactionFieldChange>>(
+                json, Infrastructure.Data.TransactionHistoryInterceptor.Json) is not null;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return false;
+        }
     }
 
     private static void ValidateSettings(BackupSettings s, Errors errors)

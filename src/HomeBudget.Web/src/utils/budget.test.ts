@@ -30,6 +30,9 @@ function line(overrides: Partial<BudgetLine> = {}): BudgetLine {
     remaining: 150,
     percentUsed: 75,
     status: 'Ok',
+    periodBudget: null,
+    provisioned: 0,
+    defaultMode: 'Amount',
     ...overrides,
   }
 }
@@ -64,5 +67,21 @@ describe('budget', () => {
     expect(gaugeValue(line({ percentUsed: null, actual: 0 }))).toBe(0)
     expect(statusColor('Warning')).toBe('warning')
     expect(statusColor('Exceeded')).toBe('error')
+  })
+
+  it('signale un budget propre à la période et les provisions', () => {
+    expect(budgetModeLabel(line({ periodBudget: { mode: 'Amount', value: 700, version: 1 } }))).toBe(
+      'Montant fixe · cette période',
+    )
+    expect(
+      budgetModeLabel(
+        line({
+          mode: 'PercentOfIncome',
+          value: 10,
+          periodBudget: { mode: 'PercentOfIncome', value: 15, version: 1 },
+        }),
+      ),
+    ).toBe(nbsp('15 % des revenus budgétés · cette période'))
+    expect(nbsp(budgetModeLabel(line({ provisioned: 120 })))).toBe('Montant fixe + 120,00 € de provisions')
   })
 })

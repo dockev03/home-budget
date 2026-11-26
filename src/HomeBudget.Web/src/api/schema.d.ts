@@ -1733,6 +1733,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/transactions/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Modifications de l'opération, de la plus récente à la plus ancienne : qui, quand, avant et après. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TransactionChangeDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/transfers/{transferId}": {
         parameters: {
             query?: never;
@@ -2327,6 +2372,530 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/budgets/{periodKey}/categories/{categoryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Budget d'une catégorie pour cette seule période (D4). If-Match requis s'il existe déjà. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    periodKey: string;
+                    categoryId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CategoryBudgetRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PeriodBudgetDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Supprime le budget propre à la période (If-Match requis) : retour au budget par défaut. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    periodKey: string;
+                    categoryId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/budgets/{periodKey}/copy/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Aperçu de la copie du budget (D5) : depuis la période précédente ou la moyenne du réalisé sur N mois. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    periodKey: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["BudgetCopyRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BudgetCopyProposalDto"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/budgets/{periodKey}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Applique la copie du budget aux catégories choisies, en budgets propres à la période (D4, D5). */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    periodKey: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["BudgetCopyRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BudgetCopyResultDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/provisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Provisions, avec leur part et leur cumul pour la période en cours, par prochaine échéance. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProvisionDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Crée une provision. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ProvisionRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProvisionDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/provisions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Modifie une provision (If-Match requis). */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ProvisionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProvisionDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Supprime une provision (If-Match requis). */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/annual/{year}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Réalisé de l'année par catégorie et par type, comparé à l'année précédente. L'année réunit les 12 périodes qui portent son nom (R1). */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    year: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AnnualReportDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -4565,6 +5134,51 @@ export interface components {
         };
         /** @enum {unknown} */
         AdvanceStatus: "Open" | "Settled";
+        AnnualLineDto: {
+            /** Format: uuid */
+            categoryId: string;
+            /** Format: uuid */
+            parentId: null | string;
+            name: string;
+            kind: components["schemas"]["CategoryKind"];
+            color: null | string;
+            icon: null | string;
+            /** Format: double */
+            actual: number;
+            /** Format: double */
+            previousActual: number;
+            /** Format: double */
+            difference: number;
+            /** Format: double */
+            changePercent: null | number;
+        };
+        AnnualReportDto: {
+            /** Format: int32 */
+            year: number;
+            /** Format: date */
+            start: string;
+            /** Format: date */
+            end: string;
+            actual: components["schemas"]["AnnualTotalsDto"];
+            previous: components["schemas"]["AnnualTotalsDto"];
+            /** Format: double */
+            uncategorized: number;
+            /** Format: double */
+            previousUncategorized: number;
+            categories: components["schemas"]["AnnualLineDto"][];
+        };
+        AnnualTotalsDto: {
+            /** Format: double */
+            income: number;
+            /** Format: double */
+            fixed: number;
+            /** Format: double */
+            variable: number;
+            /** Format: double */
+            savings: number;
+            /** Format: double */
+            remaining: number;
+        };
         /** @enum {unknown} */
         AuditAction: "LoginSucceeded" | "LoginFailed" | "LoginLockedOut" | "PasswordChanged" | "TwoFactorEnabled" | "TwoFactorDisabled" | "UserInvited" | "InvitationRevoked" | "InvitationAccepted" | "RoleChanged" | "UserDeactivated" | "UserReactivated" | "AccountVisibilityChanged" | "Exported" | "BackupExported" | "Restored" | "Deleted";
         AuditEntryDto: {
@@ -4686,6 +5300,9 @@ export interface components {
             labelRules?: null | components["schemas"]["BackupLabelRule"][];
             reconciliations?: null | components["schemas"]["BackupReconciliation"][];
             advances?: null | components["schemas"]["BackupAdvance"][];
+            periodBudgets?: null | components["schemas"]["BackupPeriodBudget"][];
+            provisions?: null | components["schemas"]["BackupProvision"][];
+            transactionChanges?: null | components["schemas"]["BackupTransactionChange"][];
         };
         BackupImportBatch: {
             /** Format: uuid */
@@ -4755,6 +5372,32 @@ export interface components {
             name: null | string;
             audit: null | components["schemas"]["BackupAudit"];
         };
+        BackupPeriodBudget: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            categoryId: string;
+            periodKey: null | string;
+            mode: components["schemas"]["BudgetMode"];
+            /** Format: double */
+            value: number;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
+        BackupProvision: {
+            /** Format: uuid */
+            id: string;
+            label: null | string;
+            /** Format: uuid */
+            categoryId: string;
+            /** Format: double */
+            amount: number;
+            /** Format: date */
+            dueDate: string;
+            isAnnual: boolean;
+            /** Format: date */
+            startDate: string;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
         BackupReconciliation: {
             /** Format: uuid */
             id: string;
@@ -4804,6 +5447,7 @@ export interface components {
             toleranceUnit?: components["schemas"]["ToleranceUnit"];
             /** @default false */
             isSubscription: boolean;
+            businessDayShift?: components["schemas"]["BusinessDayShift"];
         };
         BackupSettings: {
             /** Format: uuid */
@@ -4854,6 +5498,17 @@ export interface components {
             /** Format: uuid */
             advanceId?: null | string;
         };
+        BackupTransactionChange: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            transactionId: string;
+            /** Format: date-time */
+            at: string;
+            /** Format: uuid */
+            userId: null | string;
+            changes: null | string;
+        };
         BackupTransactionLine: {
             /** Format: uuid */
             id: string;
@@ -4876,6 +5531,34 @@ export interface components {
             actual: number;
             status: components["schemas"]["BudgetStatus"];
         };
+        BudgetCopyProposalDto: {
+            /** Format: uuid */
+            categoryId: string;
+            /** Format: uuid */
+            parentId: null | string;
+            name: string;
+            kind: components["schemas"]["CategoryKind"];
+            currentMode: null | components["schemas"]["BudgetMode"];
+            /** Format: double */
+            currentValue: null | number;
+            /** Format: double */
+            currentBudgeted: number;
+            proposedMode: null | components["schemas"]["BudgetMode"];
+            /** Format: double */
+            proposedValue: null | number;
+        };
+        BudgetCopyRequest: {
+            source: components["schemas"]["BudgetCopySource"];
+            /** Format: int32 */
+            months: null | number;
+            categoryIds: null | string[];
+        };
+        BudgetCopyResultDto: {
+            /** Format: int32 */
+            applied: number;
+        };
+        /** @enum {unknown} */
+        BudgetCopySource: "PreviousPeriod" | "Average";
         BudgetDto: {
             period: components["schemas"]["PeriodDto"];
             budgeted: components["schemas"]["KindTotalsDto"];
@@ -4917,6 +5600,10 @@ export interface components {
             /** Format: double */
             percentUsed: null | number;
             status: components["schemas"]["BudgetStatus"];
+            periodBudget: null | components["schemas"]["DefinedBudgetDto"];
+            /** Format: double */
+            provisioned: number;
+            defaultMode: null | components["schemas"]["BudgetMode"];
         };
         /** @enum {unknown} */
         BudgetMode: "Amount" | "PercentOfIncome" | "Auto" | null;
@@ -4942,6 +5629,8 @@ export interface components {
             /** Format: int32 */
             skipped: number;
         };
+        /** @enum {unknown} */
+        BusinessDayShift: "None" | "Next" | "Previous";
         CategoryAmountDto: {
             /** Format: uuid */
             categoryId: string;
@@ -5037,8 +5726,22 @@ export interface components {
             history: components["schemas"]["PeriodTotalsDto"][];
             topPayees: components["schemas"]["PayeeAmountDto"][];
         };
+        DefinedBudgetDto: {
+            mode: components["schemas"]["BudgetMode"];
+            /** Format: double */
+            value: number;
+            /** Format: int32 */
+            version: number;
+        };
         EnableTwoFactorRequest: {
             code: string;
+        };
+        FieldChangeDto: {
+            field: string;
+            before: null | string;
+            after: null | string;
+            beforeLines: null | components["schemas"]["LineChangeDto"][];
+            afterLines: null | components["schemas"]["LineChangeDto"][];
         };
         ForecastDto: {
             period: components["schemas"]["PeriodDto"];
@@ -5258,6 +5961,13 @@ export interface components {
             /** Format: double */
             remaining: number;
         };
+        LineChangeDto: {
+            category: null | string;
+            /** Format: double */
+            amount: number;
+            memo: null | string;
+            tags: string[];
+        };
         LoginRequest: {
             userName: string;
             password: string;
@@ -5342,6 +6052,16 @@ export interface components {
             /** Format: date */
             dueDate: string;
         };
+        PeriodBudgetDto: {
+            /** Format: uuid */
+            categoryId: string;
+            periodKey: string;
+            mode: components["schemas"]["BudgetMode"];
+            /** Format: double */
+            value: number;
+            /** Format: int32 */
+            version: number;
+        };
         PeriodDto: {
             key: string;
             /** Format: date */
@@ -5378,6 +6098,41 @@ export interface components {
             status?: null | number;
             detail?: null | string;
             instance?: null | string;
+        };
+        ProvisionDto: {
+            /** Format: uuid */
+            id: string;
+            label: string;
+            /** Format: uuid */
+            categoryId: string;
+            /** Format: double */
+            amount: number;
+            /** Format: date */
+            dueDate: string;
+            isAnnual: boolean;
+            /** Format: date */
+            startDate: string;
+            /** Format: double */
+            share: number;
+            /** Format: double */
+            saved: number;
+            /** Format: int32 */
+            periods: number;
+            dueKey: null | string;
+            /** Format: int32 */
+            version: number;
+        };
+        ProvisionRequest: {
+            label: string;
+            /** Format: uuid */
+            categoryId: string;
+            /** Format: double */
+            amount: number;
+            /** Format: date */
+            dueDate: string;
+            isAnnual: boolean;
+            /** Format: date */
+            startDate: null | string;
         };
         ReconciliationDto: {
             /** Format: uuid */
@@ -5461,6 +6216,7 @@ export interface components {
             /** Format: int32 */
             version: number;
             isSubscription: boolean;
+            businessDayShift: components["schemas"]["BusinessDayShift"];
         };
         /** @enum {unknown} */
         RecurrenceEnd: "Never" | "OnDate" | "AfterCount";
@@ -5495,6 +6251,7 @@ export interface components {
             toleranceUnit?: null | components["schemas"]["ToleranceUnit"];
             /** @default false */
             isSubscription: boolean;
+            businessDayShift?: components["schemas"]["BusinessDayShift"];
         };
         RemainingToLiveDto: {
             /** Format: double */
@@ -5622,6 +6379,16 @@ export interface components {
         };
         /** @enum {unknown} */
         ToleranceUnit: "Amount" | "Percent";
+        TransactionChangeDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            at: string;
+            /** Format: uuid */
+            userId: null | string;
+            userName: null | string;
+            changes: components["schemas"]["FieldChangeDto"][];
+        };
         TransactionDto: {
             /** Format: uuid */
             id: string;

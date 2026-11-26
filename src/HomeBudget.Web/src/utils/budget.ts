@@ -30,13 +30,19 @@ export const budgetModes: { value: BudgetMode; title: string }[] = [
   { value: 'Auto', title: 'Automatique' },
 ]
 
-/** Description courte du budget d'une ligne, sous son nom. */
+/** Description courte du budget d'une ligne, sous son nom ; précise un budget propre à la période (D4). */
 export function budgetModeLabel(line: BudgetLine): string {
+  const base = baseModeLabel(line)
+  const provision = line.provisioned > 0 ? ` + ${formatAmount(line.provisioned)} de provisions` : ''
+  return `${base}${line.periodBudget ? ' · cette période' : ''}${provision}`
+}
+
+function baseModeLabel(line: BudgetLine): string {
   switch (line.mode) {
     case 'Amount':
       return 'Montant fixe'
     case 'PercentOfIncome':
-      return `${formatPercent(line.value ?? 0)} des revenus budgétés`
+      return `${formatPercent(line.periodBudget?.value ?? line.value ?? 0)} des revenus budgétés`
     case 'Auto': {
       const suffix = line.isDefaultMode ? ' (par défaut)' : ''
       return line.ownBudgeted === 0

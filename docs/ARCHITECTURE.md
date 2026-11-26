@@ -105,7 +105,7 @@ home-budget/
 | DM3 | **Opération = en-tête + lignes** | Ventilation, remboursements et virements traités sans cas particulier |
 | DM4 | **Période abstraite** (`Period` : début, fin, libellé) calculée selon le paramètre du foyer | Permet la période d'une paie à l'autre sans réécriture |
 | DM5 | **Propriétaire et visibilité sur chaque compte**, appliqués par un filtre de requête global EF Core | Impossible d'oublier un filtre (règle R8) |
-| DM6 | **Audit automatique** par un intercepteur `SaveChanges` | Un seul mécanisme pour B13, K2 et N6 |
+| DM6 | **Audit automatique** par des intercepteurs `SaveChanges` : auteur et dates (K2), suppressions (N6), historique des opérations (B13, `TransactionHistoryInterceptor`) | Aucune voie de modification (saisie, masse, pointage, import, rapprochement) ne peut l'oublier |
 
 Tous les montants sont signés (négatif = sortie). Chaque entité porte `CreatedAt`, `CreatedBy`, `UpdatedAt`, `UpdatedBy`, ainsi qu'un `Version` pour la concurrence optimiste.
 
@@ -125,8 +125,8 @@ Reconciliation             AccountId, Date, StatementBalance, Difference, Closed
 CategoryGroup ─┐
 Category       Id, ParentId?, Name, Kind{Income,Fixed,Variable,Savings}, Color, Icon, SortOrder, IsArchived
 CategoryBudget             CategoryId, Mode{Amount,PercentOfIncome,Auto}, Value, Rollover   (défaut)
-BudgetOverride             CategoryId, PeriodKey, Mode, Value                               (D4)
-Provision                  CategoryId, AnnualAmount, DueMonth                               (D11)
+PeriodBudget               CategoryId, PeriodKey, Mode, Value                               (D4 : remplace le défaut)
+Provision                  Label, CategoryId, Amount, DueDate, IsAnnual, StartDate          (D11 : parts par période)
 
 Payee                      Id, Name, DefaultCategoryId?
 LearnedRule                Id, Key (libellé normalisé), PayeeId?, CategoryId?, Hits, LastUsedAt   (I2–I4)
@@ -137,6 +137,7 @@ Transaction                Id, AccountId, Date, PayeeId?, Label, RawLabel?, Note
                            ImportBatchId?, ImportHash?
 TransactionLine            Id, TransactionId, CategoryId?, Amount, Memo
 TransactionLineTag         LineId, TagId
+TransactionChange          TransactionId, At, UserId, UserName, Changes(JSON avant/après)   (B13)
 TransactionLink            SourceId, TargetId, Type{Refund,Advance}, ExpectedAmount?   (B11, B12, P4)
 Attachment                 Id, TransactionId, FileName, ContentType, Size, Sha256
 

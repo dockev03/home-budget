@@ -30,11 +30,14 @@ public sealed record BackupDocument(
     List<BackupTag?>? Tags = null,
     List<BackupLabelRule?>? LabelRules = null,
     List<BackupReconciliation?>? Reconciliations = null,
-    List<BackupAdvance?>? Advances = null)
+    List<BackupAdvance?>? Advances = null,
+    List<BackupPeriodBudget?>? PeriodBudgets = null,
+    List<BackupProvision?>? Provisions = null,
+    List<BackupTransactionChange?>? TransactionChanges = null)
 {
     public const string FormatName = "home-budget-backup";
 
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
 
     /// <summary>Version 1 : sans profils ni historique d'import (étapes 1 à 4), toujours restaurable.</summary>
     public const int MinVersion = 1;
@@ -47,6 +50,9 @@ public sealed record BackupDocument(
 
     /// <summary>Version 4 : rapprochements, avances, liens de remboursement et abonnements (étape 7).</summary>
     public const int ReconciliationsVersion = 4;
+
+    /// <summary>Version 5 : budgets par période, provisions, historique des opérations, report au jour ouvré (étape 9).</summary>
+    public const int ProvisionsVersion = 5;
 }
 
 /// <summary>Traçabilité (K2) et version de concurrence, conservées à la restauration.</summary>
@@ -86,6 +92,15 @@ public sealed record BackupCategory(
 public sealed record BackupPayee(Guid Id, string? Name, BackupAudit? Audit);
 
 public sealed record BackupBudget(Guid Id, Guid CategoryId, BudgetMode Mode, decimal Value, BackupAudit? Audit);
+
+public sealed record BackupPeriodBudget(Guid Id, Guid CategoryId, string? PeriodKey, BudgetMode Mode, decimal Value, BackupAudit? Audit);
+
+public sealed record BackupProvision(
+    Guid Id, string? Label, Guid CategoryId, decimal Amount, DateOnly DueDate, bool IsAnnual, DateOnly StartDate, BackupAudit? Audit);
+
+/// <summary>Modification d'une opération (B13). Le nom de l'auteur n'est pas sauvegardé : seul son identifiant.</summary>
+/// <param name="Changes">Champs modifiés, au format JSON de l'historique (B13).</param>
+public sealed record BackupTransactionChange(Guid Id, Guid TransactionId, DateTimeOffset At, Guid? UserId, string? Changes);
 
 public sealed record BackupTransactionLine(Guid Id, Guid? CategoryId, decimal Amount, string? Memo, List<Guid>? TagIds = null);
 
@@ -136,7 +151,8 @@ public sealed record BackupRecurrence(
     BackupAudit? Audit,
     decimal Tolerance = 0,
     ToleranceUnit ToleranceUnit = ToleranceUnit.Amount,
-    bool IsSubscription = false);
+    bool IsSubscription = false,
+    BusinessDayShift BusinessDayShift = BusinessDayShift.None);
 
 public sealed record BackupOccurrence(
     Guid Id,

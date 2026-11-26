@@ -3,9 +3,11 @@ using HomeBudget.Api.Domain.Budgets;
 using HomeBudget.Api.Domain.Categories;
 using HomeBudget.Api.Domain.Imports;
 using HomeBudget.Api.Domain.Recurrences;
+using HomeBudget.Api.Domain.Reports;
 using HomeBudget.Api.Domain.Savings;
 using HomeBudget.Api.Domain.Scenarios;
 using HomeBudget.Api.Domain.Settings;
+using HomeBudget.Api.Domain.Split;
 
 namespace HomeBudget.Api.Features.Backups;
 
@@ -39,11 +41,14 @@ public sealed record BackupDocument(
     List<BackupScenario?>? Scenarios = null,
     List<BackupScenarioEvent?>? ScenarioEvents = null,
     List<BackupValuation?>? Valuations = null,
-    List<BackupSavingsGoal?>? SavingsGoals = null)
+    List<BackupSavingsGoal?>? SavingsGoals = null,
+    List<BackupLoan?>? Loans = null,
+    List<BackupMemberShare?>? MemberShares = null,
+    List<BackupSavedReport?>? SavedReports = null)
 {
     public const string FormatName = "home-budget-backup";
 
-    public const int CurrentVersion = 7;
+    public const int CurrentVersion = 8;
 
     /// <summary>Version 1 : sans profils ni historique d'import (étapes 1 à 4), toujours restaurable.</summary>
     public const int MinVersion = 1;
@@ -65,6 +70,9 @@ public sealed record BackupDocument(
 
     /// <summary>Version 7 : valorisations, objectifs d'épargne et épargne de précaution (étape 11).</summary>
     public const int SavingsVersion = 7;
+
+    /// <summary>Version 8 : crédits, répartition des dépenses communes et rapports enregistrés (étape 12).</summary>
+    public const int SplitVersion = 8;
 }
 
 /// <summary>Traçabilité (K2) et version de concurrence, conservées à la restauration.</summary>
@@ -82,7 +90,8 @@ public sealed record BackupSettings(
     BackupAudit? Audit,
     ForecastStrategy ForecastStrategy = ForecastStrategy.Budget,
     int ForecastAverageMonths = HouseholdSettings.DefaultForecastAverageMonths,
-    int EmergencyFundAverageMonths = HouseholdSettings.DefaultForecastAverageMonths);
+    int EmergencyFundAverageMonths = HouseholdSettings.DefaultForecastAverageMonths,
+    SplitMode SplitMode = SplitMode.Equal);
 
 public sealed record BackupAccount(
     Guid Id,
@@ -100,7 +109,31 @@ public sealed record BackupAccount(
     bool IsArchived,
     int SortOrder,
     BackupAudit? Audit,
-    bool? IsEmergencyFund = null);
+    bool? IsEmergencyFund = null,
+    Guid? HolderId = null);
+
+/// <summary>Conditions d'un crédit (A8).</summary>
+public sealed record BackupLoan(
+    Guid Id, Guid AccountId, decimal Principal, decimal AnnualRate, int DurationMonths, DateOnly FirstPaymentDate, decimal MonthlyInsurance, BackupAudit? Audit);
+
+/// <summary>Part fixe d'un membre (K4) ; ignorée à la restauration si l'utilisateur n'existe pas sur l'instance.</summary>
+public sealed record BackupMemberShare(Guid Id, Guid UserId, decimal Percent, BackupAudit? Audit);
+
+/// <summary>Rapport personnalisé enregistré (G8).</summary>
+public sealed record BackupSavedReport(
+    Guid Id,
+    string? Name,
+    ReportGroupBy GroupBy,
+    ReportRange Range,
+    DateOnly? From,
+    DateOnly? To,
+    List<Guid>? AccountIds,
+    List<Guid>? CategoryIds,
+    List<Guid>? PayeeIds,
+    List<Guid>? TagIds,
+    List<Domain.Categories.CategoryKind>? Kinds,
+    bool IncludeTransfers,
+    BackupAudit? Audit);
 
 /// <summary>Valorisation d'un compte d'investissement (A7).</summary>
 public sealed record BackupValuation(Guid Id, Guid AccountId, DateOnly Date, decimal Value, string? Note, BackupAudit? Audit);
@@ -120,7 +153,8 @@ public sealed record BackupSavingsGoal(
     BackupAudit? Audit);
 
 public sealed record BackupCategory(
-    Guid Id, Guid? ParentId, string? Name, CategoryKind Kind, string? Color, string? Icon, int SortOrder, bool IsArchived, BackupAudit? Audit);
+    Guid Id, Guid? ParentId, string? Name, CategoryKind Kind, string? Color, string? Icon, int SortOrder, bool IsArchived, BackupAudit? Audit,
+    bool ExcludeFromSplit = false);
 
 public sealed record BackupPayee(Guid Id, string? Name, BackupAudit? Audit);
 

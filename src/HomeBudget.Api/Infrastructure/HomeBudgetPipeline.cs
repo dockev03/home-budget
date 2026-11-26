@@ -5,6 +5,7 @@ using HomeBudget.Api.Features.Audit;
 using HomeBudget.Api.Features.Auth;
 using HomeBudget.Api.Features.Backups;
 using HomeBudget.Api.Features.Budgets;
+using HomeBudget.Api.Features.Calendar;
 using HomeBudget.Api.Features.Categories;
 using HomeBudget.Api.Features.Dashboard;
 using HomeBudget.Api.Features.Exports;
@@ -20,6 +21,7 @@ using HomeBudget.Api.Features.Savings;
 using HomeBudget.Api.Features.Scenarios;
 using HomeBudget.Api.Features.Settings;
 using HomeBudget.Api.Features.Setup;
+using HomeBudget.Api.Features.Split;
 using HomeBudget.Api.Features.Tags;
 using HomeBudget.Api.Features.Transactions;
 using HomeBudget.Api.Features.Users;
@@ -73,6 +75,7 @@ public static class HomeBudgetPipeline
         app.MapTwoFactorEndpoints();
         app.MapAccountEndpoints();
         app.MapValuationEndpoints();
+        app.MapLoanEndpoints();
         app.MapCategoryEndpoints();
         app.MapPayeeEndpoints();
         app.MapTransactionEndpoints();
@@ -83,6 +86,9 @@ public static class HomeBudgetPipeline
         app.MapBudgetEndpoints();
         app.MapProvisionEndpoints();
         app.MapAnnualReportEndpoints();
+        app.MapCustomReportEndpoints();
+        app.MapSavedReportEndpoints();
+        app.MapFlowEndpoints();
         app.MapRecurrenceEndpoints();
         app.MapForecastEndpoints();
         app.MapScenarioEndpoints();
@@ -98,11 +104,13 @@ public static class HomeBudgetPipeline
         app.MapReconciliationEndpoints();
         app.MapAdvanceEndpoints();
         app.MapSubscriptionEndpoints();
+        app.MapCalendarEndpoints();
         app.MapCategoryMergeEndpoints();
         app.MapUserEndpoints();
         app.MapInvitationEndpoints();
         app.MapPasswordEndpoints();
         app.MapAuditEndpoints();
+        app.MapSplitEndpoints();
 
         app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
         app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") }).AllowAnonymous();

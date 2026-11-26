@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { api } from '@/api/client'
 import { ifMatch } from '@/api/concurrency'
 import { ApiError, unwrap } from '@/api/errors'
-import type { Account } from '@/stores/reference'
+import { useReferenceStore, type Account } from '@/stores/reference'
 import { accountTypes, type AccountType } from '@/utils/labels'
 import { parseAmount, todayIso } from '@/utils/format'
 import { required } from '@/utils/rules'
@@ -12,6 +12,13 @@ import AppearancePicker from './AppearancePicker.vue'
 const props = defineProps<{ account: Account | null }>()
 const visible = defineModel<boolean>({ required: true })
 const emit = defineEmits<{ saved: [] }>()
+
+const reference = useReferenceStore()
+// Titulaire d'un compte partagé (K4) : sans titulaire, le compte est joint.
+const holders = computed(() => [
+  { value: null as string | null, title: 'Aucun (compte joint)' },
+  ...[...reference.userNames].map(([value, title]) => ({ value: value as string | null, title })),
+])
 
 const form = ref({
   name: '',
@@ -26,6 +33,7 @@ const form = ref({
   isArchived: false,
   isPrivate: false,
   isEmergencyFund: false,
+  holderId: null as string | null,
 })
 const valid = ref(false)
 const saving = ref(false)
@@ -51,6 +59,7 @@ watch(visible, (open) => {
         isArchived: a.isArchived,
         isPrivate: a.isPrivate,
         isEmergencyFund: a.isEmergencyFund,
+        holderId: a.holderId,
       }
     : {
         name: '',
@@ -65,6 +74,7 @@ watch(visible, (open) => {
         isArchived: false,
         isPrivate: false,
         isEmergencyFund: false,
+        holderId: null,
       }
 })
 
@@ -98,6 +108,7 @@ async function save() {
     sortOrder: null,
     isPrivate: f.isPrivate,
     isEmergencyFund: f.isEmergencyFund,
+    holderId: f.isPrivate ? null : f.holderId,
   }
   try {
     if (props.account) {
@@ -179,6 +190,15 @@ async function save() {
             label="Compte privé (visible de vous seul)"
             color="primary"
             hint="Ses opérations et son solde sont masqués aux autres membres du foyer, y compris dans les totaux."
+            persistent-hint
+            class="mb-2"
+          />
+          <v-select
+            v-if="!form.isPrivate"
+            v-model="form.holderId"
+            :items="holders"
+            label="Titulaire"
+            hint="Pour la répartition des dépenses communes : le membre qui alimente ce compte."
             persistent-hint
             class="mb-2"
           />

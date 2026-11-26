@@ -15,7 +15,7 @@ namespace HomeBudget.Api.Features.Accounts;
 
 using Account = HomeBudget.Api.Domain.Accounts.Account;
 
-/// <summary>Comptes du foyer (A1, A2, A3, A6) et épargne de précaution (J3).</summary>
+/// <summary>Comptes du foyer (A1, A2, A3, A6), épargne de précaution (J3) et titulaire pour la répartition (K4).</summary>
 public static class AccountEndpoints
 {
     public static IEndpointRouteBuilder MapAccountEndpoints(this IEndpointRouteBuilder app)
@@ -51,8 +51,11 @@ public static class AccountEndpoints
         bool? IsArchived,
         int? SortOrder,
         bool? IsPrivate = null,
-        bool? IsEmergencyFund = null);
+        bool? IsEmergencyFund = null,
+        Guid? HolderId = null);
 
+    /// <param name="HolderId">Titulaire d'un compte partagé (K4) ; null pour un compte joint ou privé.</param>
+    /// <param name="RemainingPrincipal">Capital restant dû aujourd'hui d'un compte de crédit dont les conditions sont saisies (A8).</param>
     public sealed record AccountDto(
         Guid Id,
         string Name,
@@ -71,7 +74,9 @@ public static class AccountEndpoints
         int Version,
         bool IsPrivate,
         Guid? OwnerId,
-        bool IsEmergencyFund);
+        bool IsEmergencyFund,
+        Guid? HolderId,
+        decimal? RemainingPrincipal);
 
     public sealed record AccountList(IReadOnlyList<AccountDto> Items, decimal NetWorth);
 
@@ -82,7 +87,8 @@ public static class AccountEndpoints
             .OrderBy(a => a.SortOrder).ThenBy(a => a.Name)
             .ToListAsync();
         var balances = await Balances.ComputeAsync(db, clock, accounts);
-        var items = accounts.Select(a => ToDto(a, balances)).ToList();
+        var loans = await LoanEndpoints.RemainingPrincipalsAsync(db, clock, accounts.Select(a => a.Id));
+        var items = accounts.Select(a => ToDto(a, balances, loans)).ToList();
         var netWorth = items.Where(a => a.IncludeInNetWorth && !a.IsArchived).Sum(a => a.Balance);
         return TypedResults.Ok(new AccountList(items, netWorth));
     }
@@ -94,7 +100,7 @@ public static class AccountEndpoints
         {
             return TypedResults.NotFound();
         }
-        return TypedResults.Ok(ToDto(account, await Balances.ComputeAsync(db, clock, [account])));
+        return TypedResults.Ok(await ToDtoAsync(account, db, clock));
     }
 
     private static async Task<Results<Created<AccountDto>, ValidationProblem>> CreateAsync(
@@ -114,9 +120,10 @@ public static class AccountEndpoints
             account.Visibility = AccountVisibility.Private;
             account.OwnerId = db.ViewerId;
         }
+        ApplyHolder(account, request);
         db.Accounts.Add(account);
         await db.SaveChangesAsync();
-        return TypedResults.Created($"/api/accounts/{account.Id}", ToDto(account, await Balances.ComputeAsync(db, clock, [account])));
+        return TypedResults.Created($"/api/accounts/{account.Id}", await ToDtoAsync(account, db, clock));
     }
 
     private static async Task<IResult> UpdateAsync(
@@ -155,11 +162,12 @@ public static class AccountEndpoints
         account.IncludeInForecast = request.IncludeInForecast ?? account.IncludeInForecast;
         account.IsEmergencyFund = request.IsEmergencyFund ?? account.IsEmergencyFund;
         account.SortOrder = request.SortOrder ?? account.SortOrder;
+        ApplyHolder(account, request);
         if (!await db.TrySaveAsync())
         {
             return Concurrency.Conflict();
         }
-        return TypedResults.Ok(ToDto(account, await Balances.ComputeAsync(db, clock, [account])));
+        return TypedResults.Ok(await ToDtoAsync(account, db, clock));
     }
 
     private static async Task<IResult> DeleteAsync(Guid id, HttpRequest http, AppDbContext db)
@@ -210,6 +218,10 @@ public static class AccountEndpoints
         account.IsArchived = request.IsArchived ?? account.IsArchived;
     }
 
+    /// <summary>Un compte privé n'a pas de titulaire : il est déjà à son propriétaire, et hors de la répartition (K4, R8).</summary>
+    private static void ApplyHolder(Account account, AccountRequest request) =>
+        account.HolderId = account.Visibility == AccountVisibility.Private ? null : request.HolderId;
+
     private static async Task<ValidationProblem?> ValidateAsync(AccountRequest request, AppDbContext db, Account? existing)
     {
         var errors = new Dictionary<string, string[]>();
@@ -228,6 +240,15 @@ public static class AccountEndpoints
         {
             errors["type"] = ["Ce compte a des valorisations : supprimez-les avant de changer son type."];
         }
+        if (existing is not null && existing.Type == AccountType.Credit && request.Type != AccountType.Credit
+            && await db.Loans.AnyAsync(l => l.AccountId == existing.Id))
+        {
+            errors["type"] = ["Ce compte a des conditions de crédit : supprimez-les avant de changer son type."];
+        }
+        if (request.HolderId is { } holderId && holderId != existing?.HolderId && !await db.Users.AnyAsync(u => u.Id == holderId && u.IsActive))
+        {
+            errors["holderId"] = ["Titulaire inconnu ou désactivé."];
+        }
         if (existing is not null && request.InitialDate > existing.InitialDate
             && await db.Transactions.AnyAsync(t => t.AccountId == existing.Id && t.Date < request.InitialDate))
         {
@@ -236,13 +257,17 @@ public static class AccountEndpoints
         return errors.Count == 0 ? null : TypedResults.ValidationProblem(errors);
     }
 
-    private static AccountDto ToDto(Account a, IReadOnlyDictionary<Guid, Balances.AccountBalance> balances)
+    private static async Task<AccountDto> ToDtoAsync(Account account, AppDbContext db, TimeProvider clock) =>
+        ToDto(account, await Balances.ComputeAsync(db, clock, [account]), await LoanEndpoints.RemainingPrincipalsAsync(db, clock, [account.Id]));
+
+    private static AccountDto ToDto(Account a, IReadOnlyDictionary<Guid, Balances.AccountBalance> balances, IReadOnlyDictionary<Guid, decimal> loans)
     {
         var balance = balances.GetValueOrDefault(a.Id);
         return new AccountDto(
             a.Id, a.Name, a.Type, a.InitialBalance, a.InitialDate, a.Color, a.Icon, a.IncludeInForecast,
             a.IncludeInNetWorth, a.OverdraftThreshold, a.IsArchived, a.SortOrder,
             balance.Current, balance.Future, a.Version,
-            a.Visibility == AccountVisibility.Private, a.OwnerId, a.IsEmergencyFund);
+            a.Visibility == AccountVisibility.Private, a.OwnerId, a.IsEmergencyFund, a.HolderId,
+            loans.TryGetValue(a.Id, out var remaining) ? remaining : null);
     }
 }

@@ -25,6 +25,7 @@ const form = ref({
   icon: null as string | null,
   color: null as string | null,
   isArchived: false,
+  excludeFromSplit: false,
 })
 const valid = ref(false)
 const saving = ref(false)
@@ -60,6 +61,7 @@ watch(visible, (open) => {
         icon: c.icon,
         color: c.color,
         isArchived: c.isArchived,
+        excludeFromSplit: c.excludeFromSplit,
       }
     : {
         name: '',
@@ -68,6 +70,7 @@ watch(visible, (open) => {
         icon: null,
         color: null,
         isArchived: false,
+        excludeFromSplit: false,
       }
 })
 
@@ -147,6 +150,15 @@ async function remove() {
           />
           <v-select v-model="form.kind" :items="categoryKinds" label="Type" :disabled="!!form.parentId" />
           <AppearancePicker v-model:icon="form.icon" v-model:color="form.color" />
+          <v-switch
+            v-if="form.kind === 'Fixed' || form.kind === 'Variable'"
+            v-model="form.excludeFromSplit"
+            label="Dépense personnelle (hors répartition)"
+            color="primary"
+            hint="Exclue de la répartition des dépenses communes, sous-catégories comprises."
+            persistent-hint
+            class="mb-2"
+          />
           <v-switch
             v-if="category"
             v-model="form.isArchived"

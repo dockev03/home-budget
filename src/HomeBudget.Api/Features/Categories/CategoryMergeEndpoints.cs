@@ -103,6 +103,11 @@ public static partial class CategoryMergeEndpoints
         {
             await db.CategoryBudgets.Where(b => b.CategoryId == id).ExecuteDeleteAsync(ct);
         }
+        // Rapports enregistrés (G8) : la catégorie fusionnée est remplacée par la cible dans leurs filtres.
+        foreach (var report in (await db.SavedReports.ToListAsync(ct)).Where(r => r.CategoryIds.Contains(id)))
+        {
+            report.CategoryIds = [.. report.CategoryIds.Select(c => c == id ? targetId : c).Distinct()];
+        }
         db.Categories.Remove(source);
         if (!await db.TrySaveAsync(ct))
         {

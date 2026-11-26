@@ -38,10 +38,13 @@ public static class CategoryEndpoints
         [property: StringLength(16)] string? Color,
         [property: StringLength(40)] string? Icon,
         int? SortOrder,
-        bool? IsArchived);
+        bool? IsArchived,
+        bool? ExcludeFromSplit = null);
 
+    /// <param name="ExcludeFromSplit">Dépenses personnelles, hors de la répartition des dépenses communes (K4).</param>
     public sealed record CategoryDto(
-        Guid Id, Guid? ParentId, string Name, CategoryKind Kind, string? Color, string? Icon, int SortOrder, bool IsArchived, int Version);
+        Guid Id, Guid? ParentId, string Name, CategoryKind Kind, string? Color, string? Icon, int SortOrder, bool IsArchived, int Version,
+        bool ExcludeFromSplit);
 
     private static async Task<Ok<List<CategoryDto>>> ListAsync(AppDbContext db, bool? includeArchived)
     {
@@ -73,6 +76,7 @@ public static class CategoryEndpoints
             Color = Clean(request.Color),
             Icon = Clean(request.Icon),
             IsArchived = request.IsArchived ?? false,
+            ExcludeFromSplit = request.ExcludeFromSplit ?? false,
             SortOrder = request.SortOrder
                 ?? (await db.Categories.Where(c => c.ParentId == request.ParentId).MaxAsync(c => (int?)c.SortOrder) ?? -1) + 1,
         };
@@ -105,6 +109,7 @@ public static class CategoryEndpoints
         category.Icon = Clean(request.Icon);
         category.SortOrder = request.SortOrder ?? category.SortOrder;
         category.IsArchived = request.IsArchived ?? category.IsArchived;
+        category.ExcludeFromSplit = request.ExcludeFromSplit ?? category.ExcludeFromSplit;
 
         // Une sous-catégorie a toujours le type de son parent ; l'archivage du parent masque ses enfants.
         foreach (var child in await db.Categories.Where(c => c.ParentId == id).ToListAsync())
@@ -191,5 +196,5 @@ public static class CategoryEndpoints
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static CategoryDto ToDto(Category c) =>
-        new(c.Id, c.ParentId, c.Name, c.Kind, c.Color, c.Icon, c.SortOrder, c.IsArchived, c.Version);
+        new(c.Id, c.ParentId, c.Name, c.Kind, c.Color, c.Icon, c.SortOrder, c.IsArchived, c.Version, c.ExcludeFromSplit);
 }

@@ -984,6 +984,180 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/accounts/{accountId}/loan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Conditions du crédit, synthèse et tableau d'amortissement (404 si le compte n'en a pas). */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    accountId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoanDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        /** Saisit ou modifie les conditions du crédit d'un compte de type crédit (If-Match requis pour une modification). */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    accountId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LoanRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoanDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Supprime les conditions du crédit (If-Match requis). */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    accountId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/categories": {
         parameters: {
             query?: never;
@@ -1237,6 +1411,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reports/flows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Flux de la période « from » (clé AAAA-MM) à la période « to » (incluse, par défaut la même) : nœuds et liens du diagramme de Sankey. */
+        get: {
+            parameters: {
+                query: {
+                    from: string;
+                    to?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FlowsDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/tags": {
         parameters: {
             query?: never;
@@ -1336,6 +1567,53 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["SubscriptionsDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/calendar/{periodKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Échéances des récurrences de la période (clé AAAA-MM), jour par jour, avec leur état. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    periodKey: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CalendarDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
                     };
                 };
             };
@@ -3132,6 +3410,329 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/custom": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Exécute un rapport personnalisé : filtres, regroupement et plage (dates saisies, ou périodes relatives à aujourd'hui). */
+        get: {
+            parameters: {
+                query?: {
+                    range?: components["schemas"]["ReportRange"];
+                    from?: string;
+                    to?: string;
+                    groupBy?: components["schemas"]["ReportGroupBy"];
+                    accountIds?: string[];
+                    categoryIds?: string[];
+                    payeeIds?: string[];
+                    tagIds?: string[];
+                    kinds?: components["schemas"]["CategoryKind"][];
+                    includeTransfers?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReportDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/custom/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Exporte le rapport personnalisé en CSV (défaut) ou en Excel (format=xlsx). */
+        get: {
+            parameters: {
+                query?: {
+                    range?: components["schemas"]["ReportRange"];
+                    from?: string;
+                    to?: string;
+                    groupBy?: components["schemas"]["ReportGroupBy"];
+                    accountIds?: string[];
+                    categoryIds?: string[];
+                    payeeIds?: string[];
+                    tagIds?: string[];
+                    kinds?: components["schemas"]["CategoryKind"][];
+                    includeTransfers?: boolean;
+                    format?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/saved": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rapports enregistrés, par nom. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SavedReportDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Enregistre un rapport personnalisé. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SavedReportRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SavedReportDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/saved/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Modifie un rapport enregistré (If-Match requis). */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SavedReportRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SavedReportDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Supprime un rapport enregistré (If-Match requis). */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -6049,6 +6650,158 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/split/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Mode de répartition et parts fixes des membres. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SplitSettingsDto"];
+                    };
+                };
+            };
+        };
+        /** Modifie le mode de répartition et les parts fixes (administrateurs, If-Match : version des paramètres du foyer). */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SplitSettingsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SplitSettingsDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/split/{periodKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Répartition des dépenses communes de la période (clé AAAA-MM) : apports, parts, soldes et remboursements conseillés. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    periodKey: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SplitDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -6085,6 +6838,10 @@ export interface components {
             /** Format: uuid */
             ownerId: null | string;
             isEmergencyFund: boolean;
+            /** Format: uuid */
+            holderId: null | string;
+            /** Format: double */
+            remainingPrincipal: null | number;
         };
         AccountList: {
             items: components["schemas"]["AccountDto"][];
@@ -6109,6 +6866,8 @@ export interface components {
             sortOrder: null | number;
             isPrivate?: null | boolean;
             isEmergencyFund?: null | boolean;
+            /** Format: uuid */
+            holderId?: null | string;
         };
         /** @enum {unknown} */
         AccountType: "Checking" | "Savings" | "Investment" | "Cash" | "Credit";
@@ -6243,6 +7002,8 @@ export interface components {
             sortOrder: number;
             audit: null | components["schemas"]["BackupAudit"];
             isEmergencyFund?: null | boolean;
+            /** Format: uuid */
+            holderId?: null | string;
         };
         BackupAdvance: {
             /** Format: uuid */
@@ -6291,6 +7052,8 @@ export interface components {
             sortOrder: number;
             isArchived: boolean;
             audit: null | components["schemas"]["BackupAudit"];
+            /** @default false */
+            excludeFromSplit: boolean;
         };
         BackupDocument: {
             format: null | string;
@@ -6319,6 +7082,9 @@ export interface components {
             scenarioEvents?: null | components["schemas"]["BackupScenarioEvent"][];
             valuations?: null | components["schemas"]["BackupValuation"][];
             savingsGoals?: null | components["schemas"]["BackupSavingsGoal"][];
+            loans?: null | components["schemas"]["BackupLoan"][];
+            memberShares?: null | components["schemas"]["BackupMemberShare"][];
+            savedReports?: null | components["schemas"]["BackupSavedReport"][];
         };
         BackupImportBatch: {
             /** Format: uuid */
@@ -6364,6 +7130,32 @@ export interface components {
             payeeId: null | string;
             /** Format: uuid */
             categoryId: null | string;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
+        BackupLoan: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            accountId: string;
+            /** Format: double */
+            principal: number;
+            /** Format: double */
+            annualRate: number;
+            /** Format: int32 */
+            durationMonths: number;
+            /** Format: date */
+            firstPaymentDate: string;
+            /** Format: double */
+            monthlyInsurance: number;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
+        BackupMemberShare: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            userId: string;
+            /** Format: double */
+            percent: number;
             audit: null | components["schemas"]["BackupAudit"];
         };
         BackupOccurrence: {
@@ -6465,6 +7257,24 @@ export interface components {
             isSubscription: boolean;
             businessDayShift?: components["schemas"]["BusinessDayShift"];
         };
+        BackupSavedReport: {
+            /** Format: uuid */
+            id: string;
+            name: null | string;
+            groupBy: components["schemas"]["ReportGroupBy"];
+            range: components["schemas"]["ReportRange"];
+            /** Format: date */
+            from: null | string;
+            /** Format: date */
+            to: null | string;
+            accountIds: null | string[];
+            categoryIds: null | string[];
+            payeeIds: null | string[];
+            tagIds: null | string[];
+            kinds: null | components["schemas"]["CategoryKind"][];
+            includeTransfers: boolean;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
         BackupSavingsGoal: {
             /** Format: uuid */
             id: string;
@@ -6536,6 +7346,7 @@ export interface components {
              * @default 6
              */
             emergencyFundAverageMonths: number;
+            splitMode?: components["schemas"]["SplitMode"];
         };
         BackupTag: {
             /** Format: uuid */
@@ -6715,6 +7526,40 @@ export interface components {
         };
         /** @enum {unknown} */
         BusinessDayShift: "None" | "Next" | "Previous";
+        CalendarDto: {
+            period: components["schemas"]["PeriodDto"];
+            /** Format: double */
+            income: number;
+            /** Format: double */
+            expenses: number;
+            entries: components["schemas"]["CalendarEntryDto"][];
+        };
+        CalendarEntryDto: {
+            /** Format: uuid */
+            recurrenceId: string;
+            /** Format: uuid */
+            occurrenceId: null | string;
+            /** Format: date */
+            date: string;
+            /** Format: date */
+            scheduledDate: string;
+            label: string;
+            /** Format: uuid */
+            accountId: string;
+            /** Format: uuid */
+            toAccountId: null | string;
+            /** Format: uuid */
+            categoryId: null | string;
+            payeeName: null | string;
+            /** Format: double */
+            amount: number;
+            status: components["schemas"]["CalendarEntryStatus"];
+            /** Format: uuid */
+            transactionId: null | string;
+            isSubscription: boolean;
+        };
+        /** @enum {unknown} */
+        CalendarEntryStatus: "Upcoming" | "Pending" | "Generated" | "Matched" | "Skipped";
         CategoryAmountDto: {
             /** Format: uuid */
             categoryId: string;
@@ -6752,6 +7597,7 @@ export interface components {
             isArchived: boolean;
             /** Format: int32 */
             version: number;
+            excludeFromSplit: boolean;
         };
         /** @enum {unknown} */
         CategoryKind: "Income" | "Fixed" | "Variable" | "Savings";
@@ -6765,6 +7611,7 @@ export interface components {
             /** Format: int32 */
             sortOrder: null | number;
             isArchived: null | boolean;
+            excludeFromSplit?: null | boolean;
         };
         ChangePasswordRequest: {
             currentPassword: string;
@@ -6879,6 +7726,33 @@ export interface components {
             after: null | string;
             beforeLines: null | components["schemas"]["LineChangeDto"][];
             afterLines: null | components["schemas"]["LineChangeDto"][];
+        };
+        FlowLinkDto: {
+            source: string;
+            target: string;
+            /** Format: double */
+            value: number;
+        };
+        FlowNodeDto: {
+            id: string;
+            label: string;
+            color: null | string;
+            /** Format: int32 */
+            column: number;
+        };
+        FlowsDto: {
+            from: string;
+            to: string;
+            /** Format: date */
+            start: string;
+            /** Format: date */
+            end: string;
+            /** Format: double */
+            income: number;
+            /** Format: double */
+            outflows: number;
+            nodes: components["schemas"]["FlowNodeDto"][];
+            links: components["schemas"]["FlowLinkDto"][];
         };
         ForecastDto: {
             period: components["schemas"]["PeriodDto"];
@@ -7125,6 +7999,70 @@ export interface components {
             memo: null | string;
             tags: string[];
         };
+        LoanDto: {
+            /** Format: uuid */
+            accountId: string;
+            /** Format: double */
+            principal: number;
+            /** Format: double */
+            annualRate: number;
+            /** Format: int32 */
+            durationMonths: number;
+            /** Format: date */
+            firstPaymentDate: string;
+            /** Format: double */
+            monthlyInsurance: number;
+            /** Format: double */
+            payment: number;
+            /** Format: double */
+            paymentWithInsurance: number;
+            /** Format: double */
+            totalInterest: number;
+            /** Format: double */
+            totalInsurance: number;
+            /** Format: double */
+            totalCost: number;
+            /** Format: date */
+            endDate: string;
+            /** Format: double */
+            remainingPrincipal: number;
+            /** Format: int32 */
+            paidCount: number;
+            schedule: components["schemas"]["LoanInstallmentDto"][];
+            /** Format: int32 */
+            version: number;
+        };
+        LoanInstallmentDto: {
+            /** Format: int32 */
+            number: number;
+            /** Format: date */
+            date: string;
+            /** Format: double */
+            payment: number;
+            /** Format: double */
+            interest: number;
+            /** Format: double */
+            principal: number;
+            /** Format: double */
+            insurance: number;
+            /** Format: double */
+            remaining: number;
+        };
+        LoanRequest: {
+            /** Format: double */
+            principal: number;
+            /** Format: double */
+            annualRate: number;
+            /** Format: int32 */
+            durationMonths: number;
+            /** Format: date */
+            firstPaymentDate: string;
+            /**
+             * Format: double
+             * @default 0
+             */
+            monthlyInsurance: number;
+        };
         LoginRequest: {
             userName: string;
             password: string;
@@ -7137,6 +8075,19 @@ export interface components {
         };
         /** @enum {unknown} */
         LoginStatus: "Succeeded" | "RequiresTwoFactor";
+        MemberShareDto: {
+            /** Format: uuid */
+            userId: string;
+            name: string;
+            /** Format: double */
+            percent: number;
+        };
+        MemberShareRequest: {
+            /** Format: uuid */
+            userId: string;
+            /** Format: double */
+            percent: number;
+        };
         MergeDto: {
             /** Format: uuid */
             sourceId: string;
@@ -7442,6 +8393,40 @@ export interface components {
             /** Format: double */
             safetyThreshold: number;
         };
+        ReportDto: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            groupBy: components["schemas"]["ReportGroupBy"];
+            rows: components["schemas"]["ReportRowDto"][];
+            /** Format: double */
+            credit: number;
+            /** Format: double */
+            debit: number;
+            /** Format: double */
+            net: number;
+            /** Format: int32 */
+            count: number;
+        };
+        /** @enum {unknown} */
+        ReportGroupBy: "Category" | "Subcategory" | "Payee" | "Tag" | "Period" | "Account";
+        /** @enum {unknown} */
+        ReportRange: "Custom" | "CurrentPeriod" | "PreviousPeriod" | "Last3Periods" | "Last12Periods" | "CurrentYear" | "PreviousYear" | null;
+        ReportRowDto: {
+            key: string;
+            label: string;
+            color: null | string;
+            kind: null | components["schemas"]["CategoryKind"];
+            /** Format: double */
+            credit: number;
+            /** Format: double */
+            debit: number;
+            /** Format: double */
+            net: number;
+            /** Format: int32 */
+            count: number;
+        };
         RestoreResultDto: {
             /** Format: int32 */
             accounts: number;
@@ -7475,6 +8460,41 @@ export interface components {
             updatedAt: string;
             /** Format: int32 */
             version: number;
+        };
+        SavedReportDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            groupBy: components["schemas"]["ReportGroupBy"];
+            range: components["schemas"]["ReportRange"];
+            /** Format: date */
+            from: null | string;
+            /** Format: date */
+            to: null | string;
+            accountIds: string[];
+            categoryIds: string[];
+            payeeIds: string[];
+            tagIds: string[];
+            kinds: components["schemas"]["CategoryKind"][];
+            includeTransfers: boolean;
+            /** Format: int32 */
+            version: number;
+        };
+        SavedReportRequest: {
+            name: string;
+            groupBy: components["schemas"]["ReportGroupBy"];
+            range: components["schemas"]["ReportRange"];
+            /** Format: date */
+            from: null | string;
+            /** Format: date */
+            to: null | string;
+            accountIds: null | string[];
+            categoryIds: null | string[];
+            payeeIds: null | string[];
+            tagIds: null | string[];
+            kinds: null | components["schemas"]["CategoryKind"][];
+            /** @default false */
+            includeTransfers: boolean;
         };
         SavingsGoalDto: {
             /** Format: uuid */
@@ -7621,8 +8641,65 @@ export interface components {
              */
             emergencyFundAverageMonths: number;
         };
+        SettlementDto: {
+            /** Format: uuid */
+            fromUserId: string;
+            fromName: string;
+            /** Format: uuid */
+            toUserId: string;
+            toName: string;
+            /** Format: double */
+            amount: number;
+        };
         SetupStatus: {
             required: boolean;
+        };
+        SplitDto: {
+            period: components["schemas"]["PeriodDto"];
+            mode: components["schemas"]["SplitMode"];
+            appliedMode: components["schemas"]["SplitMode"];
+            /** Format: double */
+            commonExpenses: number;
+            /** Format: double */
+            jointExpenses: number;
+            /** Format: double */
+            totalPaid: number;
+            members: components["schemas"]["SplitMemberDto"][];
+            settlements: components["schemas"]["SettlementDto"][];
+        };
+        SplitMemberDto: {
+            /** Format: uuid */
+            userId: string;
+            name: string;
+            /** Format: double */
+            share: number;
+            /** Format: double */
+            income: number;
+            /** Format: double */
+            expensesPaid: number;
+            /** Format: double */
+            contributions: number;
+            /** Format: double */
+            paid: number;
+            /** Format: double */
+            due: number;
+            /** Format: double */
+            balance: number;
+        };
+        /**
+         * @default Equal
+         * @enum {unknown}
+         */
+        SplitMode: "Equal" | "IncomeProRata" | "FixedShares";
+        SplitSettingsDto: {
+            mode: components["schemas"]["SplitMode"];
+            shares: components["schemas"]["MemberShareDto"][];
+            /** Format: int32 */
+            version: number;
+        };
+        SplitSettingsRequest: {
+            mode: components["schemas"]["SplitMode"];
+            shares: null | components["schemas"]["MemberShareRequest"][];
         };
         StatementError: {
             /** Format: int32 */

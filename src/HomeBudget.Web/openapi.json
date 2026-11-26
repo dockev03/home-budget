@@ -858,6 +858,198 @@
         }
       }
     },
+    "/api/accounts/{accountId}/loan": {
+      "get": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Conditions du cr\u00E9dit, synth\u00E8se et tableau d\u0027amortissement (404 si le compte n\u0027en a pas).",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Saisit ou modifie les conditions du cr\u00E9dit d\u0027un compte de type cr\u00E9dit (If-Match requis pour une modification).",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Supprime les conditions du cr\u00E9dit (If-Match requis).",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/categories": {
       "get": {
         "tags": [
@@ -1121,6 +1313,63 @@
         }
       }
     },
+    "/api/reports/flows": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Flux de la p\u00E9riode \u00AB from \u00BB (cl\u00E9 AAAA-MM) \u00E0 la p\u00E9riode \u00AB to \u00BB (incluse, par d\u00E9faut la m\u00EAme) : n\u0153uds et liens du diagramme de Sankey.",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlowsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/tags": {
       "get": {
         "tags": [
@@ -1193,6 +1442,46 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SubscriptionsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/calendar/{periodKey}": {
+      "get": {
+        "tags": [
+          "Recurrences"
+        ],
+        "summary": "\u00C9ch\u00E9ances des r\u00E9currences de la p\u00E9riode (cl\u00E9 AAAA-MM), jour par jour, avec leur \u00E9tat.",
+        "parameters": [
+          {
+            "name": "periodKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -3036,6 +3325,466 @@
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/custom": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Ex\u00E9cute un rapport personnalis\u00E9 : filtres, regroupement et plage (dates saisies, ou p\u00E9riodes relatives \u00E0 aujourd\u0027hui).",
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ReportRange"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "groupBy",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ReportGroupBy"
+            }
+          },
+          {
+            "name": "accountIds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "categoryIds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "payeeIds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "tagIds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "kinds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/CategoryKind"
+              }
+            }
+          },
+          {
+            "name": "includeTransfers",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/custom/export": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Exporte le rapport personnalis\u00E9 en CSV (d\u00E9faut) ou en Excel (format=xlsx).",
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ReportRange"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "groupBy",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ReportGroupBy"
+            }
+          },
+          {
+            "name": "accountIds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "categoryIds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "payeeIds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "tagIds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "kinds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/CategoryKind"
+              }
+            }
+          },
+          {
+            "name": "includeTransfers",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/saved": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Rapports enregistr\u00E9s, par nom.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SavedReportDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Enregistre un rapport personnalis\u00E9.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavedReportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedReportDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/saved/{id}": {
+      "put": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Modifie un rapport enregistr\u00E9 (If-Match requis).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavedReportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedReportDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Supprime un rapport enregistr\u00E9 (If-Match requis).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
             "content": {
               "application/problem\u002Bjson": {
                 "schema": {
@@ -5909,6 +6658,144 @@
           }
         }
       }
+    },
+    "/api/split/settings": {
+      "get": {
+        "tags": [
+          "Split"
+        ],
+        "summary": "Mode de r\u00E9partition et parts fixes des membres.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SplitSettingsDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Split"
+        ],
+        "summary": "Modifie le mode de r\u00E9partition et les parts fixes (administrateurs, If-Match : version des param\u00E8tres du foyer).",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SplitSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SplitSettingsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/split/{periodKey}": {
+      "get": {
+        "tags": [
+          "Split"
+        ],
+        "summary": "R\u00E9partition des d\u00E9penses communes de la p\u00E9riode (cl\u00E9 AAAA-MM) : apports, parts, soldes et remboursements conseill\u00E9s.",
+        "parameters": [
+          {
+            "name": "periodKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SplitDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -5951,7 +6838,9 @@
           "version",
           "isPrivate",
           "ownerId",
-          "isEmergencyFund"
+          "isEmergencyFund",
+          "holderId",
+          "remainingPrincipal"
         ],
         "type": "object",
         "properties": {
@@ -6026,6 +6915,20 @@
           },
           "isEmergencyFund": {
             "type": "boolean"
+          },
+          "holderId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "remainingPrincipal": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
           }
         }
       },
@@ -6143,6 +7046,13 @@
               "null",
               "boolean"
             ]
+          },
+          "holderId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -6635,6 +7545,13 @@
               "null",
               "boolean"
             ]
+          },
+          "holderId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -6826,6 +7743,10 @@
                 "$ref": "#/components/schemas/BackupAudit"
               }
             ]
+          },
+          "excludeFromSplit": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -7048,6 +7969,33 @@
             "items": {
               "$ref": "#/components/schemas/BackupSavingsGoal"
             }
+          },
+          "loans": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BackupLoan"
+            }
+          },
+          "memberShares": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BackupMemberShare"
+            }
+          },
+          "savedReports": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BackupSavedReport"
+            }
           }
         }
       },
@@ -7223,6 +8171,92 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "audit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BackupAudit"
+              }
+            ]
+          }
+        }
+      },
+      "BackupLoan": {
+        "required": [
+          "id",
+          "accountId",
+          "principal",
+          "annualRate",
+          "durationMonths",
+          "firstPaymentDate",
+          "monthlyInsurance",
+          "audit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "principal": {
+            "type": "number",
+            "format": "double"
+          },
+          "annualRate": {
+            "type": "number",
+            "format": "double"
+          },
+          "durationMonths": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firstPaymentDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "monthlyInsurance": {
+            "type": "number",
+            "format": "double"
+          },
+          "audit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BackupAudit"
+              }
+            ]
+          }
+        }
+      },
+      "BackupMemberShare": {
+        "required": [
+          "id",
+          "userId",
+          "percent",
+          "audit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "percent": {
+            "type": "number",
+            "format": "double"
           },
           "audit": {
             "oneOf": [
@@ -7590,6 +8624,118 @@
           }
         }
       },
+      "BackupSavedReport": {
+        "required": [
+          "id",
+          "name",
+          "groupBy",
+          "range",
+          "from",
+          "to",
+          "accountIds",
+          "categoryIds",
+          "payeeIds",
+          "tagIds",
+          "kinds",
+          "includeTransfers",
+          "audit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "groupBy": {
+            "$ref": "#/components/schemas/ReportGroupBy"
+          },
+          "range": {
+            "$ref": "#/components/schemas/ReportRange"
+          },
+          "from": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "to": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "accountIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "categoryIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "payeeIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "tagIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "kinds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/CategoryKind"
+            }
+          },
+          "includeTransfers": {
+            "type": "boolean"
+          },
+          "audit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BackupAudit"
+              }
+            ]
+          }
+        }
+      },
       "BackupSavingsGoal": {
         "required": [
           "id",
@@ -7841,6 +8987,9 @@
             "type": "integer",
             "format": "int32",
             "default": 6
+          },
+          "splitMode": {
+            "$ref": "#/components/schemas/SplitMode"
           }
         }
       },
@@ -8584,6 +9733,126 @@
           "Previous"
         ]
       },
+      "CalendarDto": {
+        "required": [
+          "period",
+          "income",
+          "expenses",
+          "entries"
+        ],
+        "type": "object",
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/PeriodDto"
+          },
+          "income": {
+            "type": "number",
+            "format": "double"
+          },
+          "expenses": {
+            "type": "number",
+            "format": "double"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CalendarEntryDto"
+            }
+          }
+        }
+      },
+      "CalendarEntryDto": {
+        "required": [
+          "recurrenceId",
+          "occurrenceId",
+          "date",
+          "scheduledDate",
+          "label",
+          "accountId",
+          "toAccountId",
+          "categoryId",
+          "payeeName",
+          "amount",
+          "status",
+          "transactionId",
+          "isSubscription"
+        ],
+        "type": "object",
+        "properties": {
+          "recurrenceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurrenceId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "scheduledDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "label": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "toAccountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "payeeName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CalendarEntryStatus"
+          },
+          "transactionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "isSubscription": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CalendarEntryStatus": {
+        "enum": [
+          "Upcoming",
+          "Pending",
+          "Generated",
+          "Matched",
+          "Skipped"
+        ]
+      },
       "CategoryAmountDto": {
         "required": [
           "categoryId",
@@ -8668,7 +9937,8 @@
           "icon",
           "sortOrder",
           "isArchived",
-          "version"
+          "version",
+          "excludeFromSplit"
         ],
         "type": "object",
         "properties": {
@@ -8711,6 +9981,9 @@
           "version": {
             "type": "integer",
             "format": "int32"
+          },
+          "excludeFromSplit": {
+            "type": "boolean"
           }
         }
       },
@@ -8773,6 +10046,12 @@
             "format": "int32"
           },
           "isArchived": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "excludeFromSplit": {
             "type": [
               "null",
               "boolean"
@@ -9216,6 +10495,102 @@
             ],
             "items": {
               "$ref": "#/components/schemas/LineChangeDto"
+            }
+          }
+        }
+      },
+      "FlowLinkDto": {
+        "required": [
+          "source",
+          "target",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "FlowNodeDto": {
+        "required": [
+          "id",
+          "label",
+          "color",
+          "column"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "column": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "FlowsDto": {
+        "required": [
+          "from",
+          "to",
+          "start",
+          "end",
+          "income",
+          "outflows",
+          "nodes",
+          "links"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "format": "date"
+          },
+          "income": {
+            "type": "number",
+            "format": "double"
+          },
+          "outflows": {
+            "type": "number",
+            "format": "double"
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FlowNodeDto"
+            }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FlowLinkDto"
             }
           }
         }
@@ -10107,6 +11482,169 @@
           }
         }
       },
+      "LoanDto": {
+        "required": [
+          "accountId",
+          "principal",
+          "annualRate",
+          "durationMonths",
+          "firstPaymentDate",
+          "monthlyInsurance",
+          "payment",
+          "paymentWithInsurance",
+          "totalInterest",
+          "totalInsurance",
+          "totalCost",
+          "endDate",
+          "remainingPrincipal",
+          "paidCount",
+          "schedule",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "principal": {
+            "type": "number",
+            "format": "double"
+          },
+          "annualRate": {
+            "type": "number",
+            "format": "double"
+          },
+          "durationMonths": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firstPaymentDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "monthlyInsurance": {
+            "type": "number",
+            "format": "double"
+          },
+          "payment": {
+            "type": "number",
+            "format": "double"
+          },
+          "paymentWithInsurance": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalInterest": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalInsurance": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "remainingPrincipal": {
+            "type": "number",
+            "format": "double"
+          },
+          "paidCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "schedule": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoanInstallmentDto"
+            }
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "LoanInstallmentDto": {
+        "required": [
+          "number",
+          "date",
+          "payment",
+          "interest",
+          "principal",
+          "insurance",
+          "remaining"
+        ],
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "payment": {
+            "type": "number",
+            "format": "double"
+          },
+          "interest": {
+            "type": "number",
+            "format": "double"
+          },
+          "principal": {
+            "type": "number",
+            "format": "double"
+          },
+          "insurance": {
+            "type": "number",
+            "format": "double"
+          },
+          "remaining": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "LoanRequest": {
+        "required": [
+          "principal",
+          "annualRate",
+          "durationMonths",
+          "firstPaymentDate"
+        ],
+        "type": "object",
+        "properties": {
+          "principal": {
+            "type": "number",
+            "format": "double"
+          },
+          "annualRate": {
+            "type": "number",
+            "format": "double"
+          },
+          "durationMonths": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firstPaymentDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "monthlyInsurance": {
+            "type": "number",
+            "format": "double",
+            "default": 0
+          }
+        }
+      },
       "LoginRequest": {
         "required": [
           "userName",
@@ -10153,6 +11691,44 @@
           "Succeeded",
           "RequiresTwoFactor"
         ]
+      },
+      "MemberShareDto": {
+        "required": [
+          "userId",
+          "name",
+          "percent"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "percent": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "MemberShareRequest": {
+        "required": [
+          "userId",
+          "percent"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "percent": {
+            "type": "number",
+            "format": "double"
+          }
+        }
       },
       "MergeDto": {
         "required": [
@@ -11152,6 +12728,129 @@
           }
         }
       },
+      "ReportDto": {
+        "required": [
+          "from",
+          "to",
+          "groupBy",
+          "rows",
+          "credit",
+          "debit",
+          "net",
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "groupBy": {
+            "$ref": "#/components/schemas/ReportGroupBy"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportRowDto"
+            }
+          },
+          "credit": {
+            "type": "number",
+            "format": "double"
+          },
+          "debit": {
+            "type": "number",
+            "format": "double"
+          },
+          "net": {
+            "type": "number",
+            "format": "double"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ReportGroupBy": {
+        "enum": [
+          "Category",
+          "Subcategory",
+          "Payee",
+          "Tag",
+          "Period",
+          "Account"
+        ]
+      },
+      "ReportRange": {
+        "enum": [
+          "Custom",
+          "CurrentPeriod",
+          "PreviousPeriod",
+          "Last3Periods",
+          "Last12Periods",
+          "CurrentYear",
+          "PreviousYear",
+          null
+        ]
+      },
+      "ReportRowDto": {
+        "required": [
+          "key",
+          "label",
+          "color",
+          "kind",
+          "credit",
+          "debit",
+          "net",
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CategoryKind"
+              }
+            ]
+          },
+          "credit": {
+            "type": "number",
+            "format": "double"
+          },
+          "debit": {
+            "type": "number",
+            "format": "double"
+          },
+          "net": {
+            "type": "number",
+            "format": "double"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "RestoreResultDto": {
         "required": [
           "accounts",
@@ -11255,6 +12954,189 @@
           "version": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "SavedReportDto": {
+        "required": [
+          "id",
+          "name",
+          "groupBy",
+          "range",
+          "from",
+          "to",
+          "accountIds",
+          "categoryIds",
+          "payeeIds",
+          "tagIds",
+          "kinds",
+          "includeTransfers",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "groupBy": {
+            "$ref": "#/components/schemas/ReportGroupBy"
+          },
+          "range": {
+            "$ref": "#/components/schemas/ReportRange"
+          },
+          "from": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "to": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "accountIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "categoryIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "payeeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "tagIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "kinds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategoryKind"
+            }
+          },
+          "includeTransfers": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SavedReportRequest": {
+        "required": [
+          "name",
+          "groupBy",
+          "range",
+          "from",
+          "to",
+          "accountIds",
+          "categoryIds",
+          "payeeIds",
+          "tagIds",
+          "kinds"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "groupBy": {
+            "$ref": "#/components/schemas/ReportGroupBy"
+          },
+          "range": {
+            "$ref": "#/components/schemas/ReportRange"
+          },
+          "from": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "to": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "accountIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "categoryIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "payeeIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "tagIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "kinds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/CategoryKind"
+            }
+          },
+          "includeTransfers": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -11743,6 +13625,36 @@
           }
         }
       },
+      "SettlementDto": {
+        "required": [
+          "fromUserId",
+          "fromName",
+          "toUserId",
+          "toName",
+          "amount"
+        ],
+        "type": "object",
+        "properties": {
+          "fromUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fromName": {
+            "type": "string"
+          },
+          "toUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "toName": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "SetupStatus": {
         "required": [
           "required"
@@ -11751,6 +13663,157 @@
         "properties": {
           "required": {
             "type": "boolean"
+          }
+        }
+      },
+      "SplitDto": {
+        "required": [
+          "period",
+          "mode",
+          "appliedMode",
+          "commonExpenses",
+          "jointExpenses",
+          "totalPaid",
+          "members",
+          "settlements"
+        ],
+        "type": "object",
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/PeriodDto"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/SplitMode"
+          },
+          "appliedMode": {
+            "$ref": "#/components/schemas/SplitMode"
+          },
+          "commonExpenses": {
+            "type": "number",
+            "format": "double"
+          },
+          "jointExpenses": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalPaid": {
+            "type": "number",
+            "format": "double"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SplitMemberDto"
+            }
+          },
+          "settlements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SettlementDto"
+            }
+          }
+        }
+      },
+      "SplitMemberDto": {
+        "required": [
+          "userId",
+          "name",
+          "share",
+          "income",
+          "expensesPaid",
+          "contributions",
+          "paid",
+          "due",
+          "balance"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "share": {
+            "type": "number",
+            "format": "double"
+          },
+          "income": {
+            "type": "number",
+            "format": "double"
+          },
+          "expensesPaid": {
+            "type": "number",
+            "format": "double"
+          },
+          "contributions": {
+            "type": "number",
+            "format": "double"
+          },
+          "paid": {
+            "type": "number",
+            "format": "double"
+          },
+          "due": {
+            "type": "number",
+            "format": "double"
+          },
+          "balance": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "SplitMode": {
+        "enum": [
+          "Equal",
+          "IncomeProRata",
+          "FixedShares"
+        ],
+        "default": "Equal"
+      },
+      "SplitSettingsDto": {
+        "required": [
+          "mode",
+          "shares",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "mode": {
+            "$ref": "#/components/schemas/SplitMode"
+          },
+          "shares": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MemberShareDto"
+            }
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SplitSettingsRequest": {
+        "required": [
+          "mode",
+          "shares"
+        ],
+        "type": "object",
+        "properties": {
+          "mode": {
+            "$ref": "#/components/schemas/SplitMode"
+          },
+          "shares": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/MemberShareRequest"
+            }
           }
         }
       },
@@ -12617,6 +14680,9 @@
       "name": "Payees"
     },
     {
+      "name": "Reports"
+    },
+    {
       "name": "Tags"
     },
     {
@@ -12647,9 +14713,6 @@
       "name": "Provisions"
     },
     {
-      "name": "Reports"
-    },
-    {
       "name": "Forecast"
     },
     {
@@ -12678,6 +14741,9 @@
     },
     {
       "name": "Users"
+    },
+    {
+      "name": "Split"
     }
   ]
 }

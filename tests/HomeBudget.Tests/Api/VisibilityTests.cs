@@ -182,4 +182,25 @@ public sealed class VisibilityTests
         var audit = await admin.GetJsonAsync("/api/audit?action=AccountVisibilityChanged");
         audit.GetProperty("total").GetInt32().ShouldBe(2);
     }
+
+    [Fact]
+    public async Task Reports_flows_and_calendar_leave_out_the_private_accounts_of_other_members()
+    {
+        await using var factory = new HomeBudgetFactory { Today = Today };
+        var h = await CreateHouseholdAsync(factory);
+
+        foreach (var other in new[] { h.Admin, h.Bob })
+        {
+            var report = await other.GetJsonAsync("/api/reports/custom?range=CurrentPeriod&groupBy=Payee&includeTransfers=true");
+            report.GetProperty("rows").EnumerateArray().ShouldNotContain(r => r.GetProperty("label").GetString() == "Boutique secrète");
+            report.Decimal("debit").ShouldBe(110m); // 10 de courses et 100 de virement, côté compte partagé
+            var flows = await other.GetJsonAsync("/api/reports/flows?from=2026-03");
+            flows.Decimal("outflows").ShouldBe(10m);
+            (await other.GetJsonAsync("/api/calendar/2026-03")).GetProperty("entries").GetArrayLength().ShouldBe(0);
+        }
+        var mine = await h.Alice.GetJsonAsync("/api/reports/custom?range=CurrentPeriod&groupBy=Payee");
+        mine.GetProperty("rows").EnumerateArray().ShouldContain(r => r.GetProperty("label").GetString() == "Boutique secrète");
+        (await h.Alice.GetJsonAsync("/api/calendar/2026-03")).GetProperty("entries").EnumerateArray()
+            .ShouldContain(e => e.GetProperty("label").GetString() == "Abonnement secret");
+    }
 }

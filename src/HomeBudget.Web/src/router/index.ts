@@ -39,6 +39,24 @@ export const router = createRouter({
       meta: { title: 'Bilan annuel' },
     },
     {
+      path: '/rapports',
+      name: 'reports',
+      component: () => import('@/views/ReportsView.vue'),
+      meta: { title: 'Rapports' },
+    },
+    {
+      path: '/calendrier/:period(\\d{4}-\\d{2})?',
+      name: 'calendar',
+      component: () => import('@/views/CalendarView.vue'),
+      meta: { title: 'Calendrier' },
+    },
+    {
+      path: '/repartition/:period(\\d{4}-\\d{2})?',
+      name: 'split',
+      component: () => import('@/views/SplitView.vue'),
+      meta: { title: 'Répartition' },
+    },
+    {
       path: '/import',
       name: 'import',
       component: () => import('@/views/ImportView.vue'),

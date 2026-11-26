@@ -48,6 +48,9 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
         var scenarioEvents = await db.ScenarioEvents.AsNoTracking().OrderBy(e => e.Id).ToListAsync(ct);
         var valuations = await db.AccountValuations.AsNoTracking().OrderBy(v => v.Id).ToListAsync(ct);
         var goals = await db.SavingsGoals.AsNoTracking().OrderBy(g => g.Id).ToListAsync(ct);
+        var loans = await db.Loans.AsNoTracking().OrderBy(l => l.Id).ToListAsync(ct);
+        var shares = await db.MemberShares.AsNoTracking().OrderBy(m => m.Id).ToListAsync(ct);
+        var reports = await db.SavedReports.AsNoTracking().OrderBy(r => r.Id).ToListAsync(ct);
 
         return new BackupDocument(
             BackupDocument.FormatName,
@@ -56,12 +59,12 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
             new BackupSettings(
                 settings.Id, settings.PeriodMode, settings.PeriodStartDay, settings.SafetyThreshold, settings.ForecastIncludesIncome,
                 settings.BudgetWarningPercent, settings.BudgetAlertPercent, settings.DefaultCategoriesCreated, AuditOf(settings),
-                settings.ForecastStrategy, settings.ForecastAverageMonths, settings.EmergencyFundAverageMonths),
+                settings.ForecastStrategy, settings.ForecastAverageMonths, settings.EmergencyFundAverageMonths, settings.SplitMode),
             [.. accounts.Select(a => new BackupAccount(
                 a.Id, a.Name, a.Type, a.InitialBalance, a.InitialDate, a.OwnerId, a.Visibility, a.Color, a.Icon,
-                a.IncludeInForecast, a.IncludeInNetWorth, a.OverdraftThreshold, a.IsArchived, a.SortOrder, AuditOf(a), a.IsEmergencyFund))],
+                a.IncludeInForecast, a.IncludeInNetWorth, a.OverdraftThreshold, a.IsArchived, a.SortOrder, AuditOf(a), a.IsEmergencyFund, a.HolderId))],
             [.. categories.Select(c => new BackupCategory(
-                c.Id, c.ParentId, c.Name, c.Kind, c.Color, c.Icon, c.SortOrder, c.IsArchived, AuditOf(c)))],
+                c.Id, c.ParentId, c.Name, c.Kind, c.Color, c.Icon, c.SortOrder, c.IsArchived, AuditOf(c), c.ExcludeFromSplit))],
             [.. payees.Select(p => new BackupPayee(p.Id, p.Name, AuditOf(p)))],
             [.. budgets.Select(b => new BackupBudget(b.Id, b.CategoryId, b.Mode, b.Value, AuditOf(b)))],
             [.. transactions.Select(t => new BackupTransaction(
@@ -91,7 +94,12 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 e.Id, e.ScenarioId, e.Label, e.AccountId, e.CategoryId, e.Amount, e.Date, e.Frequency, e.EndDate, AuditOf(e)))],
             [.. valuations.Select(v => new BackupValuation(v.Id, v.AccountId, v.Date, v.Value, v.Note, AuditOf(v)))],
             [.. goals.Select(g => new BackupSavingsGoal(
-                g.Id, g.Name, g.TargetAmount, g.TargetDate, g.AccountId, g.CategoryId, g.StartDate, g.Color, g.Icon, g.IsArchived, AuditOf(g)))]);
+                g.Id, g.Name, g.TargetAmount, g.TargetDate, g.AccountId, g.CategoryId, g.StartDate, g.Color, g.Icon, g.IsArchived, AuditOf(g)))],
+            [.. loans.Select(l => new BackupLoan(
+                l.Id, l.AccountId, l.Principal, l.AnnualRate, l.DurationMonths, l.FirstPaymentDate, l.MonthlyInsurance, AuditOf(l)))],
+            [.. shares.Select(m => new BackupMemberShare(m.Id, m.UserId, m.Percent, AuditOf(m)))],
+            [.. reports.Select(r => new BackupSavedReport(
+                r.Id, r.Name, r.GroupBy, r.Range, r.From, r.To, r.AccountIds, r.CategoryIds, r.PayeeIds, r.TagIds, r.Kinds, r.IncludeTransfers, AuditOf(r)))]);
     }
 
     /// <summary>
@@ -121,6 +129,10 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
 
         // Ordre imposé par les clés étrangères : des dépendants vers les éléments référencés.
         await db.RecurrenceOccurrences.ExecuteDeleteAsync(ct);
+        // Remplacés quelle que soit la version : une sauvegarde antérieure à la v8 n'en contient pas.
+        await db.Loans.ExecuteDeleteAsync(ct);
+        await db.MemberShares.ExecuteDeleteAsync(ct);
+        await db.SavedReports.ExecuteDeleteAsync(ct);
         // Remplacés quelle que soit la version : une sauvegarde antérieure à la v7 n'en contient pas.
         await db.SavingsGoals.ExecuteDeleteAsync(ct);
         await db.AccountValuations.ExecuteDeleteAsync(ct);
@@ -167,6 +179,7 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
             ForecastStrategy = s.ForecastStrategy,
             ForecastAverageMonths = s.ForecastAverageMonths,
             EmergencyFundAverageMonths = s.EmergencyFundAverageMonths,
+            SplitMode = s.SplitMode,
         }, s.Audit));
 
         foreach (var a in document.Accounts!.OfType<BackupAccount>())
@@ -189,6 +202,8 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 SortOrder = a.SortOrder,
                 // Avant la v7, l'épargne de précaution suit le type du compte, comme à la migration.
                 IsEmergencyFund = a.IsEmergencyFund ?? a.Type == Domain.Accounts.AccountType.Savings,
+                // Un compte privé n'a pas de titulaire (K4).
+                HolderId = User(a.OwnerId) is null || a.Visibility == Domain.Accounts.AccountVisibility.Shared ? User(a.HolderId) : null,
             }, a.Audit));
         }
 
@@ -204,6 +219,7 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 Icon = c.Icon,
                 SortOrder = c.SortOrder,
                 IsArchived = c.IsArchived,
+                ExcludeFromSplit = c.ExcludeFromSplit,
             }, c.Audit));
         }
 
@@ -431,6 +447,45 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 Icon = g.Icon,
                 IsArchived = g.IsArchived,
             }, g.Audit));
+        }
+
+        foreach (var l in (document.Loans ?? []).OfType<BackupLoan>())
+        {
+            db.Loans.Add(Stamp(new Domain.Accounts.Loan
+            {
+                Id = l.Id,
+                AccountId = l.AccountId,
+                Principal = l.Principal,
+                AnnualRate = l.AnnualRate,
+                DurationMonths = l.DurationMonths,
+                FirstPaymentDate = l.FirstPaymentDate,
+                MonthlyInsurance = l.MonthlyInsurance,
+            }, l.Audit));
+        }
+
+        // Une part d'un utilisateur inconnu de cette instance est ignorée.
+        foreach (var m in (document.MemberShares ?? []).OfType<BackupMemberShare>().Where(m => users.Contains(m.UserId)))
+        {
+            db.MemberShares.Add(Stamp(new Domain.Split.MemberShare { Id = m.Id, UserId = m.UserId, Percent = m.Percent }, m.Audit));
+        }
+
+        foreach (var r in (document.SavedReports ?? []).OfType<BackupSavedReport>())
+        {
+            db.SavedReports.Add(Stamp(new Domain.Reports.SavedReport
+            {
+                Id = r.Id,
+                Name = r.Name!.Trim(),
+                GroupBy = r.GroupBy,
+                Range = r.Range,
+                From = r.Range == Domain.Reports.ReportRange.Custom ? r.From : null,
+                To = r.Range == Domain.Reports.ReportRange.Custom ? r.To : null,
+                AccountIds = [.. (r.AccountIds ?? []).Distinct()],
+                CategoryIds = [.. (r.CategoryIds ?? []).Distinct()],
+                PayeeIds = [.. (r.PayeeIds ?? []).Distinct()],
+                TagIds = [.. (r.TagIds ?? []).Distinct()],
+                Kinds = [.. (r.Kinds ?? []).Distinct()],
+                IncludeTransfers = r.IncludeTransfers,
+            }, r.Audit));
         }
 
         db.PreserveAuditFields = true;

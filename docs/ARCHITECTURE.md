@@ -112,20 +112,22 @@ Tous les montants sont signés (négatif = sortie). Chaque entité porte `Create
 ### 5.2 Entités
 
 ```
-User (Identity)            Id, UserName, Email, Role, IncomeShare?
+User (Identity)            Id, UserName, Email, Role
 HouseholdSettings          PeriodMode, PeriodStartDay, SafetyThreshold, ForecastIncludesIncome, AlertThresholds,
                            ForecastStrategy{Budget,Average}, ForecastAverageMonths   (F7),
-                           EmergencyFundAverageMonths   (J3)
+                           EmergencyFundAverageMonths   (J3), SplitMode{Equal,IncomeProRata,FixedShares}   (K4)
 
 Account                    Id, Name, Type{Checking,Savings,Investment,Cash,Credit}, InitialBalance, InitialDate,
                            OwnerId?, Visibility{Shared,Private}, Color, Icon, IncludeInForecast, IncludeInNetWorth,
-                           OverdraftThreshold, IsEmergencyFund (J3), IsArchived
+                           OverdraftThreshold, IsEmergencyFund (J3), HolderId? (K4, comptes partagés), IsArchived
 AccountValuation           AccountId, Date, Value, Note   (A7 ; unique par compte et date ; visibilité du compte, R8)
-Loan                       AccountId, Principal, AnnualRate, StartDate, Months, InsuranceMonthly   (A8)
+Loan                       AccountId (unique), Principal, AnnualRate (% à 4 décimales, stocké en dix-millièmes),
+                           DurationMonths, FirstPaymentDate, MonthlyInsurance   (A8 ; visibilité du compte, R8)
 Reconciliation             AccountId, Date, StatementBalance, Difference, ClosedAt                (A5)
 
 CategoryGroup ─┐
-Category       Id, ParentId?, Name, Kind{Income,Fixed,Variable,Savings}, Color, Icon, SortOrder, IsArchived
+Category       Id, ParentId?, Name, Kind{Income,Fixed,Variable,Savings}, Color, Icon, SortOrder, IsArchived,
+               ExcludeFromSplit (K4 : dépenses personnelles, sous-catégories comprises)
 CategoryBudget             CategoryId, Mode{Amount,PercentOfIncome,Auto}, Value, Rollover   (défaut)
 PeriodBudget               CategoryId, PeriodKey, Mode, Value                               (D4 : remplace le défaut)
 Provision                  Label, CategoryId, Amount, DueDate, IsAnnual, StartDate          (D11 : parts par période)
@@ -154,7 +156,10 @@ SavingsGoal                Id, Name, TargetAmount, TargetDate?, AccountId? | Cat
 Scenario                   Id, Name, IsActive                                              (F5)
 ScenarioEvent              ScenarioId, Label, AccountId, CategoryId?, Amount, Date,
                            Frequency{Once,Monthly}, EndDate?   (visibilité du compte, R8)
-SplitSetting               Mode{Equal,IncomeRatio,Fixed}, Shares, SharedCategoryIds   (K4)
+MemberShare                UserId (unique), Percent   (K4 : parts fixes, 100 % au total)
+SavedReport                Id, Name, GroupBy{Category,Subcategory,Payee,Tag,Period,Account},
+                           Range{Custom,CurrentPeriod,PreviousPeriod,Last3Periods,Last12Periods,CurrentYear,PreviousYear},
+                           From?, To?, AccountIds, CategoryIds, PayeeIds, TagIds, Kinds (listes JSON), IncludeTransfers   (G8)
 
 ImportProfile              Id, Name, Delimiter, DateFormat, DecimalSeparator, DateColumn, LabelColumn, AmountColumn?, DebitColumn?, CreditColumn?   (CSV/TSV ; encodage détecté)
 ImportBatch                Id, AccountId, FileName, Format{Csv,Ofx,Qif}, Created, Matched, Duplicates   (date et auteur : CreatedAt, CreatedBy)
@@ -201,7 +206,7 @@ Il n'y a pas d'éditeur de règles. L'appli apprend des corrections :
 4. **Proposition rétroactive** : après une correction, l'appli propose d'appliquer la même correction aux N opérations passées qui ont la même clé, avec un aperçu et une confirmation.
 5. **Gestion** : une page liste les règles apprises, avec seulement la possibilité d'en supprimer une ; on ne les édite pas.
 
-### 6.4 Hors ligne (L4)
+### 6.4 Hors ligne (L5)
 
 - Le service worker met en cache la coquille de l'appli et les données de référence (comptes, catégories, tiers) ainsi que les 3 dernières périodes, stockées dans Dexie.
 - Une saisie faite hors ligne est ajoutée à une file d'attente locale (`{id UUIDv7, type, payload}`) et s'affiche immédiatement avec un badge « en attente ».
@@ -252,6 +257,17 @@ Il n'y a pas d'éditeur de règles. L'appli apprend des corrections :
 - **Objectif d'épargne** (J1, J2, `SavingsGoalPlan`) : l'épargne réunie est le solde du compte rattaché, ou l'opposé du cumul des lignes de la catégorie d'épargne (sous-catégories comprises) depuis `StartDate`. Le versement conseillé répartit le reste à réunir sur les périodes restantes jusqu'à celle de la date cible, la période en cours comprise, arrondi au centime supérieur. L'épargne d'un enfant (J4) est un objectif rattaché à son livret ou à une catégorie dédiée.
 - **Épargne de précaution** (J3) : solde des comptes marqués `IsEmergencyFund` (par défaut les comptes d'épargne), divisé par les dépenses fixes et variables moyennes des N dernières périodes clôturées. La moyenne ne remonte pas avant la période de la première opération.
 - **Visibilité** (R8) : valorisations et objectifs rattachés à un compte suivent sa visibilité ; le cumul d'une catégorie ne compte que les opérations visibles.
+
+### 6.9 Crédits, calendrier, rapports et répartition (A8, E8, G8, G9, K4)
+
+- **Crédit** (A8, `LoanSchedule`, fonction pure) : mensualités constantes C × t / (1 − (1 + t)^−n), t = taux annuel / 12, arrondies au centime. Les intérêts de chaque mois portent sur le capital restant dû ; la dernière mensualité solde le capital. La k-ième échéance est calculée depuis la première (comme R6). Le capital restant dû à une date compte les mensualités échues ce jour-là. Il est affiché à côté du solde du compte de crédit, qui reste « solde initial + opérations » : il n'entre ni dans le patrimoine ni dans la prévision.
+- **Calendrier** (E8) : les échéances de la période à leur date d'effet (jour ouvré E9, report manuel), avec leur état : à venir, à valider, passée (montant réel de l'opération), rapprochée ou sautée. Les échéances antérieures à la création de la récurrence, jamais générées, n'y figurent pas.
+- **Rapport personnalisé** (G8) : lignes d'opérations filtrées par plage (dates saisies, ou périodes relatives calculées selon R1), comptes, catégories (une principale inclut ses sous-catégories), tiers, tags et types, regroupées par catégorie, sous-catégorie, tiers, tag (une ligne compte dans chacun de ses tags), période ou compte. Les virements sans catégorie sont exclus par défaut (R5). Export CSV ou Excel, tracé dans le journal d'audit. Les rapports enregistrés sont communs au foyer ; la fusion de catégories (C5) met à jour leurs filtres.
+- **Flux** (G9) : réalisé de une à plusieurs périodes, des catégories de revenus vers « Revenus », puis vers les types (fixes, variables, épargne) et leurs catégories principales. Un excédent va en « Non dépensé », un déficit vient de « Pris sur les réserves ».
+- **Répartition** (K4, `ExpenseSplit`, fonction pure) : seuls les comptes partagés comptent, pour que chaque membre voie le même résultat (R8).
+  - Une dépense commune (fixe ou variable, hors catégories exclues) payée depuis un compte qui a un titulaire est apportée par ce titulaire.
+  - Un virement vers un compte joint (sans titulaire) est un apport du membre à qui appartient le compte d'origine (son titulaire, ou le propriétaire s'il est privé). Seul ce lien est lu, jamais les opérations du compte privé ; un retrait du compte joint réduit l'apport.
+  - Le total apporté est réparti entre les membres actifs : à parts égales, au prorata des revenus de la période sur les comptes partagés dont chacun est titulaire (parts égales sans revenu), ou selon des parts fixes. Solde = apporté − part ; les soldes s'annulent, et des remboursements conseillés les équilibrent.
 
 ## 7. Conventions d'API
 

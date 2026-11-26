@@ -10,10 +10,12 @@ using HomeBudget.Api.Domain.Imports;
 using HomeBudget.Api.Domain.Payees;
 using HomeBudget.Api.Domain.Reconciliations;
 using HomeBudget.Api.Domain.Recurrences;
+using HomeBudget.Api.Domain.Reports;
 using HomeBudget.Api.Domain.Rules;
 using HomeBudget.Api.Domain.Savings;
 using HomeBudget.Api.Domain.Scenarios;
 using HomeBudget.Api.Domain.Settings;
+using HomeBudget.Api.Domain.Split;
 using HomeBudget.Api.Domain.Tags;
 using HomeBudget.Api.Domain.Transactions;
 using HomeBudget.Api.Domain.Users;
@@ -76,6 +78,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
     public DbSet<AccountValuation> AccountValuations => Set<AccountValuation>();
 
     public DbSet<SavingsGoal> SavingsGoals => Set<SavingsGoal>();
+
+    public DbSet<Loan> Loans => Set<Loan>();
+
+    public DbSet<MemberShare> MemberShares => Set<MemberShare>();
+
+    public DbSet<SavedReport> SavedReports => Set<SavedReport>();
 
     public DbSet<Recurrence> Recurrences => Set<Recurrence>();
 
@@ -168,6 +176,31 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
             e.HasQueryFilter(v => SeesAllAccounts || Accounts.Any(a => a.Id == v.AccountId));
         });
 
+        builder.Entity<Loan>(e =>
+        {
+            ConfigureAudit(e);
+            // Taux en pourcentage à 4 décimales : stocké en dix-millièmes, et non en centimes comme les montants.
+            e.Property(l => l.AnnualRate).HasConversion(new ScaledDecimalConverter(Loan.RateDecimals));
+            // Les conditions du crédit (A8) disparaissent avec leur compte, et suivent sa visibilité (R8).
+            e.HasOne<Account>().WithMany().HasForeignKey(l => l.AccountId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(l => l.AccountId).IsUnique();
+            e.HasQueryFilter(l => SeesAllAccounts || Accounts.Any(a => a.Id == l.AccountId));
+        });
+
+        builder.Entity<MemberShare>(e =>
+        {
+            ConfigureAudit(e);
+            e.HasOne<AppUser>().WithMany().HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(m => m.UserId).IsUnique();
+        });
+
+        builder.Entity<SavedReport>(e =>
+        {
+            ConfigureAudit(e);
+            e.Property(r => r.Name).HasMaxLength(SavedReport.MaxNameLength);
+            e.PrimitiveCollection(r => r.Kinds).ElementType().HasConversion<string>();
+        });
+
         builder.Entity<SavingsGoal>(e =>
         {
             ConfigureAudit(e);
@@ -197,6 +230,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
             e.Property(a => a.Color).HasMaxLength(16);
             e.Property(a => a.Icon).HasMaxLength(40);
             e.HasOne<AppUser>().WithMany().HasForeignKey(a => a.OwnerId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<AppUser>().WithMany().HasForeignKey(a => a.HolderId).OnDelete(DeleteBehavior.SetNull);
             // R8 (DM5) : un compte privé n'est visible que de son propriétaire. Les filtres des opérations,
             // lignes, récurrences, échéances, rapprochements et imports s'appuient sur celui-ci.
             e.HasQueryFilter(a => SeesAllAccounts || a.Visibility == AccountVisibility.Shared || a.OwnerId == ViewerId);

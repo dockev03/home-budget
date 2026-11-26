@@ -8,6 +8,9 @@ import {
   mdiApi,
   mdiBankOutline,
   mdiCalendarCheckOutline,
+  mdiCalendarMonthOutline,
+  mdiChartSankey,
+  mdiCallSplit,
   mdiCalendarSync,
   mdiCogOutline,
   mdiChartDonut,
@@ -61,6 +64,7 @@ const navigation = computed(() =>
     },
     { title: 'Budget', icon: mdiChartDonut, to: { name: 'budget' }, exact: false, bottom: true },
     { title: 'Bilan annuel', icon: mdiChartBar, to: { name: 'annual' }, exact: false, bottom: false },
+    { title: 'Rapports', icon: mdiChartSankey, to: { name: 'reports' }, exact: true, bottom: false },
     { title: 'Comptes', icon: mdiBankOutline, to: { name: 'accounts' }, exact: true, bottom: true },
     { title: 'Catégories', icon: mdiShapeOutline, to: { name: 'categories' }, exact: true, bottom: true },
     {
@@ -72,6 +76,13 @@ const navigation = computed(() =>
       write: true,
     },
     { title: 'Récurrences', icon: mdiCalendarSync, to: { name: 'recurrences' }, exact: true, bottom: false },
+    {
+      title: 'Calendrier',
+      icon: mdiCalendarMonthOutline,
+      to: { name: 'calendar' },
+      exact: false,
+      bottom: false,
+    },
     {
       title: 'À valider',
       icon: mdiCalendarCheckOutline,
@@ -97,6 +108,7 @@ const navigation = computed(() =>
       bottom: false,
     },
     { title: 'Avances', icon: mdiHandCoinOutline, to: { name: 'advances' }, exact: true, bottom: false },
+    { title: 'Répartition', icon: mdiCallSplit, to: { name: 'split' }, exact: false, bottom: false },
     { title: 'Sécurité', icon: mdiShieldLockOutline, to: { name: 'security' }, exact: true, bottom: false },
     {
       title: 'Paramètres',

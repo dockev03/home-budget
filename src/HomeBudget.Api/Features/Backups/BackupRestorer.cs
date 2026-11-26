@@ -7,6 +7,7 @@ using HomeBudget.Api.Domain.Payees;
 using HomeBudget.Api.Domain.Reconciliations;
 using HomeBudget.Api.Domain.Recurrences;
 using HomeBudget.Api.Domain.Rules;
+using HomeBudget.Api.Domain.Scenarios;
 using HomeBudget.Api.Domain.Settings;
 using HomeBudget.Api.Domain.Tags;
 using HomeBudget.Api.Domain.Transactions;
@@ -42,6 +43,8 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
         var periodBudgets = await db.PeriodBudgets.AsNoTracking().OrderBy(b => b.Id).ToListAsync(ct);
         var provisions = await db.Provisions.AsNoTracking().OrderBy(p => p.Id).ToListAsync(ct);
         var changes = await db.TransactionChanges.AsNoTracking().OrderBy(c => c.Id).ToListAsync(ct);
+        var scenarios = await db.Scenarios.AsNoTracking().OrderBy(s => s.Id).ToListAsync(ct);
+        var scenarioEvents = await db.ScenarioEvents.AsNoTracking().OrderBy(e => e.Id).ToListAsync(ct);
 
         return new BackupDocument(
             BackupDocument.FormatName,
@@ -49,7 +52,8 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
             clock.GetUtcNow(),
             new BackupSettings(
                 settings.Id, settings.PeriodMode, settings.PeriodStartDay, settings.SafetyThreshold, settings.ForecastIncludesIncome,
-                settings.BudgetWarningPercent, settings.BudgetAlertPercent, settings.DefaultCategoriesCreated, AuditOf(settings)),
+                settings.BudgetWarningPercent, settings.BudgetAlertPercent, settings.DefaultCategoriesCreated, AuditOf(settings),
+                settings.ForecastStrategy, settings.ForecastAverageMonths),
             [.. accounts.Select(a => new BackupAccount(
                 a.Id, a.Name, a.Type, a.InitialBalance, a.InitialDate, a.OwnerId, a.Visibility, a.Color, a.Icon,
                 a.IncludeInForecast, a.IncludeInNetWorth, a.OverdraftThreshold, a.IsArchived, a.SortOrder, AuditOf(a)))],
@@ -78,7 +82,10 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
             [.. advances.Select(a => new BackupAdvance(a.Id, a.Label, a.ExpectedAmount, a.Date, a.Notes, a.IsClosed, AuditOf(a)))],
             [.. periodBudgets.Select(b => new BackupPeriodBudget(b.Id, b.CategoryId, b.PeriodKey, b.Mode, b.Value, AuditOf(b)))],
             [.. provisions.Select(p => new BackupProvision(p.Id, p.Label, p.CategoryId, p.Amount, p.DueDate, p.IsAnnual, p.StartDate, AuditOf(p)))],
-            [.. changes.Select(c => new BackupTransactionChange(c.Id, c.TransactionId, c.At, c.UserId, c.Changes))]);
+            [.. changes.Select(c => new BackupTransactionChange(c.Id, c.TransactionId, c.At, c.UserId, c.Changes))],
+            [.. scenarios.Select(s => new BackupScenario(s.Id, s.Name, s.IsActive, AuditOf(s)))],
+            [.. scenarioEvents.Select(e => new BackupScenarioEvent(
+                e.Id, e.ScenarioId, e.Label, e.AccountId, e.CategoryId, e.Amount, e.Date, e.Frequency, e.EndDate, AuditOf(e)))]);
     }
 
     /// <summary>
@@ -108,6 +115,9 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
 
         // Ordre imposé par les clés étrangères : des dépendants vers les éléments référencés.
         await db.RecurrenceOccurrences.ExecuteDeleteAsync(ct);
+        // Remplacés quelle que soit la version : une sauvegarde antérieure à la v6 n'en contient pas.
+        await db.ScenarioEvents.ExecuteDeleteAsync(ct);
+        await db.Scenarios.ExecuteDeleteAsync(ct);
         // Remplacés quelle que soit la version : une sauvegarde antérieure à la v5 n'en contient pas.
         await db.TransactionChanges.ExecuteDeleteAsync(ct);
         await db.PeriodBudgets.ExecuteDeleteAsync(ct);
@@ -145,6 +155,8 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
             BudgetWarningPercent = s.BudgetWarningPercent,
             BudgetAlertPercent = s.BudgetAlertPercent,
             DefaultCategoriesCreated = s.DefaultCategoriesCreated,
+            ForecastStrategy = s.ForecastStrategy,
+            ForecastAverageMonths = s.ForecastAverageMonths,
         }, s.Audit));
 
         foreach (var a in document.Accounts!.OfType<BackupAccount>())
@@ -357,6 +369,27 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 UserId = User(c.UserId),
                 Changes = c.Changes!,
             });
+        }
+
+        foreach (var sc in (document.Scenarios ?? []).OfType<BackupScenario>())
+        {
+            db.Scenarios.Add(Stamp(new Scenario { Id = sc.Id, Name = sc.Name!.Trim(), IsActive = sc.IsActive }, sc.Audit));
+        }
+
+        foreach (var e in (document.ScenarioEvents ?? []).OfType<BackupScenarioEvent>())
+        {
+            db.ScenarioEvents.Add(Stamp(new ScenarioEvent
+            {
+                Id = e.Id,
+                ScenarioId = e.ScenarioId,
+                Label = e.Label!.Trim(),
+                AccountId = e.AccountId,
+                CategoryId = e.CategoryId,
+                Amount = e.Amount,
+                Date = e.Date,
+                Frequency = e.Frequency,
+                EndDate = e.Frequency == ScenarioEventFrequency.Monthly ? e.EndDate : null,
+            }, e.Audit));
         }
 
         db.PreserveAuditFields = true;

@@ -97,6 +97,29 @@ public sealed class BackupRestoreTests
             dueDate = TestScenario.Iso(TestScenario.Today.AddMonths(6)),
             isAnnual = true,
         });
+
+        // Scénario « et si… » et stratégie de prévision (étape 10).
+        var scenario = await admin.CreateAsync("/api/scenarios", new { name = "Nouvelle voiture", isActive = true });
+        await admin.CreateAsync($"/api/scenarios/{scenario.GetProperty("id").GetGuid()}/events", new
+        {
+            label = "Crédit auto",
+            accountId = checking,
+            categoryId = (Guid?)null,
+            amount = -250m,
+            date = TestScenario.Iso(TestScenario.Today.AddMonths(1)),
+            frequency = "Monthly",
+            endDate = TestScenario.Iso(TestScenario.Today.AddYears(4)),
+        });
+        var settingsVersion = (await admin.GetJsonAsync("/api/settings")).Version();
+        (await admin.PutAsync("/api/settings", new
+        {
+            periodMode = "Calendar",
+            periodStartDay = 1,
+            budgetWarningPercent = 80,
+            budgetAlertPercent = 100,
+            forecastStrategy = "Average",
+            forecastAverageMonths = 3,
+        }, settingsVersion)).EnsureSuccessStatusCode();
     }
 
     private static async Task<string> ExportAsync(ApiClient client)
@@ -134,7 +157,11 @@ public sealed class BackupRestoreTests
 
         var document = JsonNode.Parse(backup)!;
         document["format"]!.GetValue<string>().ShouldBe("home-budget-backup");
-        document["formatVersion"]!.GetValue<int>().ShouldBe(5);
+        document["formatVersion"]!.GetValue<int>().ShouldBe(6);
+        document["scenarios"]!.AsArray().ShouldHaveSingleItem()!["name"]!.GetValue<string>().ShouldBe("Nouvelle voiture");
+        document["scenarioEvents"]!.AsArray().ShouldHaveSingleItem()!["frequency"]!.GetValue<string>().ShouldBe("Monthly");
+        document["settings"]!["forecastStrategy"]!.GetValue<string>().ShouldBe("Average");
+        document["settings"]!["forecastAverageMonths"]!.GetValue<int>().ShouldBe(3);
         document["periodBudgets"]!.AsArray().ShouldHaveSingleItem()!["periodKey"]!.GetValue<string>().ShouldBe("2026-12");
         document["provisions"]!.AsArray().ShouldHaveSingleItem()!["isAnnual"]!.GetValue<bool>().ShouldBeTrue();
         document["recurrences"]![0]!["businessDayShift"]!.GetValue<string>().ShouldBe("Next");
@@ -190,6 +217,8 @@ public sealed class BackupRestoreTests
         await SeedAsync(admin);
         var node = JsonNode.Parse(await ExportAsync(admin))!.AsObject();
         node["formatVersion"] = 1;
+        node.Remove("scenarios");
+        node.Remove("scenarioEvents");
         node.Remove("importProfiles");
         node.Remove("importBatches");
         node.Remove("tags");
@@ -226,6 +255,35 @@ public sealed class BackupRestoreTests
         restored["reconciliations"]!.AsArray().ShouldBeEmpty();
         restored["advances"]!.AsArray().ShouldBeEmpty();
         restored["recurrences"]![0]!["toleranceUnit"]!.GetValue<string>().ShouldBe("Amount");
+    }
+
+    [Fact]
+    public async Task Version_5_backup_without_scenarios_is_restored_with_the_budget_strategy()
+    {
+        await using var factory = new HomeBudgetFactory();
+        var admin = await factory.CreateAdminClientAsync();
+        await SeedAsync(admin);
+        var node = JsonNode.Parse(await ExportAsync(admin))!.AsObject();
+        node["formatVersion"] = 5;
+        node.Remove("scenarios");
+        node.Remove("scenarioEvents");
+        node["settings"]!.AsObject().Remove("forecastStrategy");
+        node["settings"]!.AsObject().Remove("forecastAverageMonths");
+
+        (await RestoreAsync(admin, node.ToJsonString())).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var restored = JsonNode.Parse(await ExportAsync(admin))!;
+        restored["scenarios"]!.AsArray().ShouldBeEmpty();
+        restored["scenarioEvents"]!.AsArray().ShouldBeEmpty();
+        var settings = await admin.GetJsonAsync("/api/settings");
+        settings.GetProperty("forecastStrategy").GetString().ShouldBe("Budget");
+        settings.GetProperty("forecastAverageMonths").GetInt32().ShouldBe(6);
+
+        // Une sauvegarde v6 doit contenir les scénarios.
+        node["formatVersion"] = 6;
+        var response = await RestoreAsync(admin, node.ToJsonString());
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await ApiClient.ReadJsonAsync(response)).GetProperty("errors").GetProperty("file")[0].GetString()!.ShouldContain("scénarios");
     }
 
     [Fact]

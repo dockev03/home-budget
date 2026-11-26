@@ -9,6 +9,16 @@ public enum PeriodMode
     FixedDay,
 }
 
+/// <summary>Ce qui remplace le budget restant dans la prévision (F7).</summary>
+public enum ForecastStrategy
+{
+    /// <summary>Le budget de chaque période (R3).</summary>
+    Budget,
+
+    /// <summary>Le réalisé moyen des N dernières périodes clôturées, par catégorie.</summary>
+    Average,
+}
+
 /// <summary>Paramètres du foyer (une seule ligne par instance).</summary>
 public sealed class HouseholdSettings : AuditableEntity
 {
@@ -22,6 +32,16 @@ public sealed class HouseholdSettings : AuditableEntity
 
     /// <summary>Inclure les revenus budgétés non encore reçus dans la prévision.</summary>
     public bool ForecastIncludesIncome { get; set; } = true;
+
+    /// <summary>Stratégie de prévision (F7) : par le budget, ou par la moyenne des N dernières périodes.</summary>
+    public ForecastStrategy ForecastStrategy { get; set; } = ForecastStrategy.Budget;
+
+    /// <summary>Nombre de périodes clôturées de la moyenne (F7), de 1 à <see cref="MaxForecastAverageMonths"/>.</summary>
+    public int ForecastAverageMonths { get; set; } = DefaultForecastAverageMonths;
+
+    public const int DefaultForecastAverageMonths = 6;
+
+    public const int MaxForecastAverageMonths = 24;
 
     public int BudgetWarningPercent { get; set; } = 80;
 

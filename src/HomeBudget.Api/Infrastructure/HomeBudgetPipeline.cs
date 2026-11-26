@@ -16,6 +16,7 @@ using HomeBudget.Api.Features.Reconciliations;
 using HomeBudget.Api.Features.Recurrences;
 using HomeBudget.Api.Features.Reports;
 using HomeBudget.Api.Features.Rules;
+using HomeBudget.Api.Features.Scenarios;
 using HomeBudget.Api.Features.Settings;
 using HomeBudget.Api.Features.Setup;
 using HomeBudget.Api.Features.Tags;
@@ -82,6 +83,7 @@ public static class HomeBudgetPipeline
         app.MapAnnualReportEndpoints();
         app.MapRecurrenceEndpoints();
         app.MapForecastEndpoints();
+        app.MapScenarioEndpoints();
         app.MapDashboardEndpoints();
         app.MapExportEndpoints();
         app.MapBackupEndpoints();

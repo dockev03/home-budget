@@ -46,6 +46,17 @@ public static class BackupValidator
             errors.Add("Fichier invalide : un élément de liste est vide (null).");
             return errors.List;
         }
+        var hasScenarios = document.FormatVersion >= BackupDocument.ScenariosVersion;
+        if (hasScenarios && (document.Scenarios is null || document.ScenarioEvents is null))
+        {
+            errors.Add("Fichier incomplet : scénarios et leurs événements attendus.");
+            return errors.List;
+        }
+        if (hasScenarios && (document.Scenarios!.Contains(null) || document.ScenarioEvents!.Contains(null)))
+        {
+            errors.Add("Fichier invalide : un élément de liste est vide (null).");
+            return errors.List;
+        }
         var hasProvisions = document.FormatVersion >= BackupDocument.ProvisionsVersion;
         if (hasProvisions && (document.PeriodBudgets is null || document.Provisions is null || document.TransactionChanges is null))
         {
@@ -338,6 +349,34 @@ public static class BackupValidator
             Audit(where, p.Audit, errors);
         }
 
+        var scenarioIds = UniqueIds("scénario", (document.Scenarios ?? []).Select(sc => sc!.Id), errors);
+        foreach (var sc in (document.Scenarios ?? []).OfType<BackupScenario>())
+        {
+            var where = $"Scénario {sc.Id}";
+            Text(where, "nom", sc.Name, Domain.Scenarios.Scenario.MaxNameLength, required: true, errors);
+            Audit(where, sc.Audit, errors);
+        }
+        UniqueIds("événement de scénario", (document.ScenarioEvents ?? []).Select(e => e!.Id), errors);
+        foreach (var e in (document.ScenarioEvents ?? []).OfType<BackupScenarioEvent>())
+        {
+            var where = $"Événement de scénario {e.Id}";
+            Reference(where, "scénario", e.ScenarioId, scenarioIds, errors);
+            Text(where, "libellé", e.Label, Domain.Scenarios.ScenarioEvent.MaxLabelLength, required: true, errors);
+            Reference(where, "compte", e.AccountId, accountIds, errors);
+            OptionalReference(where, "catégorie", e.CategoryId, categoryIds, errors);
+            if (e.Amount == 0)
+            {
+                errors.Add($"{where} : montant non nul requis.");
+            }
+            Amount(where, e.Amount, errors);
+            Defined(where, e.Frequency, errors);
+            if (e.EndDate < e.Date)
+            {
+                errors.Add($"{where} : date de fin avant la première date.");
+            }
+            Audit(where, e.Audit, errors);
+        }
+
         UniqueIds("modification d'opération", (document.TransactionChanges ?? []).Select(c => c!.Id), errors);
         foreach (var c in (document.TransactionChanges ?? []).OfType<BackupTransactionChange>())
         {
@@ -426,6 +465,11 @@ public static class BackupValidator
             errors.Add($"{where} : seuils des jauges invalides.");
         }
         Amount(where, s.SafetyThreshold, errors);
+        Defined(where, s.ForecastStrategy, errors);
+        if (s.ForecastAverageMonths is < 1 or > Domain.Settings.HouseholdSettings.MaxForecastAverageMonths)
+        {
+            errors.Add($"{where} : nombre de périodes de la moyenne invalide.");
+        }
         Audit(where, s.Audit, errors);
     }
 

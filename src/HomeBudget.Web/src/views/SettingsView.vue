@@ -22,6 +22,8 @@ const form = ref<Schemas['SettingsRequest']>({
   periodStartDay: 1,
   budgetWarningPercent: 80,
   budgetAlertPercent: 100,
+  forecastStrategy: 'Budget',
+  forecastAverageMonths: 6,
 })
 const valid = ref(false)
 const saving = ref(false)
@@ -29,6 +31,10 @@ const saved = ref(false)
 const error = ref<string | null>(null)
 
 const startDays = Array.from({ length: 28 }, (_, i) => i + 1)
+const averageMonths = Array.from({ length: 24 }, (_, i) => ({
+  value: i + 1,
+  title: i === 0 ? '1 mois' : `${i + 1} mois`,
+}))
 const percentRule = (max: number) => (v: unknown) => {
   const n = Number(v)
   return (Number.isInteger(n) && n >= 1 && n <= max) || `Nombre entier de 1 à ${max}.`
@@ -40,8 +46,22 @@ const orderRule = () =>
 async function load() {
   try {
     settings.value = await unwrap(api.GET('/api/settings'))
-    const { periodMode, periodStartDay, budgetWarningPercent, budgetAlertPercent } = settings.value
-    form.value = { periodMode, periodStartDay, budgetWarningPercent, budgetAlertPercent }
+    const {
+      periodMode,
+      periodStartDay,
+      budgetWarningPercent,
+      budgetAlertPercent,
+      forecastStrategy,
+      forecastAverageMonths,
+    } = settings.value
+    form.value = {
+      periodMode,
+      periodStartDay,
+      budgetWarningPercent,
+      budgetAlertPercent,
+      forecastStrategy,
+      forecastAverageMonths,
+    }
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : 'Chargement impossible.'
   }
@@ -60,6 +80,7 @@ async function save() {
           ...form.value,
           budgetWarningPercent: Number(form.value.budgetWarningPercent),
           budgetAlertPercent: Number(form.value.budgetAlertPercent),
+          forecastAverageMonths: Number(form.value.forecastAverageMonths),
         },
       }),
     )
@@ -141,6 +162,32 @@ onMounted(load)
           type="number"
           :rules="[percentRule(200)]"
           style="max-width: 200px"
+        />
+      </v-card-text>
+    </v-card>
+
+    <v-card class="mb-4" title="Prévision">
+      <v-card-text>
+        <v-radio-group
+          v-model="form.forecastStrategy"
+          hide-details
+          class="mb-2"
+          data-testid="forecast-strategy"
+        >
+          <v-radio value="Budget" label="Par le budget : le reste du budget de chaque catégorie est prévu" />
+          <v-radio
+            value="Average"
+            label="Par la moyenne : le réalisé moyen des derniers mois remplace le budget"
+          />
+        </v-radio-group>
+        <v-select
+          v-if="form.forecastStrategy === 'Average'"
+          v-model="form.forecastAverageMonths"
+          :items="averageMonths"
+          label="Moyenne sur"
+          hint="Périodes clôturées qui précèdent la période en cours. Les échéances des récurrences restent prévues telles quelles."
+          persistent-hint
+          style="max-width: 420px"
         />
       </v-card-text>
     </v-card>

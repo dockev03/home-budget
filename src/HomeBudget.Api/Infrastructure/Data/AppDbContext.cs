@@ -11,6 +11,7 @@ using HomeBudget.Api.Domain.Payees;
 using HomeBudget.Api.Domain.Reconciliations;
 using HomeBudget.Api.Domain.Recurrences;
 using HomeBudget.Api.Domain.Rules;
+using HomeBudget.Api.Domain.Scenarios;
 using HomeBudget.Api.Domain.Settings;
 using HomeBudget.Api.Domain.Tags;
 using HomeBudget.Api.Domain.Transactions;
@@ -66,6 +67,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
     public DbSet<Provision> Provisions => Set<Provision>();
 
     public DbSet<TransactionChange> TransactionChanges => Set<TransactionChange>();
+
+    public DbSet<Scenario> Scenarios => Set<Scenario>();
+
+    public DbSet<ScenarioEvent> ScenarioEvents => Set<ScenarioEvent>();
 
     public DbSet<Recurrence> Recurrences => Set<Recurrence>();
 
@@ -128,6 +133,24 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
             ConfigureAudit(e);
             e.Property(p => p.Label).HasMaxLength(Provision.MaxLabelLength);
             e.HasOne<Category>().WithMany().HasForeignKey(p => p.CategoryId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<Scenario>(e =>
+        {
+            ConfigureAudit(e);
+            e.Property(s => s.Name).HasMaxLength(Scenario.MaxNameLength);
+            e.HasMany(s => s.Events).WithOne().HasForeignKey(v => v.ScenarioId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<ScenarioEvent>(e =>
+        {
+            ConfigureAudit(e);
+            e.Property(v => v.Label).HasMaxLength(ScenarioEvent.MaxLabelLength);
+            // Événements fictifs (F5) : ils disparaissent avec leur compte, et perdent seulement leur catégorie indicative.
+            e.HasOne<Account>().WithMany().HasForeignKey(v => v.AccountId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Category>().WithMany().HasForeignKey(v => v.CategoryId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(v => v.ScenarioId);
+            e.HasQueryFilter(v => SeesAllAccounts || Accounts.Any(a => a.Id == v.AccountId));
         });
 
         builder.Entity<TransactionChange>(e =>

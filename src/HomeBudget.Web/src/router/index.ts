@@ -51,6 +51,12 @@ export const router = createRouter({
       meta: { title: 'Récurrences' },
     },
     {
+      path: '/scenarios',
+      name: 'scenarios',
+      component: () => import('@/views/ScenariosView.vue'),
+      meta: { title: 'Scénarios' },
+    },
+    {
       path: '/abonnements',
       name: 'subscriptions',
       component: () => import('@/views/SubscriptionsView.vue'),

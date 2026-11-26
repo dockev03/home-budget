@@ -12,6 +12,7 @@ export interface ChartColors {
   budget: string
   real: string
   forecast: string
+  scenario: string
   threshold: string
   status: Record<Schemas['BudgetStatus'], string>
 }
@@ -27,6 +28,7 @@ export function chartColors(dark: boolean): ChartColors {
         budget: '#78909c',
         real: '#7ab0ff',
         forecast: '#b3a8ff',
+        scenario: '#ffb74d',
         threshold: '#ef5350',
         status: { None: '#7ab0ff', Ok: '#66bb6a', Warning: '#ffb74d', Exceeded: '#ef5350' },
       }
@@ -38,6 +40,7 @@ export function chartColors(dark: boolean): ChartColors {
         budget: '#b0bec5',
         real: '#1e5aa8',
         forecast: '#4a3aa5',
+        scenario: '#b45309',
         threshold: '#c62828',
         status: { None: '#1e5aa8', Ok: '#2e7d32', Warning: '#ef6c00', Exceeded: '#c62828' },
       }
@@ -201,12 +204,15 @@ export function historyOption(history: Schemas['PeriodTotalsDto'][], colors: Cha
 /**
  * F2 : courbe du solde jour par jour. Le réel est en trait plein, le prévu en pointillés à partir du dernier
  * jour réel (pour que les deux courbes se rejoignent), et le seuil d'alerte en ligne horizontale.
+ * F5 : la série « Avec scénarios », d'aujourd'hui à la fin de l'horizon, s'ajoute à part.
  */
 export function balanceCurveOption(
   daily: Schemas['ForecastPointDto'][],
   threshold: number,
   colors: ChartColors,
+  scenario: Schemas['ForecastPointDto'][] | null = null,
 ): EChartsOption {
+  const scenarioByDate = new Map((scenario ?? []).map((p) => [p.date, p.balance]))
   const lastReal = daily.reduce((last, p, i) => (p.isForecast ? last : i), -1)
   const line = (name: string, color: string, data: (number | null)[], dashed: boolean) => ({
     name,
@@ -251,6 +257,16 @@ export function balanceCurveOption(
         ),
         lineStyle: { color: colors.threshold, width: 1, type: 'dotted' as const },
       },
+      ...(scenario
+        ? [
+            line(
+              'Avec scénarios',
+              colors.scenario,
+              daily.map((p) => scenarioByDate.get(p.date) ?? null),
+              true,
+            ),
+          ]
+        : []),
     ],
   }
 }

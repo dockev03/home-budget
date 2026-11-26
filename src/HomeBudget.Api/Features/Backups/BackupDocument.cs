@@ -3,6 +3,7 @@ using HomeBudget.Api.Domain.Budgets;
 using HomeBudget.Api.Domain.Categories;
 using HomeBudget.Api.Domain.Imports;
 using HomeBudget.Api.Domain.Recurrences;
+using HomeBudget.Api.Domain.Scenarios;
 using HomeBudget.Api.Domain.Settings;
 
 namespace HomeBudget.Api.Features.Backups;
@@ -33,11 +34,13 @@ public sealed record BackupDocument(
     List<BackupAdvance?>? Advances = null,
     List<BackupPeriodBudget?>? PeriodBudgets = null,
     List<BackupProvision?>? Provisions = null,
-    List<BackupTransactionChange?>? TransactionChanges = null)
+    List<BackupTransactionChange?>? TransactionChanges = null,
+    List<BackupScenario?>? Scenarios = null,
+    List<BackupScenarioEvent?>? ScenarioEvents = null)
 {
     public const string FormatName = "home-budget-backup";
 
-    public const int CurrentVersion = 5;
+    public const int CurrentVersion = 6;
 
     /// <summary>Version 1 : sans profils ni historique d'import (étapes 1 à 4), toujours restaurable.</summary>
     public const int MinVersion = 1;
@@ -53,6 +56,9 @@ public sealed record BackupDocument(
 
     /// <summary>Version 5 : budgets par période, provisions, historique des opérations, report au jour ouvré (étape 9).</summary>
     public const int ProvisionsVersion = 5;
+
+    /// <summary>Version 6 : scénarios « et si… » et stratégie de prévision (étape 10).</summary>
+    public const int ScenariosVersion = 6;
 }
 
 /// <summary>Traçabilité (K2) et version de concurrence, conservées à la restauration.</summary>
@@ -67,7 +73,9 @@ public sealed record BackupSettings(
     int BudgetWarningPercent,
     int BudgetAlertPercent,
     bool DefaultCategoriesCreated,
-    BackupAudit? Audit);
+    BackupAudit? Audit,
+    ForecastStrategy ForecastStrategy = ForecastStrategy.Budget,
+    int ForecastAverageMonths = HouseholdSettings.DefaultForecastAverageMonths);
 
 public sealed record BackupAccount(
     Guid Id,
@@ -101,6 +109,22 @@ public sealed record BackupProvision(
 /// <summary>Modification d'une opération (B13). Le nom de l'auteur n'est pas sauvegardé : seul son identifiant.</summary>
 /// <param name="Changes">Champs modifiés, au format JSON de l'historique (B13).</param>
 public sealed record BackupTransactionChange(Guid Id, Guid TransactionId, DateTimeOffset At, Guid? UserId, string? Changes);
+
+/// <summary>Scénario « et si… » (F5).</summary>
+public sealed record BackupScenario(Guid Id, string? Name, bool IsActive, BackupAudit? Audit);
+
+/// <summary>Événement fictif d'un scénario (F5).</summary>
+public sealed record BackupScenarioEvent(
+    Guid Id,
+    Guid ScenarioId,
+    string? Label,
+    Guid AccountId,
+    Guid? CategoryId,
+    decimal Amount,
+    DateOnly Date,
+    ScenarioEventFrequency Frequency,
+    DateOnly? EndDate,
+    BackupAudit? Audit);
 
 public sealed record BackupTransactionLine(Guid Id, Guid? CategoryId, decimal Amount, string? Memo, List<Guid>? TagIds = null);
 

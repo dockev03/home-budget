@@ -128,6 +128,46 @@ public sealed class BackupRestoreTests
         await admin.CreateAsync("/api/savings-goals", new { name = "Vacances", targetAmount = 2000m, targetDate = TestScenario.Iso(TestScenario.Today.AddMonths(8)), accountId = livret });
         var epargne = await admin.CreateCategoryAsync("Épargne enfant", "Savings");
         await admin.CreateAsync("/api/savings-goals", new { name = "Études", targetAmount = 10000m, categoryId = epargne, startDate = "2026-01-01" });
+
+        // Crédit, répartition des dépenses communes et rapport enregistré (étape 12).
+        var loanAccount = await admin.CreateAccountAsync("Prêt auto", -12000m, "Credit");
+        (await admin.PutAsync($"/api/accounts/{loanAccount}/loan", new
+        {
+            principal = 12000m,
+            annualRate = 3.875m,
+            durationMonths = 48,
+            firstPaymentDate = "2026-01-05",
+            monthlyInsurance = 6.5m,
+        }, null)).EnsureSuccessStatusCode();
+        var me = (await admin.GetJsonAsync("/api/auth/me")).GetProperty("id").GetGuid();
+        var courant = await admin.GetJsonAsync($"/api/accounts/{checking}");
+        (await admin.PutAsync($"/api/accounts/{checking}", new
+        {
+            name = "Courant",
+            type = "Checking",
+            initialBalance = 1500m,
+            initialDate = courant.GetProperty("initialDate").GetString(),
+            holderId = me,
+        }, courant.Version())).EnsureSuccessStatusCode();
+        var cinemaJson = (await admin.GetJsonAsync("/api/categories")).EnumerateArray().First(c => c.GetProperty("id").GetGuid() == cinema);
+        (await admin.PutAsync($"/api/categories/{cinema}", new
+        {
+            name = "Cinéma",
+            kind = "Variable",
+            parentId = restaurants,
+            excludeFromSplit = true,
+        }, cinemaJson.Version())).EnsureSuccessStatusCode();
+        var splitVersion = (await admin.GetJsonAsync("/api/split/settings")).Version();
+        (await admin.PutAsync("/api/split/settings", new { mode = "FixedShares", shares = new[] { new { userId = me, percent = 100m } } }, splitVersion))
+            .EnsureSuccessStatusCode();
+        await admin.CreateAsync("/api/reports/saved", new
+        {
+            name = "Sorties",
+            groupBy = "Payee",
+            range = "Last3Periods",
+            categoryIds = new[] { restaurants },
+            kinds = new[] { "Variable" },
+        });
     }
 
     private static async Task<string> ExportAsync(ApiClient client)
@@ -165,7 +205,17 @@ public sealed class BackupRestoreTests
 
         var document = JsonNode.Parse(backup)!;
         document["format"]!.GetValue<string>().ShouldBe("home-budget-backup");
-        document["formatVersion"]!.GetValue<int>().ShouldBe(7);
+        document["formatVersion"]!.GetValue<int>().ShouldBe(8);
+        var loan = document["loans"]!.AsArray().ShouldHaveSingleItem()!;
+        loan["annualRate"]!.GetValue<decimal>().ShouldBe(3.875m);
+        loan["monthlyInsurance"]!.GetValue<decimal>().ShouldBe(6.5m);
+        document["memberShares"]!.AsArray().ShouldHaveSingleItem()!["percent"]!.GetValue<decimal>().ShouldBe(100m);
+        document["settings"]!["splitMode"]!.GetValue<string>().ShouldBe("FixedShares");
+        document["accounts"]!.AsArray().Count(a => a!["holderId"] is not null).ShouldBe(1);
+        document["categories"]!.AsArray().Count(c => c!["excludeFromSplit"]!.GetValue<bool>()).ShouldBe(1);
+        var report = document["savedReports"]!.AsArray().ShouldHaveSingleItem()!;
+        report["kinds"]!.AsArray().ShouldHaveSingleItem()!.GetValue<string>().ShouldBe("Variable");
+        report["range"]!.GetValue<string>().ShouldBe("Last3Periods");
         document["valuations"]!.AsArray().ShouldHaveSingleItem()!["value"]!.GetValue<decimal>().ShouldBe(5321.45m);
         document["savingsGoals"]!.AsArray().Count.ShouldBe(2);
         document["settings"]!["emergencyFundAverageMonths"]!.GetValue<int>().ShouldBe(4);
@@ -203,7 +253,7 @@ public sealed class BackupRestoreTests
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var result = await ApiClient.ReadJsonAsync(response);
-        result.GetProperty("accounts").GetInt32().ShouldBe(4);
+        result.GetProperty("accounts").GetInt32().ShouldBe(5);
         result.GetProperty("transactions").GetInt32().ShouldBe(6);
         Comparable(await ExportAsync(admin)).ShouldBe(Comparable(backup));
         (await admin.GetJsonAsync("/api/settings")).GetProperty("periodMode").GetString().ShouldBe("Calendar");
@@ -335,6 +385,44 @@ public sealed class BackupRestoreTests
     }
 
     [Fact]
+    public async Task Version_7_backup_without_loans_nor_split_is_restored_with_equal_shares()
+    {
+        await using var factory = new HomeBudgetFactory();
+        var admin = await factory.CreateAdminClientAsync();
+        await SeedAsync(admin);
+        var node = JsonNode.Parse(await ExportAsync(admin))!.AsObject();
+        node["formatVersion"] = 7;
+        node.Remove("loans");
+        node.Remove("memberShares");
+        node.Remove("savedReports");
+        node["settings"]!.AsObject().Remove("splitMode");
+        foreach (var a in node["accounts"]!.AsArray())
+        {
+            a!.AsObject().Remove("holderId");
+        }
+        foreach (var c in node["categories"]!.AsArray())
+        {
+            c!.AsObject().Remove("excludeFromSplit");
+        }
+
+        (await RestoreAsync(admin, node.ToJsonString())).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var restored = JsonNode.Parse(await ExportAsync(admin))!;
+        restored["loans"]!.AsArray().ShouldBeEmpty();
+        restored["memberShares"]!.AsArray().ShouldBeEmpty();
+        restored["savedReports"]!.AsArray().ShouldBeEmpty();
+        restored["accounts"]!.AsArray().ShouldAllBe(a => a!["holderId"] == null);
+        restored["categories"]!.AsArray().ShouldAllBe(c => !c!["excludeFromSplit"]!.GetValue<bool>());
+        (await admin.GetJsonAsync("/api/split/settings")).GetProperty("mode").GetString().ShouldBe("Equal");
+
+        // Une sauvegarde v8 doit contenir les crédits, les parts et les rapports.
+        node["formatVersion"] = 8;
+        var response = await RestoreAsync(admin, node.ToJsonString());
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await ApiClient.ReadJsonAsync(response)).GetProperty("errors").GetProperty("file")[0].GetString()!.ShouldContain("crédits");
+    }
+
+    [Fact]
     public async Task Restore_on_another_instance_keeps_its_users_and_clears_unknown_user_references()
     {
         string backup;
@@ -356,8 +444,11 @@ public sealed class BackupRestoreTests
         (await targetAdmin.GetJsonAsync("/api/auth/me")).GetProperty("id").GetGuid().ShouldBe(me.GetProperty("id").GetGuid());
         var restored = JsonNode.Parse(await ExportAsync(targetAdmin))!;
         restored["accounts"]!.AsArray().ShouldAllBe(a => a!["ownerId"] == null);
+        // Titulaire et part de l'administrateur de la source : inconnus ici, vidés ou ignorés.
+        restored["accounts"]!.AsArray().ShouldAllBe(a => a!["holderId"] == null);
+        restored["memberShares"]!.AsArray().ShouldBeEmpty();
         restored["transactions"]!.AsArray().ShouldAllBe(t => t!["audit"]!["createdBy"] == null && t["audit"]!["updatedBy"] == null);
-        (await targetAdmin.GetJsonAsync("/api/accounts")).GetProperty("items").GetArrayLength().ShouldBe(4);
+        (await targetAdmin.GetJsonAsync("/api/accounts")).GetProperty("items").GetArrayLength().ShouldBe(5);
     }
 
     [Fact]
@@ -388,7 +479,7 @@ public sealed class BackupRestoreTests
         (await RestoreAsync(admin, partial.ToJsonString())).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
 
         // Rien n'a changé, et aucun instantané n'a été pris.
-        (await admin.GetJsonAsync("/api/accounts")).GetProperty("items").GetArrayLength().ShouldBe(5);
+        (await admin.GetJsonAsync("/api/accounts")).GetProperty("items").GetArrayLength().ShouldBe(6);
         Snapshots(factory).ShouldBeEmpty();
     }
 

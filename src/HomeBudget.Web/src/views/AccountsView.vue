@@ -1,8 +1,16 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { mdiChartLine, mdiLockOutline, mdiPencil, mdiPlus, mdiShieldCheckOutline } from '@mdi/js'
+import {
+  mdiBankTransfer,
+  mdiChartLine,
+  mdiLockOutline,
+  mdiPencil,
+  mdiPlus,
+  mdiShieldCheckOutline,
+} from '@mdi/js'
 import { ApiError } from '@/api/errors'
 import AccountDialog from '@/components/AccountDialog.vue'
+import LoanDialog from '@/components/LoanDialog.vue'
 import ValuationsDialog from '@/components/ValuationsDialog.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useReferenceStore, type Account } from '@/stores/reference'
@@ -17,6 +25,8 @@ const dialog = ref(false)
 const editing = ref<Account | null>(null)
 const valuationsDialog = ref(false)
 const valued = ref<Account | null>(null)
+const loanDialog = ref(false)
+const loanAccount = ref<Account | null>(null)
 const error = ref<string | null>(null)
 
 const groups = computed(() =>
@@ -38,6 +48,11 @@ function edit(account: Account | null) {
 function openValuations(account: Account) {
   valued.value = account
   valuationsDialog.value = true
+}
+
+function openLoan(account: Account) {
+  loanAccount.value = account
+  loanDialog.value = true
 }
 
 async function reload() {
@@ -111,6 +126,9 @@ onMounted(() => reference.load(true).catch(() => (error.value = 'Chargement impo
           />
           <v-chip v-if="account.isArchived" size="x-small" class="ml-2">Archivé</v-chip>
         </v-list-item-title>
+        <v-list-item-subtitle v-if="account.remainingPrincipal != null">
+          Capital restant dû : {{ formatAmount(account.remainingPrincipal) }}
+        </v-list-item-subtitle>
         <v-list-item-subtitle v-if="account.futureBalance !== account.balance">
           Avec les opérations à venir : {{ formatAmount(account.futureBalance) }}
         </v-list-item-subtitle>
@@ -125,6 +143,14 @@ onMounted(() => reference.load(true).catch(() => (error.value = 'Chargement impo
             size="small"
             :aria-label="`Valorisations de ${account.name}`"
             @click.prevent.stop="openValuations(account)"
+          />
+          <v-btn
+            v-if="account.type === 'Credit'"
+            :icon="mdiBankTransfer"
+            variant="text"
+            size="small"
+            :aria-label="`Crédit ${account.name}`"
+            @click.prevent.stop="openLoan(account)"
           />
           <v-btn
             v-if="auth.canWrite"
@@ -143,4 +169,5 @@ onMounted(() => reference.load(true).catch(() => (error.value = 'Chargement impo
 
   <AccountDialog v-model="dialog" :account="editing" @saved="reload" />
   <ValuationsDialog v-model="valuationsDialog" :account="valued" @changed="reload" />
+  <LoanDialog v-model="loanDialog" :account="loanAccount" @changed="reload" />
 </template>

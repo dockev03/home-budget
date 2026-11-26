@@ -31,6 +31,12 @@ public sealed class Account : AuditableEntity
 
     public AccountVisibility Visibility { get; set; } = AccountVisibility.Shared;
 
+    /// <summary>
+    /// Titulaire d'un compte partagé (K4) : le membre qui l'alimente, à qui sont attribuées les dépenses communes payées
+    /// depuis ce compte. Sans titulaire, le compte est joint : les virements reçus des comptes d'un membre sont ses apports.
+    /// </summary>
+    public Guid? HolderId { get; set; }
+
     public string? Color { get; set; }
 
     public string? Icon { get; set; }

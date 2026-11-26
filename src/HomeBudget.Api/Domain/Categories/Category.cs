@@ -24,4 +24,7 @@ public sealed class Category : AuditableEntity
     public int SortOrder { get; set; }
 
     public bool IsArchived { get; set; }
+
+    /// <summary>Dépenses personnelles : exclues de la répartition des dépenses communes (K4), sous-catégories comprises.</summary>
+    public bool ExcludeFromSplit { get; set; }
 }

@@ -46,6 +46,9 @@ public sealed class HouseholdSettings : AuditableEntity
     /// <summary>Nombre de périodes clôturées de la dépense moyenne de l'épargne de précaution (J3), de 1 à <see cref="MaxForecastAverageMonths"/>.</summary>
     public int EmergencyFundAverageMonths { get; set; } = DefaultForecastAverageMonths;
 
+    /// <summary>Répartition des dépenses communes (K4) : à parts égales, au prorata des revenus ou selon des parts fixes.</summary>
+    public Split.SplitMode SplitMode { get; set; } = Split.SplitMode.Equal;
+
     public int BudgetWarningPercent { get; set; } = 80;
 
     public int BudgetAlertPercent { get; set; } = 100;

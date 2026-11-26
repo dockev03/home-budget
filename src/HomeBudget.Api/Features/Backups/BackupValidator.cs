@@ -46,6 +46,17 @@ public static class BackupValidator
             errors.Add("Fichier invalide : un élément de liste est vide (null).");
             return errors.List;
         }
+        var hasSplit = document.FormatVersion >= BackupDocument.SplitVersion;
+        if (hasSplit && (document.Loans is null || document.MemberShares is null || document.SavedReports is null))
+        {
+            errors.Add("Fichier incomplet : crédits, parts de la répartition et rapports enregistrés attendus.");
+            return errors.List;
+        }
+        if (hasSplit && (document.Loans!.Contains(null) || document.MemberShares!.Contains(null) || document.SavedReports!.Contains(null)))
+        {
+            errors.Add("Fichier invalide : un élément de liste est vide (null).");
+            return errors.List;
+        }
         var hasSavings = document.FormatVersion >= BackupDocument.SavingsVersion;
         if (hasSavings && (document.Valuations is null || document.SavingsGoals is null))
         {
@@ -429,6 +440,78 @@ public static class BackupValidator
             Audit(where, g.Audit, errors);
         }
 
+        UniqueIds("crédit", (document.Loans ?? []).Select(l => l!.Id), errors);
+        var accountById = accounts.OfType<BackupAccount>().GroupBy(a => a.Id).ToDictionary(g => g.Key, g => g.First());
+        var loanAccounts = new HashSet<Guid>();
+        foreach (var l in (document.Loans ?? []).OfType<BackupLoan>())
+        {
+            var where = $"Crédit {l.Id}";
+            Reference(where, "compte", l.AccountId, accountIds, errors);
+            if (accountById.TryGetValue(l.AccountId, out var account) && account.Type != Domain.Accounts.AccountType.Credit)
+            {
+                errors.Add($"{where} : le compte doit être un compte de crédit.");
+            }
+            if (!loanAccounts.Add(l.AccountId))
+            {
+                errors.Add($"{where} : un seul crédit par compte.");
+            }
+            if (l.Principal <= 0 || l.MonthlyInsurance < 0)
+            {
+                errors.Add($"{where} : capital positif et assurance positive ou nulle requis.");
+            }
+            Amount(where, l.Principal, errors);
+            Amount(where, l.MonthlyInsurance, errors);
+            if (l.AnnualRate is < 0 or > 100 || decimal.Round(l.AnnualRate, Domain.Accounts.Loan.RateDecimals) != l.AnnualRate)
+            {
+                errors.Add($"{where} : taux invalide.");
+            }
+            if (l.DurationMonths is < 1 or > Domain.Accounts.Loan.MaxDurationMonths
+                || l.FirstPaymentDate.Year is < 1900 or > 2150)
+            {
+                errors.Add($"{where} : durée ou date de première mensualité invalide.");
+            }
+            Audit(where, l.Audit, errors);
+        }
+
+        UniqueIds("part de répartition", (document.MemberShares ?? []).Select(m => m!.Id), errors);
+        var shareUsers = new HashSet<Guid>();
+        foreach (var m in (document.MemberShares ?? []).OfType<BackupMemberShare>())
+        {
+            var where = $"Part de répartition {m.Id}";
+            if (!shareUsers.Add(m.UserId))
+            {
+                errors.Add($"{where} : une seule part par membre.");
+            }
+            if (m.Percent is < 0 or > 100 || decimal.Round(m.Percent, 2) != m.Percent)
+            {
+                errors.Add($"{where} : part invalide.");
+            }
+            Audit(where, m.Audit, errors);
+        }
+
+        UniqueIds("rapport enregistré", (document.SavedReports ?? []).Select(r => r!.Id), errors);
+        foreach (var r in (document.SavedReports ?? []).OfType<BackupSavedReport>())
+        {
+            var where = $"Rapport enregistré {r.Id}";
+            Text(where, "nom", r.Name, Domain.Reports.SavedReport.MaxNameLength, required: true, errors);
+            Defined(where, r.GroupBy, errors);
+            Defined(where, r.Range, errors);
+            if (r.Range == Domain.Reports.ReportRange.Custom && (r.From is not { } from || r.To is not { } to || to < from))
+            {
+                errors.Add($"{where} : dates de la plage invalides.");
+            }
+            var lists = new[] { r.AccountIds?.Count, r.CategoryIds?.Count, r.PayeeIds?.Count, r.TagIds?.Count, r.Kinds?.Count };
+            if (lists.Any(c => c > Domain.Reports.SavedReport.MaxFilterItems))
+            {
+                errors.Add($"{where} : filtre trop long.");
+            }
+            foreach (var kind in r.Kinds ?? [])
+            {
+                Defined(where, kind, errors);
+            }
+            Audit(where, r.Audit, errors);
+        }
+
         UniqueIds("modification d'opération", (document.TransactionChanges ?? []).Select(c => c!.Id), errors);
         foreach (var c in (document.TransactionChanges ?? []).OfType<BackupTransactionChange>())
         {
@@ -518,6 +601,7 @@ public static class BackupValidator
         }
         Amount(where, s.SafetyThreshold, errors);
         Defined(where, s.ForecastStrategy, errors);
+        Defined(where, s.SplitMode, errors);
         if (s.EmergencyFundAverageMonths is < 1 or > Domain.Settings.HouseholdSettings.MaxForecastAverageMonths)
         {
             errors.Add($"{where} : nombre de périodes de l'épargne de précaution invalide.");

@@ -33,7 +33,7 @@ public static class TransactionExportWriter
     ];
 
     // Virgule décimale, signe moins ASCII et aucun séparateur de milliers : relu tel quel par Excel en français.
-    private static readonly NumberFormatInfo FrenchNumbers = new() { NumberDecimalSeparator = ",", NegativeSign = "-" };
+    internal static readonly NumberFormatInfo FrenchNumbers = new() { NumberDecimalSeparator = ",", NegativeSign = "-" };
 
     /// <summary>CSV pour Excel en français : UTF-8 avec BOM, séparateur « ; », virgule décimale, dates JJ/MM/AAAA.</summary>
     public static byte[] ToCsv(IEnumerable<TransactionExportRow> rows)
@@ -113,9 +113,9 @@ public static class TransactionExportWriter
         return stream.ToArray();
     }
 
-    private static XLCellValue Str(string? value) => value is null ? Blank.Value : value;
+    internal static XLCellValue Str(string? value) => value is null ? Blank.Value : value;
 
-    private static void AppendLine(StringBuilder csv, IReadOnlyList<string> fields)
+    internal static void AppendLine(StringBuilder csv, IReadOnlyList<string> fields)
     {
         for (var i = 0; i < fields.Count; i++)
         {
@@ -135,6 +135,6 @@ public static class TransactionExportWriter
     /// Texte libre : une apostrophe neutralise un début qu'Excel prendrait pour une formule
     /// (injection de formule, CWE-1236). Les montants, eux, sont écrits par le code.
     /// </summary>
-    private static string Text(string? value) =>
+    internal static string Text(string? value) =>
         value is { Length: > 0 } && value[0] is '=' or '+' or '-' or '@' or '\t' or '\r' ? "'" + value : value ?? string.Empty;
 }

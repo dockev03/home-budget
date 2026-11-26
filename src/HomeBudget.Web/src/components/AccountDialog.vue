@@ -25,6 +25,7 @@ const form = ref({
   overdraftThreshold: '0',
   isArchived: false,
   isPrivate: false,
+  isEmergencyFund: false,
 })
 const valid = ref(false)
 const saving = ref(false)
@@ -49,6 +50,7 @@ watch(visible, (open) => {
         overdraftThreshold: String(a.overdraftThreshold).replace('.', ','),
         isArchived: a.isArchived,
         isPrivate: a.isPrivate,
+        isEmergencyFund: a.isEmergencyFund,
       }
     : {
         name: '',
@@ -62,14 +64,18 @@ watch(visible, (open) => {
         overdraftThreshold: '0',
         isArchived: false,
         isPrivate: false,
+        isEmergencyFund: false,
       }
 })
 
-// Par défaut, seuls les comptes courants entrent dans la prévision.
+// Par défaut, seuls les comptes courants entrent dans la prévision, et seuls les comptes d'épargne
+// dans l'épargne de précaution.
 watch(
   () => form.value.type,
   (type) => {
-    if (!props.account) form.value.includeInForecast = type === 'Checking'
+    if (props.account) return
+    form.value.includeInForecast = type === 'Checking'
+    form.value.isEmergencyFund = type === 'Savings'
   },
 )
 
@@ -91,6 +97,7 @@ async function save() {
     isArchived: f.isArchived,
     sortOrder: null,
     isPrivate: f.isPrivate,
+    isEmergencyFund: f.isEmergencyFund,
   }
   try {
     if (props.account) {
@@ -158,6 +165,14 @@ async function save() {
             label="Inclus dans le patrimoine"
             color="primary"
             hide-details
+          />
+          <v-switch
+            v-model="form.isEmergencyFund"
+            label="Épargne de précaution"
+            color="primary"
+            hint="Compte disponible en cas de coup dur : il entre dans le nombre de mois de dépenses couverts."
+            persistent-hint
+            class="mb-2"
           />
           <v-switch
             v-model="form.isPrivate"

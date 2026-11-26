@@ -43,6 +43,9 @@ public sealed class HouseholdSettings : AuditableEntity
 
     public const int MaxForecastAverageMonths = 24;
 
+    /// <summary>Nombre de périodes clôturées de la dépense moyenne de l'épargne de précaution (J3), de 1 à <see cref="MaxForecastAverageMonths"/>.</summary>
+    public int EmergencyFundAverageMonths { get; set; } = DefaultForecastAverageMonths;
+
     public int BudgetWarningPercent { get; set; } = 80;
 
     public int BudgetAlertPercent { get; set; } = 100;

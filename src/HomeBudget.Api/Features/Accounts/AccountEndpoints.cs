@@ -15,7 +15,7 @@ namespace HomeBudget.Api.Features.Accounts;
 
 using Account = HomeBudget.Api.Domain.Accounts.Account;
 
-/// <summary>Comptes du foyer (A1, A2, A3, A6).</summary>
+/// <summary>Comptes du foyer (A1, A2, A3, A6) et épargne de précaution (J3).</summary>
 public static class AccountEndpoints
 {
     public static IEndpointRouteBuilder MapAccountEndpoints(this IEndpointRouteBuilder app)
@@ -50,7 +50,8 @@ public static class AccountEndpoints
         [property: Range(-999_999_999, 999_999_999)] decimal? OverdraftThreshold,
         bool? IsArchived,
         int? SortOrder,
-        bool? IsPrivate = null);
+        bool? IsPrivate = null,
+        bool? IsEmergencyFund = null);
 
     public sealed record AccountDto(
         Guid Id,
@@ -69,7 +70,8 @@ public static class AccountEndpoints
         decimal FutureBalance,
         int Version,
         bool IsPrivate,
-        Guid? OwnerId);
+        Guid? OwnerId,
+        bool IsEmergencyFund);
 
     public sealed record AccountList(IReadOnlyList<AccountDto> Items, decimal NetWorth);
 
@@ -79,7 +81,7 @@ public static class AccountEndpoints
             .Where(a => includeArchived == true || !a.IsArchived)
             .OrderBy(a => a.SortOrder).ThenBy(a => a.Name)
             .ToListAsync();
-        var balances = await Balances.ComputeAsync(db, clock, accounts.Select(a => a.Id));
+        var balances = await Balances.ComputeAsync(db, clock, accounts);
         var items = accounts.Select(a => ToDto(a, balances)).ToList();
         var netWorth = items.Where(a => a.IncludeInNetWorth && !a.IsArchived).Sum(a => a.Balance);
         return TypedResults.Ok(new AccountList(items, netWorth));
@@ -92,7 +94,7 @@ public static class AccountEndpoints
         {
             return TypedResults.NotFound();
         }
-        return TypedResults.Ok(ToDto(account, await Balances.ComputeAsync(db, clock, [id])));
+        return TypedResults.Ok(ToDto(account, await Balances.ComputeAsync(db, clock, [account])));
     }
 
     private static async Task<Results<Created<AccountDto>, ValidationProblem>> CreateAsync(
@@ -105,6 +107,7 @@ public static class AccountEndpoints
         var account = new Account { Name = request.Name.Trim() };
         Apply(account, request);
         account.IncludeInForecast = request.IncludeInForecast ?? request.Type == AccountType.Checking;
+        account.IsEmergencyFund = request.IsEmergencyFund ?? request.Type == AccountType.Savings;
         account.SortOrder = request.SortOrder ?? (await db.Accounts.MaxAsync(a => (int?)a.SortOrder) ?? -1) + 1;
         if (request.IsPrivate == true)
         {
@@ -113,7 +116,7 @@ public static class AccountEndpoints
         }
         db.Accounts.Add(account);
         await db.SaveChangesAsync();
-        return TypedResults.Created($"/api/accounts/{account.Id}", ToDto(account, await Balances.ComputeAsync(db, clock, [account.Id])));
+        return TypedResults.Created($"/api/accounts/{account.Id}", ToDto(account, await Balances.ComputeAsync(db, clock, [account])));
     }
 
     private static async Task<IResult> UpdateAsync(
@@ -150,12 +153,13 @@ public static class AccountEndpoints
         account.Name = request.Name.Trim();
         Apply(account, request);
         account.IncludeInForecast = request.IncludeInForecast ?? account.IncludeInForecast;
+        account.IsEmergencyFund = request.IsEmergencyFund ?? account.IsEmergencyFund;
         account.SortOrder = request.SortOrder ?? account.SortOrder;
         if (!await db.TrySaveAsync())
         {
             return Concurrency.Conflict();
         }
-        return TypedResults.Ok(ToDto(account, await Balances.ComputeAsync(db, clock, [id])));
+        return TypedResults.Ok(ToDto(account, await Balances.ComputeAsync(db, clock, [account])));
     }
 
     private static async Task<IResult> DeleteAsync(Guid id, HttpRequest http, AppDbContext db)
@@ -182,6 +186,13 @@ public static class AccountEndpoints
                 statusCode: StatusCodes.Status409Conflict,
                 title: "Ce compte a des récurrences.",
                 detail: "Supprimez d'abord ses récurrences, ou archivez le compte.");
+        }
+        if (await db.SavingsGoals.IgnoreQueryFilters().AnyAsync(g => g.AccountId == id))
+        {
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Ce compte est rattaché à un objectif d'épargne.",
+                detail: "Supprimez d'abord l'objectif, ou archivez le compte.");
         }
         db.Accounts.Remove(account);
         return await db.TrySaveAsync() ? TypedResults.NoContent() : Concurrency.Conflict();
@@ -212,6 +223,11 @@ public static class AccountEndpoints
         {
             errors["name"] = ["Un compte porte déjà ce nom."];
         }
+        if (existing is not null && existing.Type == AccountType.Investment && request.Type != AccountType.Investment
+            && await db.AccountValuations.AnyAsync(v => v.AccountId == existing.Id))
+        {
+            errors["type"] = ["Ce compte a des valorisations : supprimez-les avant de changer son type."];
+        }
         if (existing is not null && request.InitialDate > existing.InitialDate
             && await db.Transactions.AnyAsync(t => t.AccountId == existing.Id && t.Date < request.InitialDate))
         {
@@ -226,7 +242,7 @@ public static class AccountEndpoints
         return new AccountDto(
             a.Id, a.Name, a.Type, a.InitialBalance, a.InitialDate, a.Color, a.Icon, a.IncludeInForecast,
             a.IncludeInNetWorth, a.OverdraftThreshold, a.IsArchived, a.SortOrder,
-            a.InitialBalance + balance.UntilToday, a.InitialBalance + balance.Total, a.Version,
-            a.Visibility == AccountVisibility.Private, a.OwnerId);
+            balance.Current, balance.Future, a.Version,
+            a.Visibility == AccountVisibility.Private, a.OwnerId, a.IsEmergencyFund);
     }
 }

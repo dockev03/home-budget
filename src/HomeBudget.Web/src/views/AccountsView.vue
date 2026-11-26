@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { mdiLockOutline, mdiPencil, mdiPlus } from '@mdi/js'
+import { mdiChartLine, mdiLockOutline, mdiPencil, mdiPlus, mdiShieldCheckOutline } from '@mdi/js'
 import { ApiError } from '@/api/errors'
 import AccountDialog from '@/components/AccountDialog.vue'
+import ValuationsDialog from '@/components/ValuationsDialog.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useReferenceStore, type Account } from '@/stores/reference'
 import { formatAmount } from '@/utils/format'
@@ -14,6 +15,8 @@ const auth = useAuthStore()
 const showArchived = ref(false)
 const dialog = ref(false)
 const editing = ref<Account | null>(null)
+const valuationsDialog = ref(false)
+const valued = ref<Account | null>(null)
 const error = ref<string | null>(null)
 
 const groups = computed(() =>
@@ -30,6 +33,11 @@ const groups = computed(() =>
 function edit(account: Account | null) {
   editing.value = account
   dialog.value = true
+}
+
+function openValuations(account: Account) {
+  valued.value = account
+  valuationsDialog.value = true
 }
 
 async function reload() {
@@ -94,6 +102,13 @@ onMounted(() => reference.load(true).catch(() => (error.value = 'Chargement impo
             class="ml-1"
             title="Compte privé"
           />
+          <v-icon
+            v-if="account.isEmergencyFund"
+            :icon="mdiShieldCheckOutline"
+            size="small"
+            class="ml-1"
+            title="Épargne de précaution"
+          />
           <v-chip v-if="account.isArchived" size="x-small" class="ml-2">Archivé</v-chip>
         </v-list-item-title>
         <v-list-item-subtitle v-if="account.futureBalance !== account.balance">
@@ -103,6 +118,14 @@ onMounted(() => reference.load(true).catch(() => (error.value = 'Chargement impo
           <span class="font-weight-medium mr-2" :class="account.balance < 0 ? 'text-error' : ''">
             {{ formatAmount(account.balance) }}
           </span>
+          <v-btn
+            v-if="account.type === 'Investment'"
+            :icon="mdiChartLine"
+            variant="text"
+            size="small"
+            :aria-label="`Valorisations de ${account.name}`"
+            @click.prevent.stop="openValuations(account)"
+          />
           <v-btn
             v-if="auth.canWrite"
             :icon="mdiPencil"
@@ -119,4 +142,5 @@ onMounted(() => reference.load(true).catch(() => (error.value = 'Chargement impo
   <v-switch v-model="showArchived" label="Afficher les comptes archivés" color="primary" hide-details />
 
   <AccountDialog v-model="dialog" :account="editing" @saved="reload" />
+  <ValuationsDialog v-model="valuationsDialog" :account="valued" @changed="reload" />
 </template>

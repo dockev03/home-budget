@@ -119,7 +119,15 @@ public sealed class BackupRestoreTests
             budgetAlertPercent = 100,
             forecastStrategy = "Average",
             forecastAverageMonths = 3,
+            emergencyFundAverageMonths = 4,
         }, settingsVersion)).EnsureSuccessStatusCode();
+
+        // Valorisation, objectifs d'épargne et épargne de précaution (étape 11).
+        var pea = await admin.CreateAccountAsync("PEA", 5000m, "Investment");
+        await admin.CreateAsync($"/api/accounts/{pea}/valuations", new { date = TestScenario.Iso(TestScenario.Today.AddDays(-1)), value = 5321.45m, note = "Relevé" });
+        await admin.CreateAsync("/api/savings-goals", new { name = "Vacances", targetAmount = 2000m, targetDate = TestScenario.Iso(TestScenario.Today.AddMonths(8)), accountId = livret });
+        var epargne = await admin.CreateCategoryAsync("Épargne enfant", "Savings");
+        await admin.CreateAsync("/api/savings-goals", new { name = "Études", targetAmount = 10000m, categoryId = epargne, startDate = "2026-01-01" });
     }
 
     private static async Task<string> ExportAsync(ApiClient client)
@@ -157,7 +165,11 @@ public sealed class BackupRestoreTests
 
         var document = JsonNode.Parse(backup)!;
         document["format"]!.GetValue<string>().ShouldBe("home-budget-backup");
-        document["formatVersion"]!.GetValue<int>().ShouldBe(6);
+        document["formatVersion"]!.GetValue<int>().ShouldBe(7);
+        document["valuations"]!.AsArray().ShouldHaveSingleItem()!["value"]!.GetValue<decimal>().ShouldBe(5321.45m);
+        document["savingsGoals"]!.AsArray().Count.ShouldBe(2);
+        document["settings"]!["emergencyFundAverageMonths"]!.GetValue<int>().ShouldBe(4);
+        document["accounts"]!.AsArray().Count(a => a!["isEmergencyFund"]!.GetValue<bool>()).ShouldBe(1);
         document["scenarios"]!.AsArray().ShouldHaveSingleItem()!["name"]!.GetValue<string>().ShouldBe("Nouvelle voiture");
         document["scenarioEvents"]!.AsArray().ShouldHaveSingleItem()!["frequency"]!.GetValue<string>().ShouldBe("Monthly");
         document["settings"]!["forecastStrategy"]!.GetValue<string>().ShouldBe("Average");
@@ -191,7 +203,7 @@ public sealed class BackupRestoreTests
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var result = await ApiClient.ReadJsonAsync(response);
-        result.GetProperty("accounts").GetInt32().ShouldBe(3);
+        result.GetProperty("accounts").GetInt32().ShouldBe(4);
         result.GetProperty("transactions").GetInt32().ShouldBe(6);
         Comparable(await ExportAsync(admin)).ShouldBe(Comparable(backup));
         (await admin.GetJsonAsync("/api/settings")).GetProperty("periodMode").GetString().ShouldBe("Calendar");
@@ -217,6 +229,8 @@ public sealed class BackupRestoreTests
         await SeedAsync(admin);
         var node = JsonNode.Parse(await ExportAsync(admin))!.AsObject();
         node["formatVersion"] = 1;
+        node.Remove("valuations");
+        node.Remove("savingsGoals");
         node.Remove("scenarios");
         node.Remove("scenarioEvents");
         node.Remove("importProfiles");
@@ -265,6 +279,8 @@ public sealed class BackupRestoreTests
         await SeedAsync(admin);
         var node = JsonNode.Parse(await ExportAsync(admin))!.AsObject();
         node["formatVersion"] = 5;
+        node.Remove("valuations");
+        node.Remove("savingsGoals");
         node.Remove("scenarios");
         node.Remove("scenarioEvents");
         node["settings"]!.AsObject().Remove("forecastStrategy");
@@ -284,6 +300,38 @@ public sealed class BackupRestoreTests
         var response = await RestoreAsync(admin, node.ToJsonString());
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await ApiClient.ReadJsonAsync(response)).GetProperty("errors").GetProperty("file")[0].GetString()!.ShouldContain("scénarios");
+    }
+
+    [Fact]
+    public async Task Version_6_backup_without_savings_is_restored_with_emergency_fund_following_the_account_type()
+    {
+        await using var factory = new HomeBudgetFactory();
+        var admin = await factory.CreateAdminClientAsync();
+        await SeedAsync(admin);
+        var node = JsonNode.Parse(await ExportAsync(admin))!.AsObject();
+        node["formatVersion"] = 6;
+        node.Remove("valuations");
+        node.Remove("savingsGoals");
+        node["settings"]!.AsObject().Remove("emergencyFundAverageMonths");
+        foreach (var a in node["accounts"]!.AsArray())
+        {
+            a!.AsObject().Remove("isEmergencyFund");
+        }
+
+        (await RestoreAsync(admin, node.ToJsonString())).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var restored = JsonNode.Parse(await ExportAsync(admin))!;
+        restored["valuations"]!.AsArray().ShouldBeEmpty();
+        restored["savingsGoals"]!.AsArray().ShouldBeEmpty();
+        restored["accounts"]!.AsArray().Where(a => a!["isEmergencyFund"]!.GetValue<bool>())
+            .ShouldHaveSingleItem()!["type"]!.GetValue<string>().ShouldBe("Savings");
+        (await admin.GetJsonAsync("/api/settings")).GetProperty("emergencyFundAverageMonths").GetInt32().ShouldBe(6);
+
+        // Une sauvegarde v7 doit contenir les valorisations et les objectifs.
+        node["formatVersion"] = 7;
+        var response = await RestoreAsync(admin, node.ToJsonString());
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await ApiClient.ReadJsonAsync(response)).GetProperty("errors").GetProperty("file")[0].GetString()!.ShouldContain("objectifs");
     }
 
     [Fact]
@@ -309,7 +357,7 @@ public sealed class BackupRestoreTests
         var restored = JsonNode.Parse(await ExportAsync(targetAdmin))!;
         restored["accounts"]!.AsArray().ShouldAllBe(a => a!["ownerId"] == null);
         restored["transactions"]!.AsArray().ShouldAllBe(t => t!["audit"]!["createdBy"] == null && t["audit"]!["updatedBy"] == null);
-        (await targetAdmin.GetJsonAsync("/api/accounts")).GetProperty("items").GetArrayLength().ShouldBe(3);
+        (await targetAdmin.GetJsonAsync("/api/accounts")).GetProperty("items").GetArrayLength().ShouldBe(4);
     }
 
     [Fact]
@@ -340,7 +388,7 @@ public sealed class BackupRestoreTests
         (await RestoreAsync(admin, partial.ToJsonString())).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
 
         // Rien n'a changé, et aucun instantané n'a été pris.
-        (await admin.GetJsonAsync("/api/accounts")).GetProperty("items").GetArrayLength().ShouldBe(4);
+        (await admin.GetJsonAsync("/api/accounts")).GetProperty("items").GetArrayLength().ShouldBe(5);
         Snapshots(factory).ShouldBeEmpty();
     }
 

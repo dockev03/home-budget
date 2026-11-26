@@ -133,12 +133,13 @@ public static class CategoryEndpoints
         if (await db.Categories.AnyAsync(c => c.ParentId == id)
             || await db.TransactionLines.IgnoreQueryFilters().AnyAsync(l => l.CategoryId == id)
             || await db.Recurrences.IgnoreQueryFilters().AnyAsync(r => r.CategoryId == id)
-            || await db.Provisions.AnyAsync(p => p.CategoryId == id))
+            || await db.Provisions.AnyAsync(p => p.CategoryId == id)
+            || await db.SavingsGoals.IgnoreQueryFilters().AnyAsync(g => g.CategoryId == id))
         {
             return TypedResults.Problem(
                 statusCode: StatusCodes.Status409Conflict,
                 title: "Cette catégorie est utilisée.",
-                detail: "Elle a des sous-catégories, des opérations, des récurrences ou des provisions : archivez-la plutôt.");
+                detail: "Elle a des sous-catégories, des opérations, des récurrences, des provisions ou des objectifs d'épargne : archivez-la plutôt.");
         }
         db.Categories.Remove(category);
         return await db.TrySaveAsync() ? TypedResults.NoContent() : Concurrency.Conflict();
@@ -164,6 +165,15 @@ public static class CategoryEndpoints
             {
                 errors["parentId"] = ["Cette catégorie a des sous-catégories : elle ne peut pas devenir une sous-catégorie."];
             }
+        }
+
+        // Un objectif d'épargne (J1) se mesure à une catégorie d'épargne : la sienne, ou ses sous-catégories, en restent une.
+        var kind = parent?.Kind ?? request.Kind;
+        if (existing is not null && kind != CategoryKind.Savings && existing.Kind == CategoryKind.Savings
+            && await db.SavingsGoals.IgnoreQueryFilters().AnyAsync(g => g.CategoryId == existing.Id
+                || db.Categories.Any(c => c.Id == g.CategoryId && c.ParentId == existing.Id)))
+        {
+            errors["kind"] = ["Un objectif d'épargne est rattaché à cette catégorie : elle doit rester une catégorie d'épargne."];
         }
 
         var name = request.Name.Trim();

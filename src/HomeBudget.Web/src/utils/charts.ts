@@ -1,6 +1,7 @@
 import type { EChartsOption } from 'echarts'
 import type { Schemas } from '@/api/client'
 import { formatAmount, formatDate } from './format'
+import { accountTypeTitle } from './labels'
 
 /** Options ECharts du tableau de bord : fonctions pures, sans dépendance à l'affichage. */
 
@@ -291,6 +292,61 @@ export function topPayeesOption(items: Schemas['PayeeAmountDto'][], colors: Char
         itemStyle: { color: colors.expenses },
         data: items.map((i) => i.amount),
       },
+    ],
+  }
+}
+
+/**
+ * G5 : patrimoine net en fin de chaque période. Le total est une aire pleine ; chaque type de compte présent sur la
+ * durée a sa propre courbe, masquable depuis la légende.
+ */
+export function netWorthOption(points: Schemas['NetWorthPointDto'][], colors: ChartColors): EChartsOption {
+  const typeColors: Record<Schemas['AccountType'], string> = {
+    Checking: colors.budget,
+    Savings: colors.income,
+    Investment: colors.forecast,
+    Cash: colors.scenario,
+    Credit: colors.threshold,
+  }
+  const types = (Object.keys(typeColors) as Schemas['AccountType'][]).filter((type) =>
+    points.some((p) => p.byType.some((t) => t.type === type)),
+  )
+  const line = (name: string, color: string, data: number[], total: boolean) => ({
+    name,
+    type: 'line' as const,
+    data,
+    showSymbol: false,
+    itemStyle: { color },
+    lineStyle: { color, width: total ? 2 : 1, type: total ? ('solid' as const) : ('dashed' as const) },
+    ...(total ? { areaStyle: { color, opacity: 0.15 } } : {}),
+  })
+  return {
+    ...base(colors),
+    tooltip: { trigger: 'axis', formatter: axisTooltip },
+    legend: { type: 'scroll', bottom: 0, textStyle: { color: colors.text } },
+    grid: { left: 8, right: 16, top: 16, bottom: 32, containLabel: true },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      data: points.map((p) => shortPeriodLabel(p.key)),
+      axisLabel: { color: colors.text },
+    },
+    yAxis: { ...valueAxis(colors), scale: true },
+    series: [
+      line(
+        'Patrimoine net',
+        colors.real,
+        points.map((p) => p.total),
+        true,
+      ),
+      ...types.map((type) =>
+        line(
+          accountTypeTitle(type),
+          typeColors[type],
+          points.map((p) => p.byType.find((t) => t.type === type)?.amount ?? 0),
+          false,
+        ),
+      ),
     ],
   }
 }

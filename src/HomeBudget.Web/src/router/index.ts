@@ -45,6 +45,24 @@ export const router = createRouter({
       meta: { title: 'Récurrences' },
     },
     {
+      path: '/abonnements',
+      name: 'subscriptions',
+      component: () => import('@/views/SubscriptionsView.vue'),
+      meta: { title: 'Abonnements' },
+    },
+    {
+      path: '/rapprochement',
+      name: 'reconciliation',
+      component: () => import('@/views/ReconciliationView.vue'),
+      meta: { title: 'Rapprochement bancaire' },
+    },
+    {
+      path: '/avances',
+      name: 'advances',
+      component: () => import('@/views/AdvancesView.vue'),
+      meta: { title: 'Avances à recevoir' },
+    },
+    {
       path: '/a-valider',
       name: 'pending',
       component: () => import('@/views/PendingView.vue'),

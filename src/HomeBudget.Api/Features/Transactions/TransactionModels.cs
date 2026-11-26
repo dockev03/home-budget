@@ -19,6 +19,10 @@ public sealed record TransactionRequest(
 
 public sealed record TransactionLineDto(Guid Id, Guid? CategoryId, decimal Amount, string? Memo, IReadOnlyList<string> Tags);
 
+/// <param name="IsReconciled">Opération rapprochée (A5) : verrouillée.</param>
+/// <param name="ReimbursesId">Dépense remboursée par ce revenu (B11).</param>
+/// <param name="ReimbursedAmount">Pour une dépense, total des remboursements liés : coût net = montant + remboursé.</param>
+/// <param name="AdvanceId">Avance soldée en tout ou partie par ce revenu (B12).</param>
 public sealed record TransactionDto(
     Guid Id,
     Guid AccountId,
@@ -34,7 +38,17 @@ public sealed record TransactionDto(
     IReadOnlyList<TransactionLineDto> Lines,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
-    int Version);
+    int Version,
+    bool IsReconciled,
+    Guid? ReimbursesId,
+    decimal ReimbursedAmount,
+    Guid? AdvanceId);
+
+/// <summary>
+/// Liens d'un revenu (B11, B12) : la dépense qu'il rembourse et l'avance qu'il solde. Modifiables même sur une
+/// opération rapprochée, car ils ne changent ni son montant ni sa date.
+/// </summary>
+public sealed record TransactionLinksRequest(Guid? ReimbursesId, Guid? AdvanceId);
 
 public sealed record TransactionPage(IReadOnlyList<TransactionDto> Items, string? NextCursor);
 

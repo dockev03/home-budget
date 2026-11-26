@@ -54,6 +54,7 @@ public sealed class BackupRestoreTests
             interval = 1,
             end = "Never",
             isInstallment = false,
+            isSubscription = true,
         });
         var ofx = "<OFX><BANKTRANLIST><STMTTRN><DTPOSTED>" + TestScenario.Today.AddDays(-1).ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture)
             + "<TRNAMT>-12.34<FITID>F1<NAME>ACHAT CB BOULANGERIE</STMTTRN></BANKTRANLIST></OFX>";
@@ -74,6 +75,16 @@ public sealed class BackupRestoreTests
             payeeName = "Boulangerie Paul",
             lines = new[] { new { categoryId = groceries, amount = -12.34m } },
         }, imported.Version());
+
+        // Compte rapproché, remboursement lié à une dépense et à une avance.
+        var joint = await admin.CreateAccountAsync("Joint", 100m);
+        var expense = await admin.CreateTransactionAsync(joint, -40m, groceries, TestScenario.Today.AddDays(-5));
+        var refund = await admin.CreateTransactionAsync(joint, 15m, groceries, TestScenario.Today.AddDays(-1));
+        var advance = await admin.CreateAsync("/api/advances", new { label = "Note de frais", expectedAmount = 15m, date = TestScenario.Iso(TestScenario.Today.AddDays(-5)), isClosed = false });
+        await admin.PutAsync($"/api/transactions/{refund.GetProperty("id").GetGuid()}/links", new { reimbursesId = expense.GetProperty("id").GetGuid(), advanceId = advance.GetProperty("id").GetGuid() }, null);
+        await admin.CreateAsync($"/api/transactions/{expense.GetProperty("id").GetGuid()}/clear", new { isCleared = true });
+        await admin.CreateAsync($"/api/transactions/{refund.GetProperty("id").GetGuid()}/clear", new { isCleared = true });
+        await admin.CreateAsync($"/api/accounts/{joint}/reconciliations", new { date = TestScenario.Iso(TestScenario.Today), statementBalance = 75m });
     }
 
     private static async Task<string> ExportAsync(ApiClient client)
@@ -111,8 +122,12 @@ public sealed class BackupRestoreTests
 
         var document = JsonNode.Parse(backup)!;
         document["format"]!.GetValue<string>().ShouldBe("home-budget-backup");
-        document["formatVersion"]!.GetValue<int>().ShouldBe(3);
-        document["transactions"]!.AsArray().Count.ShouldBe(4);
+        document["formatVersion"]!.GetValue<int>().ShouldBe(4);
+        document["transactions"]!.AsArray().Count.ShouldBe(6);
+        document["reconciliations"]!.AsArray().Count.ShouldBe(1);
+        document["advances"]!.AsArray().Count.ShouldBe(1);
+        document["transactions"]!.AsArray().Count(t => t!["reconciliationId"] is not null).ShouldBe(2);
+        document["recurrences"]![0]!["isSubscription"]!.GetValue<bool>().ShouldBeTrue();
         document["tags"]!.AsArray().Count.ShouldBe(2);
         document["labelRules"]!.AsArray().ShouldHaveSingleItem()!["key"]!.GetValue<string>().ShouldBe("BOULANGERIE");
         document["importBatches"]!.AsArray().Count.ShouldBe(1);
@@ -132,8 +147,8 @@ public sealed class BackupRestoreTests
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var result = await ApiClient.ReadJsonAsync(response);
-        result.GetProperty("accounts").GetInt32().ShouldBe(2);
-        result.GetProperty("transactions").GetInt32().ShouldBe(4);
+        result.GetProperty("accounts").GetInt32().ShouldBe(3);
+        result.GetProperty("transactions").GetInt32().ShouldBe(6);
         Comparable(await ExportAsync(admin)).ShouldBe(Comparable(backup));
         (await admin.GetJsonAsync("/api/settings")).GetProperty("periodMode").GetString().ShouldBe("Calendar");
 
@@ -162,11 +177,16 @@ public sealed class BackupRestoreTests
         node.Remove("importBatches");
         node.Remove("tags");
         node.Remove("labelRules");
+        node.Remove("reconciliations");
+        node.Remove("advances");
         foreach (var t in node["transactions"]!.AsArray())
         {
             t!.AsObject().Remove("rawLabel");
             t.AsObject().Remove("importBatchId");
             t.AsObject().Remove("importHash");
+            t.AsObject().Remove("reconciliationId");
+            t.AsObject().Remove("reimbursesId");
+            t.AsObject().Remove("advanceId");
             foreach (var line in t["lines"]!.AsArray())
             {
                 line!.AsObject().Remove("tagIds");
@@ -176,6 +196,7 @@ public sealed class BackupRestoreTests
         {
             r!.AsObject().Remove("tolerance");
             r.AsObject().Remove("toleranceUnit");
+            r.AsObject().Remove("isSubscription");
         }
 
         (await RestoreAsync(admin, node.ToJsonString())).StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -185,6 +206,8 @@ public sealed class BackupRestoreTests
         restored["importProfiles"]!.AsArray().Count.ShouldBe(1);
         restored["tags"]!.AsArray().ShouldBeEmpty();
         restored["labelRules"]!.AsArray().ShouldBeEmpty();
+        restored["reconciliations"]!.AsArray().ShouldBeEmpty();
+        restored["advances"]!.AsArray().ShouldBeEmpty();
         restored["recurrences"]![0]!["toleranceUnit"]!.GetValue<string>().ShouldBe("Amount");
     }
 
@@ -211,7 +234,7 @@ public sealed class BackupRestoreTests
         var restored = JsonNode.Parse(await ExportAsync(targetAdmin))!;
         restored["accounts"]!.AsArray().ShouldAllBe(a => a!["ownerId"] == null);
         restored["transactions"]!.AsArray().ShouldAllBe(t => t!["audit"]!["createdBy"] == null && t["audit"]!["updatedBy"] == null);
-        (await targetAdmin.GetJsonAsync("/api/accounts")).GetProperty("items").GetArrayLength().ShouldBe(2);
+        (await targetAdmin.GetJsonAsync("/api/accounts")).GetProperty("items").GetArrayLength().ShouldBe(3);
     }
 
     [Fact]
@@ -242,7 +265,7 @@ public sealed class BackupRestoreTests
         (await RestoreAsync(admin, partial.ToJsonString())).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
 
         // Rien n'a changé, et aucun instantané n'a été pris.
-        (await admin.GetJsonAsync("/api/accounts")).GetProperty("items").GetArrayLength().ShouldBe(3);
+        (await admin.GetJsonAsync("/api/accounts")).GetProperty("items").GetArrayLength().ShouldBe(4);
         Snapshots(factory).ShouldBeEmpty();
     }
 

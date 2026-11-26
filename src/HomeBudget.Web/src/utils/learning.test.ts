@@ -30,6 +30,10 @@ const transaction = (
   createdAt: '2026-11-20T10:00:00Z',
   updatedAt: '2026-11-20T10:00:00Z',
   version: 1,
+  isReconciled: false,
+  reimbursesId: null,
+  reimbursedAmount: 0,
+  advanceId: null,
   ...overrides,
 })
 

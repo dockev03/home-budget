@@ -1,7 +1,15 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useDisplay } from 'vuetify'
-import { mdiCallSplit, mdiClose, mdiContentCopy, mdiDeleteOutline, mdiHistory, mdiPlus } from '@mdi/js'
+import {
+  mdiCallSplit,
+  mdiClose,
+  mdiContentCopy,
+  mdiDeleteOutline,
+  mdiHistory,
+  mdiLockOutline,
+  mdiPlus,
+} from '@mdi/js'
 import { api } from '@/api/client'
 import { ifMatch } from '@/api/concurrency'
 import { ApiError, unwrap } from '@/api/errors'
@@ -16,6 +24,7 @@ import {
   todayIso,
 } from '@/utils/format'
 import { cleanTags, correctionOf, isCorrection, recentShortcuts, type Correction } from '@/utils/learning'
+import { netCostText } from '@/utils/reconciliation'
 import { categoryKindTitle } from '@/utils/labels'
 import { required } from '@/utils/rules'
 
@@ -51,6 +60,8 @@ const transferVersion = ref<number | null>(null)
 const payeeItems = ref<string[]>([])
 const tagItems = ref<string[]>([])
 const shortcuts = ref<Transaction[]>([])
+/** Raccourcis préchargés, affichés dès l'ouverture du formulaire de création. */
+const recentCache = ref<Transaction[]>([])
 /** Catégorie posée d'après l'historique du tiers (I2), tant que l'utilisateur ne l'a pas changée. */
 const suggestedCategoryId = ref<string | null>(null)
 /** Opérations semblables proposées après une correction (I4), et la correction à leur appliquer. */
@@ -65,6 +76,21 @@ const error = ref<string | null>(null)
 
 const source = computed(() => editor.transaction)
 const isEdit = computed(() => editor.mode === 'edit' && !!source.value)
+/** Opération rapprochée (A5, R7) : seuls ses liens de remboursement et d'avance restent modifiables. */
+const locked = computed(() => isEdit.value && !!source.value?.isReconciled)
+/** Liens d'un revenu existant (B11, B12) : la dépense remboursée et l'avance soldée. */
+const showLinks = computed(() => isEdit.value && kind.value === 'income')
+const reimbursesId = ref<string | null>(null)
+const advanceId = ref<string | null>(null)
+const expenseItems = ref<{ value: string; title: string }[]>([])
+const advanceItems = ref<{ value: string; title: string }[]>([])
+const linksChanged = computed(
+  () =>
+    !!source.value &&
+    (reimbursesId.value !== (source.value.reimbursesId ?? null) ||
+      advanceId.value !== (source.value.advanceId ?? null)),
+)
+const netCost = computed(() => (isEdit.value && source.value ? netCostText(source.value) : null))
 const title = computed(() => {
   if (isEdit.value) return kind.value === 'transfer' ? 'Modifier le virement' : "Modifier l'opération"
   return editor.mode === 'duplicate' ? 'Dupliquer' : 'Nouvelle opération'
@@ -135,13 +161,17 @@ async function reset() {
   similar.value = null
   correction.value = null
   suggestedCategoryId.value = null
+  reimbursesId.value = null
+  advanceId.value = null
+  expenseItems.value = []
+  advanceItems.value = []
   await reference.load()
   void loadTags()
   const t = source.value
   const duplicate = editor.mode === 'duplicate'
 
   if (!t) {
-    void loadShortcuts()
+    shortcuts.value = recentCache.value
     kind.value = 'expense'
     accountId.value = defaultAccount()
     toAccountId.value = null
@@ -189,14 +219,63 @@ async function reset() {
     tags: [...l.tags],
   }))
   split.value = t.lines.length > 1
+  reimbursesId.value = duplicate ? null : (t.reimbursesId ?? null)
+  advanceId.value = duplicate ? null : (t.advanceId ?? null)
+  if (!duplicate && t.amount > 0) void loadLinkItems(t)
+}
+
+const expenseTitle = (e: Transaction) =>
+  `${formatDate(e.date)} · ${e.payeeName ?? e.label ?? reference.categoryLabel(e.lines[0]?.categoryId)} · ${formatSignedAmount(e.amount)}`
+
+/** Dépenses remboursables (dont celle déjà liée) et avances ouvertes (dont celle déjà liée). */
+async function loadLinkItems(t: Transaction, search?: string) {
+  const [expenses, advances] = await Promise.all([
+    api.GET('/api/transactions/{id}/reimbursable', { params: { path: { id: t.id }, query: { search } } }),
+    search === undefined ? api.GET('/api/advances') : Promise.resolve(null),
+  ])
+  const list = expenses.data ?? []
+  if (t.reimbursesId && !list.some((e) => e.id === t.reimbursesId)) {
+    const { data } = await api.GET('/api/transactions/{id}', { params: { path: { id: t.reimbursesId } } })
+    if (data) list.unshift(data)
+  }
+  expenseItems.value = list.map((e) => ({ value: e.id, title: expenseTitle(e) }))
+  if (advances?.data) {
+    advanceItems.value = advances.data
+      .filter((a) => a.status === 'Open' || a.id === t.advanceId)
+      .map((a) => ({ value: a.id, title: `${a.label} · reste ${formatAmount(a.remaining)}` }))
+  }
+}
+
+let expenseTimer: ReturnType<typeof setTimeout> | undefined
+function searchExpenses(text: string | null) {
+  const t = source.value
+  if (!t || !showLinks.value) return
+  // La recherche part du texte saisi, pas du libellé de l'élément choisi.
+  if (text && expenseItems.value.some((i) => i.title === text)) return
+  clearTimeout(expenseTimer)
+  expenseTimer = setTimeout(() => void loadLinkItems(t, text ?? ''), 250)
+}
+
+async function saveLinks(id: string) {
+  await unwrap(
+    api.PUT('/api/transactions/{id}/links', {
+      params: { path: { id } },
+      body: { reimbursesId: reimbursesId.value, advanceId: advanceId.value },
+    }),
+  )
 }
 
 watch(
   () => editor.visible,
   (open) => {
+    // À la fermeture, les raccourcis sont rechargés pour la prochaine saisie : ils sont prêts dès l'ouverture,
+    // sans décaler les champs pendant la frappe.
     if (open) void reset()
+    else void loadShortcuts()
   },
 )
+
+onMounted(() => void loadShortcuts())
 
 async function loadTags() {
   const { data } = await api.GET('/api/tags')
@@ -206,7 +285,7 @@ async function loadTags() {
 /** Raccourcis « refaire une opération récente » (L5), à la création seulement. */
 async function loadShortcuts() {
   const { data } = await api.GET('/api/transactions', { params: { query: { limit: 50 } } })
-  shortcuts.value = recentShortcuts(data?.items ?? [])
+  recentCache.value = recentShortcuts(data?.items ?? [])
 }
 
 /** Repart d'une opération récente : mêmes compte, tiers, catégorie et montant, datée du jour. */
@@ -268,6 +347,10 @@ function close() {
 }
 
 async function save() {
+  if (locked.value && source.value) {
+    await saveLinksOnly(source.value.id)
+    return
+  }
   if (!valid.value || !accountId.value) return
   saving.value = true
   error.value = null
@@ -316,6 +399,7 @@ async function save() {
             body,
           }),
         )
+        if (showLinks.value && linksChanged.value) await saveLinks(updated.id)
         if (await offerSimilar(source.value, updated)) {
           rememberAccount(accountId.value)
           await reference.loadAccounts()
@@ -327,6 +411,24 @@ async function save() {
     }
     rememberAccount(accountId.value)
     await reference.loadAccounts()
+    editor.saved()
+  } catch (e) {
+    error.value = e instanceof ApiError ? e.message : 'Enregistrement impossible.'
+  } finally {
+    saving.value = false
+  }
+}
+
+/** Opération rapprochée : seuls les liens sont enregistrés. */
+async function saveLinksOnly(id: string) {
+  if (!linksChanged.value) {
+    close()
+    return
+  }
+  saving.value = true
+  error.value = null
+  try {
+    await saveLinks(id)
     editor.saved()
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : 'Enregistrement impossible.'
@@ -445,6 +547,23 @@ async function remove() {
         </div>
 
         <template v-else>
+          <v-alert
+            v-if="locked"
+            type="info"
+            variant="tonal"
+            class="mb-4"
+            :icon="mdiLockOutline"
+            data-testid="locked"
+            text="Opération rapprochée : elle ne peut plus être modifiée. Annulez le rapprochement du compte pour la changer."
+          />
+          <v-alert
+            v-if="netCost"
+            type="info"
+            variant="tonal"
+            density="compact"
+            class="mb-4"
+            :text="netCost"
+          />
           <div v-if="shortcuts.length" class="mb-3" data-testid="shortcuts">
             <div class="text-caption text-medium-emphasis mb-1">Refaire une opération récente</div>
             <v-chip-group column>
@@ -474,7 +593,7 @@ async function remove() {
             <v-btn value="transfer" class="flex-grow-1">Virement</v-btn>
           </v-btn-toggle>
 
-          <v-form v-model="valid" @submit.prevent="save">
+          <v-form v-model="valid" :disabled="locked" @submit.prevent="save">
             <v-row dense>
               <v-col cols="12" sm="6">
                 <v-text-field
@@ -639,6 +758,27 @@ async function remove() {
             <v-checkbox v-if="kind !== 'transfer'" v-model="isCleared" label="Pointée" hide-details />
             <button type="submit" hidden />
           </v-form>
+
+          <div v-if="showLinks" class="mt-4" data-testid="links">
+            <v-autocomplete
+              v-model="reimbursesId"
+              :items="expenseItems"
+              label="Rembourse la dépense"
+              hint="La dépense affichera son coût net"
+              persistent-hint
+              clearable
+              no-filter
+              no-data-text="Aucune dépense trouvée"
+              @update:search="searchExpenses"
+            />
+            <v-select
+              v-model="advanceId"
+              :items="advanceItems"
+              label="Solde l’avance"
+              clearable
+              no-data-text="Aucune avance ouverte"
+            />
+          </div>
         </template>
       </v-card-text>
 
@@ -651,15 +791,22 @@ async function remove() {
       </v-card-actions>
       <v-card-actions v-else>
         <template v-if="isEdit">
-          <v-btn v-if="!confirmDelete" color="error" @click="confirmDelete = true">Supprimer</v-btn>
-          <v-btn v-else color="error" variant="flat" :loading="deleting" @click="remove"
+          <v-btn v-if="!confirmDelete && !locked" color="error" @click="confirmDelete = true"
+            >Supprimer</v-btn
+          >
+          <v-btn v-else-if="confirmDelete" color="error" variant="flat" :loading="deleting" @click="remove"
             >Confirmer la suppression</v-btn
           >
           <v-btn :prepend-icon="mdiContentCopy" @click="duplicate">Dupliquer</v-btn>
         </template>
         <v-spacer />
         <v-btn @click="close">Annuler</v-btn>
-        <v-btn color="primary" variant="flat" :loading="saving" :disabled="!valid" @click="save"
+        <v-btn
+          color="primary"
+          variant="flat"
+          :loading="saving"
+          :disabled="locked ? !linksChanged : !valid"
+          @click="save"
           >Enregistrer</v-btn
         >
       </v-card-actions>

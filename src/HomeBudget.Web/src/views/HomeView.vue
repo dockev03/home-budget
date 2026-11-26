@@ -16,6 +16,7 @@ import {
   chartColors,
   expensesDonutOption,
   historyOption,
+  topPayeesOption,
 } from '@/utils/charts'
 import { formatAmount, formatDate } from '@/utils/format'
 import { iconPath } from '@/utils/icons'
@@ -48,6 +49,10 @@ const budgetHeight = computed(
   () => `${Math.max(220, (dashboard.value?.budgetVsActual.length ?? 0) * 44 + 60)}px`,
 )
 const history = computed(() => historyOption(dashboard.value?.history ?? [], colors.value))
+const topPayees = computed(() => topPayeesOption(dashboard.value?.topPayees ?? [], colors.value))
+const topPayeesHeight = computed(
+  () => `${Math.max(160, (dashboard.value?.topPayees.length ?? 0) * 32 + 32)}px`,
+)
 const curve = computed(() =>
   forecast.value ? balanceCurveOption(forecast.value.daily, forecast.value.threshold, colors.value) : null,
 )
@@ -304,6 +309,19 @@ onMounted(() => {
           aria-label="Revenus, dépenses et épargne des 12 dernières périodes"
         />
       </div>
+    </v-card>
+
+    <!-- G7 : top des tiers. -->
+    <v-card title="Top des tiers" class="mb-4" data-testid="top-payees">
+      <div v-if="dashboard.topPayees.length" class="px-2" :style="{ height: topPayeesHeight }">
+        <VChart
+          :option="topPayees"
+          :theme="chartTheme"
+          autoresize
+          aria-label="Tiers chez qui les dépenses de la période sont les plus élevées"
+        />
+      </div>
+      <v-card-text v-else class="text-medium-emphasis">Aucune dépense rattachée à un tiers.</v-card-text>
     </v-card>
   </template>
 

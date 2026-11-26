@@ -321,6 +321,7 @@ public static class RecurrenceEndpoints
         recurrence.IsInstallment = request.IsInstallment;
         recurrence.Tolerance = request.Tolerance ?? 0;
         recurrence.ToleranceUnit = request.ToleranceUnit ?? ToleranceUnit.Amount;
+        recurrence.IsSubscription = request.IsSubscription && request.ToAccountId is null;
     }
 
     private static async Task<RecurrenceDto> LoadDtoAsync(AppDbContext db, TimeProvider clock, Guid id)
@@ -347,7 +348,8 @@ public static class RecurrenceEndpoints
                 r.ToleranceUnit,
                 next.Count > 0 ? next[0].Date : null,
                 r.Occurrences.Count(o => o.Status == OccurrenceStatus.Pending && o.DueDate <= today),
-                r.Version);
+                r.Version,
+                r.IsSubscription);
         })];
     }
 }

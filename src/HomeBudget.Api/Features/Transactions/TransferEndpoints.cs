@@ -1,5 +1,6 @@
 using HomeBudget.Api.Domain.Categories;
 using HomeBudget.Api.Domain.Transactions;
+using HomeBudget.Api.Features.Reconciliations;
 using HomeBudget.Api.Infrastructure;
 using HomeBudget.Api.Infrastructure.Data;
 using HomeBudget.Api.Infrastructure.Http;
@@ -60,6 +61,10 @@ public static class TransferEndpoints
         {
             return TypedResults.NotFound();
         }
+        if (from.IsReconciled || to.IsReconciled)
+        {
+            return ReconciliationLock.Problem();
+        }
         if (Concurrency.Check(http, from) is { } precondition)
         {
             return precondition;
@@ -77,6 +82,10 @@ public static class TransferEndpoints
         if (await LoadAsync(db, transferId, tracking: true) is not var (from, to))
         {
             return TypedResults.NotFound();
+        }
+        if (from.IsReconciled || to.IsReconciled)
+        {
+            return ReconciliationLock.Problem();
         }
         if (Concurrency.Check(http, from) is { } precondition)
         {

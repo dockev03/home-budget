@@ -1,3 +1,4 @@
+using HomeBudget.Api.Domain.Advances;
 using HomeBudget.Api.Domain.Imports;
 using HomeBudget.Api.Domain.Payees;
 using HomeBudget.Api.Domain.Periods;
@@ -45,6 +46,17 @@ public static class BackupValidator
             errors.Add("Fichier invalide : un élément de liste est vide (null).");
             return errors.List;
         }
+        var hasReconciliations = document.FormatVersion >= BackupDocument.ReconciliationsVersion;
+        if (hasReconciliations && (document.Reconciliations is null || document.Advances is null))
+        {
+            errors.Add("Fichier incomplet : rapprochements et avances attendus.");
+            return errors.List;
+        }
+        if (hasReconciliations && (document.Reconciliations!.Contains(null) || document.Advances!.Contains(null)))
+        {
+            errors.Add("Fichier invalide : un élément de liste est vide (null).");
+            return errors.List;
+        }
         var hasTags = document.FormatVersion >= BackupDocument.TagsVersion;
         if (hasTags && (document.Tags is null || document.LabelRules is null))
         {
@@ -80,6 +92,35 @@ public static class BackupValidator
         UniqueIds("profil de lecture", (document.ImportProfiles ?? []).Select(p => p!.Id), errors);
         var tagIds = UniqueIds("tag", (document.Tags ?? []).Select(t => t!.Id), errors);
         UniqueIds("règle", (document.LabelRules ?? []).Select(r => r!.Id), errors);
+
+        UniqueIds("rapprochement", (document.Reconciliations ?? []).Select(r => r!.Id), errors);
+        var advanceIds = UniqueIds("avance", (document.Advances ?? []).Select(a => a!.Id), errors);
+        var reconciliationAccounts = new Dictionary<Guid, Guid>();
+        var reconciledDates = new HashSet<(Guid, DateOnly)>();
+        foreach (var r in (document.Reconciliations ?? []).OfType<BackupReconciliation>())
+        {
+            var where = $"Rapprochement {r.Id}";
+            Reference(where, "compte", r.AccountId, accountIds, errors);
+            Amount(where, r.StatementBalance, errors);
+            if (!reconciledDates.Add((r.AccountId, r.Date)))
+            {
+                errors.Add($"{where} : deux rapprochements du même compte à la même date.");
+            }
+            reconciliationAccounts[r.Id] = r.AccountId;
+            Audit(where, r.Audit, errors);
+        }
+        foreach (var a in (document.Advances ?? []).OfType<BackupAdvance>())
+        {
+            var where = $"Avance {a.Id}";
+            Text(where, "libellé", a.Label, Advance.MaxLabelLength, required: true, errors);
+            Text(where, "notes", a.Notes, 2000, required: false, errors);
+            if (a.ExpectedAmount <= 0)
+            {
+                errors.Add($"{where} : montant attendu positif requis.");
+            }
+            Amount(where, a.ExpectedAmount, errors);
+            Audit(where, a.Audit, errors);
+        }
 
         var tagNames = new HashSet<string>(StringComparer.Ordinal);
         foreach (var g in (document.Tags ?? []).OfType<BackupTag>())
@@ -183,6 +224,13 @@ public static class BackupValidator
             Text(where, "notes", t.Notes, 2000, required: false, errors);
             Text(where, "libellé bancaire", t.RawLabel, StatementText.MaxLabelLength, required: false, errors);
             OptionalReference(where, "import", t.ImportBatchId, batchIds, errors);
+            OptionalReference(where, "opération remboursée", t.ReimbursesId, transactionIds, errors);
+            OptionalReference(where, "avance", t.AdvanceId, advanceIds, errors);
+            if (t.ReconciliationId is { } reconciliationId
+                && (!reconciliationAccounts.TryGetValue(reconciliationId, out var reconciledAccount) || reconciledAccount != t.AccountId))
+            {
+                errors.Add($"{where} : rapprochement introuvable dans le compte de l'opération.");
+            }
             if (Text(where, "empreinte d'import", t.ImportHash, 100, required: false, errors)
                 && t.ImportHash is { } hash && !importHashes.Add((t.AccountId, hash)))
             {

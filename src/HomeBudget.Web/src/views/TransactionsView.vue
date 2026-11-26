@@ -8,6 +8,7 @@ import {
   mdiDownload,
   mdiFileUploadOutline,
   mdiFilterVariant,
+  mdiLockOutline,
   mdiMagnify,
   mdiPencilBoxMultipleOutline,
   mdiSwapHorizontal,
@@ -21,6 +22,7 @@ import { useReferenceStore } from '@/stores/reference'
 import { useTransactionEditor, type Transaction } from '@/stores/transactionEditor'
 import { transactionsExportUrl, type TransactionFilters } from '@/utils/exports'
 import { formatDayHeading, formatSignedAmount, parseAmount } from '@/utils/format'
+import { netCostText } from '@/utils/reconciliation'
 import { iconPath } from '@/utils/icons'
 
 type Query = paths['/api/transactions']['get']['parameters']['query']
@@ -213,6 +215,8 @@ function subtitle(t: Transaction): string {
   if (!filters.value.accountId) parts.push(reference.accountById.get(t.accountId)?.name ?? '')
   const lineTags = [...new Set(t.lines.flatMap((l) => l.tags))]
   if (lineTags.length) parts.push(lineTags.map((tag) => `#${tag}`).join(' '))
+  const net = netCostText(t)
+  if (net) parts.push(net)
   return parts.filter(Boolean).join(' · ')
 }
 
@@ -396,7 +400,17 @@ onMounted(async () => {
           <span class="font-weight-medium text-no-wrap" :class="t.amount > 0 ? 'text-success' : ''">
             {{ formatSignedAmount(t.amount) }}
           </span>
+          <v-icon
+            v-if="t.isReconciled"
+            :icon="mdiLockOutline"
+            color="success"
+            size="small"
+            class="mx-2"
+            aria-label="Rapprochée"
+            title="Rapprochée : verrouillée"
+          />
           <v-btn
+            v-else
             :icon="t.isCleared ? mdiCheckCircle : mdiCheckboxBlankCircleOutline"
             :color="t.isCleared ? 'success' : undefined"
             variant="text"

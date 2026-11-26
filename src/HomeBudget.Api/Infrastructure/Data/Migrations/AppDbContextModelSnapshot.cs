@@ -92,6 +92,50 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.ToTable("Accounts");
                 });
 
+            modelBuilder.Entity("HomeBudget.Api.Domain.Advances.Advance", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("ExpectedAmount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsClosed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Advances");
+                });
+
             modelBuilder.Entity("HomeBudget.Api.Domain.Budgets.CategoryBudget", b =>
                 {
                     b.Property<Guid>("Id")
@@ -352,6 +396,44 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.ToTable("Payees");
                 });
 
+            modelBuilder.Entity("HomeBudget.Api.Domain.Reconciliations.Reconciliation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("StatementBalance")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId", "Date")
+                        .IsUnique();
+
+                    b.ToTable("Reconciliations");
+                });
+
             modelBuilder.Entity("HomeBudget.Api.Domain.Recurrences.Recurrence", b =>
                 {
                     b.Property<Guid>("Id")
@@ -390,6 +472,9 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsInstallment")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsSubscription")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Label")
@@ -644,6 +729,9 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.Property<Guid>("AccountId")
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("AdvanceId")
+                        .HasColumnType("TEXT");
+
                     b.Property<long>("Amount")
                         .HasColumnType("INTEGER");
 
@@ -681,6 +769,12 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("ReconciliationId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ReimbursesId")
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid?>("TransferId")
                         .HasColumnType("TEXT");
 
@@ -696,11 +790,17 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AdvanceId");
+
                     b.HasIndex("Date");
 
                     b.HasIndex("ImportBatchId");
 
                     b.HasIndex("PayeeId");
+
+                    b.HasIndex("ReconciliationId");
+
+                    b.HasIndex("ReimbursesId");
 
                     b.HasIndex("TransferId");
 
@@ -986,6 +1086,15 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("HomeBudget.Api.Domain.Reconciliations.Reconciliation", b =>
+                {
+                    b.HasOne("HomeBudget.Api.Domain.Accounts.Account", null)
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("HomeBudget.Api.Domain.Recurrences.Recurrence", b =>
                 {
                     b.HasOne("HomeBudget.Api.Domain.Accounts.Account", null)
@@ -1045,6 +1154,11 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("HomeBudget.Api.Domain.Advances.Advance", null)
+                        .WithMany()
+                        .HasForeignKey("AdvanceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("HomeBudget.Api.Domain.Imports.ImportBatch", null)
                         .WithMany()
                         .HasForeignKey("ImportBatchId")
@@ -1054,6 +1168,16 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                         .WithMany()
                         .HasForeignKey("PayeeId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("HomeBudget.Api.Domain.Reconciliations.Reconciliation", null)
+                        .WithMany()
+                        .HasForeignKey("ReconciliationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("HomeBudget.Api.Domain.Transactions.Transaction", null)
+                        .WithMany()
+                        .HasForeignKey("ReimbursesId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("HomeBudget.Api.Domain.Transactions.TransactionLine", b =>

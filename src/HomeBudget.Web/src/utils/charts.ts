@@ -254,3 +254,27 @@ export function balanceCurveOption(
     ],
   }
 }
+
+/** G7 : top des tiers de la période, en barres horizontales (le plus dépensier en haut). */
+export function topPayeesOption(items: Schemas['PayeeAmountDto'][], colors: ChartColors): EChartsOption {
+  return {
+    ...base(colors),
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: axisTooltip },
+    grid: { left: 8, right: 16, top: 8, bottom: 8, containLabel: true },
+    xAxis: valueAxis(colors),
+    yAxis: {
+      type: 'category',
+      inverse: true,
+      data: items.map((i) => i.name),
+      axisLabel: { color: colors.text, width: 110, overflow: 'truncate' },
+    },
+    series: [
+      {
+        name: 'Dépenses',
+        type: 'bar',
+        itemStyle: { color: colors.expenses },
+        data: items.map((i) => i.amount),
+      },
+    ],
+  }
+}

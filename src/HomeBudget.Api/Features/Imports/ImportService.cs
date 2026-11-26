@@ -142,11 +142,11 @@ public sealed class ImportService(AppDbContext db, RecurrenceGenerator generator
         var hashes = lines.Select(l => l.Hash).ToList();
         var byHash = await db.Transactions.AsNoTracking()
             .Where(t => t.AccountId == accountId && t.ImportHash != null && hashes.Contains(t.ImportHash))
-            .Select(t => new ExistingTransaction(t.Id, t.Date, t.Amount, t.Label, t.ImportHash, t.TransferId == null && t.Lines.Count == 1))
+            .Select(t => new ExistingTransaction(t.Id, t.Date, t.Amount, t.Label, t.ImportHash, t.TransferId == null && t.ReconciliationId == null && t.Lines.Count == 1))
             .ToDictionaryAsync(t => t.ImportHash!, ct);
         var nearby = await db.Transactions.AsNoTracking()
             .Where(t => t.AccountId == accountId && t.Date >= from && t.Date <= to)
-            .Select(t => new ExistingTransaction(t.Id, t.Date, t.Amount, t.Label, t.ImportHash, t.TransferId == null && t.Lines.Count == 1))
+            .Select(t => new ExistingTransaction(t.Id, t.Date, t.Amount, t.Label, t.ImportHash, t.TransferId == null && t.ReconciliationId == null && t.Lines.Count == 1))
             .ToListAsync(ct);
         var nearbyById = nearby.ToDictionary(t => t.Id);
         var recurrences = await db.Recurrences.AsNoTracking().Include(r => r.Occurrences)
@@ -332,7 +332,7 @@ public sealed class ImportService(AppDbContext db, RecurrenceGenerator generator
                 return null;
             }
             transaction = await db.Transactions.Include(t => t.Lines).FirstOrDefaultAsync(t => t.Id == transactionId, ct);
-            if (transaction is not { ImportHash: null, TransferId: null, Lines.Count: 1 })
+            if (transaction is not { ImportHash: null, TransferId: null, ReconciliationId: null, Lines.Count: 1 })
             {
                 return null;
             }

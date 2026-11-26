@@ -7,6 +7,7 @@ import { useReferenceStore, type Category } from '@/stores/reference'
 import { categoryKinds, type CategoryKind } from '@/utils/labels'
 import { required } from '@/utils/rules'
 import AppearancePicker from './AppearancePicker.vue'
+import MergeCategoryDialog from './MergeCategoryDialog.vue'
 
 const props = defineProps<{
   category: Category | null
@@ -29,6 +30,13 @@ const valid = ref(false)
 const saving = ref(false)
 const deleting = ref(false)
 const error = ref<string | null>(null)
+const mergeOpen = ref(false)
+
+// Fusion (C5) : la catégorie disparaît, le formulaire se ferme et la liste est rechargée.
+function merged() {
+  visible.value = false
+  emit('saved')
+}
 
 const hasChildren = computed(
   () => !!props.category && reference.categories.some((c) => c.parentId === props.category!.id),
@@ -151,6 +159,7 @@ async function remove() {
       </v-card-text>
       <v-card-actions>
         <v-btn v-if="category" color="error" :loading="deleting" @click="remove">Supprimer</v-btn>
+        <v-btn v-if="category" variant="text" @click="mergeOpen = true">Fusionner…</v-btn>
         <v-spacer />
         <v-btn @click="visible = false">Annuler</v-btn>
         <v-btn color="primary" variant="flat" :loading="saving" :disabled="!valid" @click="save">
@@ -159,4 +168,5 @@ async function remove() {
       </v-card-actions>
     </v-card>
   </v-dialog>
+  <MergeCategoryDialog v-model="mergeOpen" :category="category" @merged="merged" />
 </template>

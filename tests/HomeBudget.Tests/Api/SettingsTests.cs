@@ -62,4 +62,30 @@ public sealed class SettingsTests
         (await member.GetAsync("/api/settings")).StatusCode.ShouldBe(HttpStatusCode.OK);
         (await member.PutAsync("/api/settings", Request(), 0)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
+
+    [Fact]
+    public async Task Forecast_strategy_defaults_to_budget_and_is_validated()
+    {
+        await using var factory = new HomeBudgetFactory();
+        var admin = await factory.CreateAdminClientAsync();
+        var settings = await admin.GetJsonAsync("/api/settings");
+        settings.GetProperty("forecastStrategy").GetString().ShouldBe("Budget");
+        settings.GetProperty("forecastAverageMonths").GetInt32().ShouldBe(6);
+
+        static object Strategy(string strategy, int months) => new
+        {
+            periodMode = "Calendar",
+            periodStartDay = 1,
+            budgetWarningPercent = 80,
+            budgetAlertPercent = 100,
+            forecastStrategy = strategy,
+            forecastAverageMonths = months,
+        };
+        (await admin.PutAsync("/api/settings", Strategy("Average", 25), settings.Version())).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await admin.PutAsync("/api/settings", Strategy("Average", 0), settings.Version())).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+
+        var updated = await ApiClient.ReadJsonAsync(await admin.PutAsync("/api/settings", Strategy("Average", 12), settings.Version()));
+        updated.GetProperty("forecastStrategy").GetString().ShouldBe("Average");
+        updated.GetProperty("forecastAverageMonths").GetInt32().ShouldBe(12);
+    }
 }

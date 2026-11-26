@@ -3406,10 +3406,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Solde prévu en fin de période, courbe jour par jour, alerte de seuil et reste à vivre de la période en cours. */
+        /** Prévision sur 1, 3, 6 ou 12 périodes : solde prévu en fin de chaque période, courbe jour par jour, alerte de seuil, reste à vivre de la période en cours, et série à part avec les scénarios demandés. */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    horizon?: number;
+                    scenarios?: string[];
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -3425,11 +3428,437 @@ export interface paths {
                         "application/json": components["schemas"]["ForecastDto"];
                     };
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
             };
         };
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scenarios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Scénarios, avec leurs événements visibles, par nom. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ScenarioDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Crée un scénario. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ScenarioRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ScenarioDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scenarios/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Renomme, active ou désactive un scénario (If-Match requis). */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ScenarioRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ScenarioDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Supprime un scénario et tous ses événements (If-Match requis). */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scenarios/{id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ajoute un événement fictif au scénario. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ScenarioEventRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ScenarioEventDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scenarios/{id}/events/{eventId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Modifie un événement du scénario (If-Match requis). */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ScenarioEventRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ScenarioEventDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Supprime un événement du scénario (If-Match requis). */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -3461,6 +3890,53 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["DashboardDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dashboard/{periodKey}/comparison": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Réalisé de la période comparé à la période précédente et à la même période un an avant, par nature et par catégorie principale. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    periodKey: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ComparisonDto"];
                     };
                 };
                 /** @description Not Found */
@@ -5303,6 +5779,8 @@ export interface components {
             periodBudgets?: null | components["schemas"]["BackupPeriodBudget"][];
             provisions?: null | components["schemas"]["BackupProvision"][];
             transactionChanges?: null | components["schemas"]["BackupTransactionChange"][];
+            scenarios?: null | components["schemas"]["BackupScenario"][];
+            scenarioEvents?: null | components["schemas"]["BackupScenarioEvent"][];
         };
         BackupImportBatch: {
             /** Format: uuid */
@@ -5449,6 +5927,32 @@ export interface components {
             isSubscription: boolean;
             businessDayShift?: components["schemas"]["BusinessDayShift"];
         };
+        BackupScenario: {
+            /** Format: uuid */
+            id: string;
+            name: null | string;
+            isActive: boolean;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
+        BackupScenarioEvent: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            scenarioId: string;
+            label: null | string;
+            /** Format: uuid */
+            accountId: string;
+            /** Format: uuid */
+            categoryId: null | string;
+            /** Format: double */
+            amount: number;
+            /** Format: date */
+            date: string;
+            frequency: components["schemas"]["ScenarioEventFrequency"];
+            /** Format: date */
+            endDate: null | string;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
         BackupSettings: {
             /** Format: uuid */
             id: string;
@@ -5464,6 +5968,12 @@ export interface components {
             budgetAlertPercent: number;
             defaultCategoriesCreated: boolean;
             audit: null | components["schemas"]["BackupAudit"];
+            forecastStrategy?: components["schemas"]["ForecastStrategy"];
+            /**
+             * Format: int32
+             * @default 6
+             */
+            forecastAverageMonths: number;
         };
         BackupTag: {
             /** Format: uuid */
@@ -5689,6 +6199,41 @@ export interface components {
         ClearRequest: {
             isCleared: boolean;
         };
+        ComparedCategoryDto: {
+            /** Format: uuid */
+            categoryId: string;
+            name: string;
+            color: null | string;
+            kind: components["schemas"]["CategoryKind"];
+            /** Format: double */
+            current: number;
+            /** Format: double */
+            previous: number;
+            /** Format: double */
+            lastYear: number;
+        };
+        ComparedPeriodDto: {
+            key: string;
+            /** Format: date */
+            start: string;
+            /** Format: date */
+            end: string;
+            /** Format: double */
+            income: number;
+            /** Format: double */
+            fixed: number;
+            /** Format: double */
+            variable: number;
+            /** Format: double */
+            savings: number;
+        };
+        ComparisonDto: {
+            period: components["schemas"]["PeriodDto"];
+            current: components["schemas"]["ComparedPeriodDto"];
+            previous: components["schemas"]["ComparedPeriodDto"];
+            lastYear: components["schemas"]["ComparedPeriodDto"];
+            categories: components["schemas"]["ComparedCategoryDto"][];
+        };
         ConfirmOccurrenceRequest: {
             /** Format: double */
             amount: null | number;
@@ -5747,6 +6292,11 @@ export interface components {
             period: components["schemas"]["PeriodDto"];
             accountIds: string[];
             includesIncome: boolean;
+            strategy: components["schemas"]["ForecastStrategy"];
+            /** Format: int32 */
+            averageMonths: number;
+            /** Format: int32 */
+            horizon: number;
             /** Format: double */
             currentBalance: number;
             /** Format: double */
@@ -5762,7 +6312,20 @@ export interface components {
             /** Format: date */
             thresholdDate: null | string;
             remainingToLive: components["schemas"]["RemainingToLiveDto"];
+            periods: components["schemas"]["ForecastPeriodDto"][];
             daily: components["schemas"]["ForecastPointDto"][];
+            scenario: null | components["schemas"]["ScenarioForecastDto"];
+        };
+        ForecastPeriodDto: {
+            key: string;
+            /** Format: date */
+            start: string;
+            /** Format: date */
+            end: string;
+            /** Format: double */
+            endBalance: number;
+            /** Format: double */
+            scenarioEndBalance: null | number;
         };
         ForecastPointDto: {
             /** Format: date */
@@ -5771,6 +6334,8 @@ export interface components {
             balance: number;
             isForecast: boolean;
         };
+        /** @enum {unknown} */
+        ForecastStrategy: "Budget" | "Average";
         /** @enum {unknown} */
         FrequencyUnit: "Day" | "Week" | "Month" | "Year";
         HttpValidationProblemDetails: {
@@ -6303,6 +6868,65 @@ export interface components {
             /** Format: int32 */
             version: number;
         };
+        ScenarioDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            isActive: boolean;
+            /** Format: int32 */
+            version: number;
+            events: components["schemas"]["ScenarioEventDto"][];
+        };
+        ScenarioEventDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            scenarioId: string;
+            label: string;
+            /** Format: uuid */
+            accountId: string;
+            /** Format: uuid */
+            categoryId: null | string;
+            /** Format: double */
+            amount: number;
+            /** Format: date */
+            date: string;
+            frequency: components["schemas"]["ScenarioEventFrequency"];
+            /** Format: date */
+            endDate: null | string;
+            /** Format: int32 */
+            version: number;
+        };
+        /** @enum {unknown} */
+        ScenarioEventFrequency: "Once" | "Monthly";
+        ScenarioEventRequest: {
+            label: string;
+            /** Format: uuid */
+            accountId: string;
+            /** Format: uuid */
+            categoryId: null | string;
+            /** Format: double */
+            amount: number;
+            /** Format: date */
+            date: string;
+            frequency: components["schemas"]["ScenarioEventFrequency"];
+            /** Format: date */
+            endDate: null | string;
+        };
+        ScenarioForecastDto: {
+            scenarioIds: string[];
+            daily: components["schemas"]["ForecastPointDto"][];
+            /** Format: double */
+            endBalance: number;
+            /** Format: double */
+            impact: number;
+            /** Format: date */
+            thresholdDate: null | string;
+        };
+        ScenarioRequest: {
+            name: string;
+            isActive: boolean;
+        };
         SettingsDto: {
             periodMode: components["schemas"]["PeriodMode"];
             /** Format: int32 */
@@ -6311,6 +6935,9 @@ export interface components {
             budgetWarningPercent: number;
             /** Format: int32 */
             budgetAlertPercent: number;
+            forecastStrategy: components["schemas"]["ForecastStrategy"];
+            /** Format: int32 */
+            forecastAverageMonths: number;
             /** Format: int32 */
             version: number;
         };
@@ -6322,6 +6949,12 @@ export interface components {
             budgetWarningPercent: number;
             /** Format: int32 */
             budgetAlertPercent: number;
+            forecastStrategy?: components["schemas"]["ForecastStrategy"];
+            /**
+             * Format: int32
+             * @default 6
+             */
+            forecastAverageMonths: number;
         };
         SetupStatus: {
             required: boolean;

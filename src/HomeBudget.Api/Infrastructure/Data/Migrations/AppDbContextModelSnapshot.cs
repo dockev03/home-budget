@@ -777,6 +777,100 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.ToTable("LabelRules");
                 });
 
+            modelBuilder.Entity("HomeBudget.Api.Domain.Scenarios.Scenario", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Scenarios");
+                });
+
+            modelBuilder.Entity("HomeBudget.Api.Domain.Scenarios.ScenarioEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Amount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("EndDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Frequency")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ScenarioId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("ScenarioId");
+
+                    b.ToTable("ScenarioEvents");
+                });
+
             modelBuilder.Entity("HomeBudget.Api.Domain.Settings.HouseholdSettings", b =>
                 {
                     b.Property<Guid>("Id")
@@ -797,8 +891,16 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.Property<bool>("DefaultCategoriesCreated")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("ForecastAverageMonths")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("ForecastIncludesIncome")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("ForecastStrategy")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("PeriodMode")
                         .IsRequired()
@@ -1404,6 +1506,26 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
                 });
 
+            modelBuilder.Entity("HomeBudget.Api.Domain.Scenarios.ScenarioEvent", b =>
+                {
+                    b.HasOne("HomeBudget.Api.Domain.Accounts.Account", null)
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HomeBudget.Api.Domain.Categories.Category", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("HomeBudget.Api.Domain.Scenarios.Scenario", null)
+                        .WithMany("Events")
+                        .HasForeignKey("ScenarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("HomeBudget.Api.Domain.Transactions.Transaction", b =>
                 {
                     b.HasOne("HomeBudget.Api.Domain.Accounts.Account", null)
@@ -1530,6 +1652,11 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
             modelBuilder.Entity("HomeBudget.Api.Domain.Recurrences.Recurrence", b =>
                 {
                     b.Navigation("Occurrences");
+                });
+
+            modelBuilder.Entity("HomeBudget.Api.Domain.Scenarios.Scenario", b =>
+                {
+                    b.Navigation("Events");
                 });
 
             modelBuilder.Entity("HomeBudget.Api.Domain.Transactions.Transaction", b =>

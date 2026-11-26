@@ -22,6 +22,7 @@ import {
   mdiShapeOutline,
   mdiLogout,
   mdiShieldLockOutline,
+  mdiTimelineQuestionOutline,
   mdiThemeLightDark,
   mdiWeatherNight,
   mdiWhiteBalanceSunny,
@@ -77,6 +78,13 @@ const navigation = computed(() =>
       exact: true,
       bottom: false,
       badge: pending.count,
+    },
+    {
+      title: 'Scénarios',
+      icon: mdiTimelineQuestionOutline,
+      to: { name: 'scenarios' },
+      exact: true,
+      bottom: false,
     },
     { title: 'Abonnements', icon: mdiRepeat, to: { name: 'subscriptions' }, exact: true, bottom: false },
     {

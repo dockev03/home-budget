@@ -45,6 +45,20 @@ describe('balanceCurveOption', () => {
     expect(threshold!.data).toEqual([0, 0, 0, 0])
   })
 
+  it('ajoute la série des scénarios à partir de ses dates, sans toucher au prévu', () => {
+    const scenario = [
+      { date: '2026-03-02', balance: 80, isForecast: false },
+      { date: '2026-03-03', balance: 30, isForecast: true },
+      { date: '2026-03-04', balance: -30, isForecast: true },
+    ]
+    const series = seriesOf(balanceCurveOption(daily, 0, colors, scenario))
+    expect(series).toHaveLength(4)
+    expect(series[1]!.data).toEqual([null, 80, 50, -10])
+    expect(series[3]!.name).toBe('Avec scénarios')
+    expect(series[3]!.data).toEqual([null, 80, 30, -30])
+    expect(seriesOf(balanceCurveOption(daily, 0, colors))).toHaveLength(3)
+  })
+
   it('montre toute la période en prévu quand aucun jour n’est passé', () => {
     const future = daily.map((p) => ({ ...p, isForecast: true }))
     const [real, forecast] = seriesOf(balanceCurveOption(future, 0, colors))

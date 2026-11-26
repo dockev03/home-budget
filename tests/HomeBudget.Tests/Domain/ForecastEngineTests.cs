@@ -153,6 +153,117 @@ public sealed class ForecastEngineTests
         ForecastEngine.Compute(input).Budget.ShouldBe(0m);
     }
 
+    private static readonly Period April = new(new DateOnly(2026, 4, 1), new DateOnly(2026, 4, 30), 2026, 4);
+
+    private static DateOnly A(int day) => new(2026, 4, day);
+
+    /// <summary>
+    /// Avril : 100 € de courses déjà saisies le 5, loyer de 600 € le 20. Restes : logement 700, courses 300
+    /// (400 − 100 saisis), salaire 2 000.
+    /// </summary>
+    private static ForecastFuturePeriod AprilInput() => new(
+        April,
+        Transactions: [new(A(5), -100m, Groceries)],
+        Scheduled: [new(A(20), -600m, Rent)],
+        ScheduledByCategory: new Dictionary<Guid, decimal> { [Rent] = -600m },
+        Budgets: [new(Housing, 700m), new(Groceries, 300m), new(Salary, 2000m)]);
+
+    [Fact]
+    public void Next_periods_start_from_the_previous_end_and_spread_their_whole_budget()
+    {
+        var march = ForecastEngine.Compute(Input(D(10)));
+        var result = ForecastEngine.Compute(Input(D(10)) with { FuturePeriods = [AprilInput()] });
+
+        // La période en cours ne change pas.
+        result.EndBalance.ShouldBe(march.EndBalance);
+        result.RemainingToLive.ShouldBe(march.RemainingToLive);
+        result.Daily.Count.ShouldBe(31 + 30);
+        // Avril : − 100 − 600 + (100 de logement non couvert + 300 de courses, en sortie ; 2 000 de salaire) = + 900.
+        result.Periods.Select(p => p.Period).ShouldBe([March, April]);
+        result.Periods[0].EndBalance.ShouldBe(march.EndBalance);
+        result.Periods[1].EndBalance.ShouldBe(march.EndBalance + 900m);
+        result.Daily[^1].ShouldBe(new ForecastPoint(A(30), march.EndBalance + 900m, true));
+        // Le 1er avril : 1 600 / 30 jours de budget, arrondi au centime inférieur.
+        result.Daily[31].ShouldBe(new ForecastPoint(A(1), march.EndBalance + 53.33m, true));
+        result.Periods.ShouldAllBe(p => p.ScenarioEndBalance == null);
+        result.Scenario.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Threshold_date_is_searched_over_the_whole_horizon()
+    {
+        var april = AprilInput() with { Budgets = [new(Groceries, 5000m)] };
+        var result = ForecastEngine.Compute(Input(D(10)) with { FuturePeriods = [april] });
+
+        result.Periods[0].EndBalance.ShouldBeGreaterThan(0m);
+        result.ThresholdDate.ShouldNotBeNull();
+        result.ThresholdDate!.Value.Month.ShouldBe(4);
+        result.Daily.First(p => p.Balance < 0).Date.ShouldBe(result.ThresholdDate.Value);
+    }
+
+    [Fact]
+    public void On_the_last_day_overdue_schedules_carry_over_to_the_next_period()
+    {
+        var input = Input(D(31)) with { FuturePeriods = [AprilInput() with { Transactions = [], Scheduled = [], Budgets = [] }] };
+
+        var result = ForecastEngine.Compute(input);
+
+        // La box à valider en retard (30 €) et le loyer (600 €) comptent dans le solde de fin de mars.
+        result.EndBalance.ShouldBe(result.CurrentBalance - 630m);
+        result.Daily[31].Balance.ShouldBe(result.EndBalance);
+        result.Periods[1].EndBalance.ShouldBe(result.EndBalance);
+    }
+
+    [Fact]
+    public void Scenario_is_a_separate_series_from_today_to_the_end_of_the_horizon()
+    {
+        var input = Input(D(10)) with
+        {
+            FuturePeriods = [AprilInput()],
+            ScenarioMovements =
+            [
+                new(D(5), -999m, null), // passé : ignoré
+                new(D(20), -500m, null),
+                new(A(10), -300m, Groceries),
+                new(A(10), 100m, null),
+                new(new DateOnly(2026, 5, 1), -999m, null), // après l'horizon : ignoré
+            ],
+            Threshold = 2000m,
+        };
+        var baseline = ForecastEngine.Compute(input with { ScenarioMovements = null });
+
+        var result = ForecastEngine.Compute(input);
+
+        // La prévision de base reste intacte.
+        result.Daily.ShouldBe(baseline.Daily);
+        result.EndBalance.ShouldBe(baseline.EndBalance);
+        result.Periods.Select(p => p.EndBalance).ShouldBe(baseline.Periods.Select(p => p.EndBalance));
+
+        var scenario = result.Scenario.ShouldNotBeNull();
+        scenario.Impact.ShouldBe(-700m);
+        scenario.Daily[0].ShouldBe(new ForecastPoint(D(10), 900m, false));
+        scenario.Daily.Count.ShouldBe(22 + 30);
+        scenario.Daily.Single(p => p.Date == D(19)).Balance.ShouldBe(baseline.Daily.Single(p => p.Date == D(19)).Balance);
+        scenario.Daily.Single(p => p.Date == D(20)).Balance.ShouldBe(baseline.Daily.Single(p => p.Date == D(20)).Balance - 500m);
+        scenario.Daily.Single(p => p.Date == A(10)).Balance.ShouldBe(baseline.Daily.Single(p => p.Date == A(10)).Balance - 700m);
+        scenario.EndBalance.ShouldBe(baseline.Periods[1].EndBalance - 700m);
+        result.Periods[0].ScenarioEndBalance.ShouldBe(baseline.Periods[0].EndBalance - 500m);
+        result.Periods[1].ScenarioEndBalance.ShouldBe(scenario.EndBalance);
+        scenario.ThresholdDate.ShouldBe(scenario.Daily.First(p => p.Balance < 2000m).Date);
+    }
+
+    [Fact]
+    public void Empty_scenario_gives_the_baseline()
+    {
+        var result = ForecastEngine.Compute(Input(D(10)) with { ScenarioMovements = [] });
+
+        var scenario = result.Scenario.ShouldNotBeNull();
+        scenario.Impact.ShouldBe(0m);
+        scenario.EndBalance.ShouldBe(result.EndBalance);
+        scenario.ThresholdDate.ShouldBe(result.ThresholdDate);
+        result.Periods[0].ScenarioEndBalance.ShouldBe(result.EndBalance);
+    }
+
     [Fact]
     public void Today_must_be_in_the_period()
     {

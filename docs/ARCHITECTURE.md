@@ -113,7 +113,8 @@ Tous les montants sont signés (négatif = sortie). Chaque entité porte `Create
 
 ```
 User (Identity)            Id, UserName, Email, Role, IncomeShare?
-HouseholdSettings          PeriodMode, PeriodStartDay, SafetyThreshold, ForecastIncludesIncome, AlertThresholds
+HouseholdSettings          PeriodMode, PeriodStartDay, SafetyThreshold, ForecastIncludesIncome, AlertThresholds,
+                           ForecastStrategy{Budget,Average}, ForecastAverageMonths   (F7)
 
 Account                    Id, Name, Type{Checking,Savings,Investment,Cash,Credit}, InitialBalance, InitialDate,
                            OwnerId?, Visibility{Shared,Private}, Color, Icon, IncludeInForecast, IncludeInNetWorth,
@@ -148,7 +149,9 @@ RecurrenceLine             RecurrenceId, CategoryId, Amount
 RecurrenceOccurrence       RecurrenceId, Date, State{Generated,Skipped,Matched}, TransactionId?
 
 SavingsGoal                Id, Name, TargetAmount, TargetDate, AccountId?, CategoryId?   (J1–J4)
-Scenario / ScenarioEvent   Id, Name, IsActive / Date, Amount, Label, CategoryId?, AccountId   (F5)
+Scenario                   Id, Name, IsActive                                              (F5)
+ScenarioEvent              ScenarioId, Label, AccountId, CategoryId?, Amount, Date,
+                           Frequency{Once,Monthly}, EndDate?   (visibilité du compte, R8)
 SplitSetting               Mode{Equal,IncomeRatio,Fixed}, Shares, SharedCategoryIds   (K4)
 
 ImportProfile              Id, Name, Delimiter, DateFormat, DecimalSeparator, DateColumn, LabelColumn, AmountColumn?, DebitColumn?, CreditColumn?   (CSV/TSV ; encodage détecté)
@@ -175,7 +178,9 @@ C'est une fonction pure. Elle reçoit en entrée :
 
 Elle produit en sortie : une série quotidienne, le solde de fin de chaque période, la date du premier passage sous le seuil, et le reste à vivre.
 
-- Les scénarios (F5) ne sont que des événements supplémentaires passés en entrée, et la prévision par moyenne (F7) n'est qu'une autre stratégie.
+- Les scénarios (F5) ne sont que des événements supplémentaires passés en entrée. Ils produisent une série à part (« avec scénarios ») et ne modifient jamais la prévision de base.
+- La prévision par moyenne (F7) n'est qu'une autre stratégie. `ForecastService` remplace le budget de chaque catégorie principale par le réalisé moyen des N périodes clôturées. Les échéances restent comptées telles quelles, et la moyenne ne couvre que ce qu'elles laissent.
+- Horizon (F4) : la période en cours suit R3, et chaque période suivante part du solde de fin de la précédente.
 - Les tests unitaires couvrent les fins de mois, les années bissextiles, les périodes à jour fixe, les remboursements et les budgets en pourcentage.
 
 ### 6.2 Récurrences

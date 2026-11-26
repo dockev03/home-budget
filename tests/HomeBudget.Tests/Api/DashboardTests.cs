@@ -159,4 +159,54 @@ public sealed class DashboardTests
 
         watch.ElapsedMilliseconds.ShouldBeLessThan(500);
     }
+
+    [Fact]
+    public async Task Comparison_puts_the_period_next_to_the_previous_one_and_the_same_one_a_year_before()
+    {
+        await using var factory = new HomeBudgetFactory { Today = March(10) };
+        var admin = await factory.CreateAdminClientAsync();
+        var checking = await admin.CreateAccountAsync("Courant", 1000m, initialDate: Opening);
+        var livret = await admin.CreateAccountAsync("Livret A", 0m, type: "Savings", initialDate: Opening);
+        var salary = await admin.CategoryIdAsync("Salaire Kévin");
+        var groceries = await admin.CategoryIdAsync("Courses");
+        var restaurants = await admin.CategoryIdAsync("Restaurants");
+        var cinema = await admin.CreateCategoryAsync("Cinéma", "Variable", restaurants);
+
+        await admin.CreateTransactionAsync(checking, 2000m, salary, March(1));
+        await admin.CreateTransactionAsync(checking, -100m, groceries, March(2));
+        await admin.CreateTransactionAsync(checking, -20m, cinema, March(3));
+        await admin.CreateTransactionAsync(checking, 1800m, salary, new DateOnly(2026, 2, 1));
+        await admin.CreateTransactionAsync(checking, -300m, groceries, new DateOnly(2026, 2, 5));
+        await admin.CreateTransactionAsync(checking, -250m, groceries, new DateOnly(2025, 3, 5));
+        await admin.CreateAsync("/api/transfers", new
+        {
+            fromAccountId = checking,
+            toAccountId = livret,
+            date = TestScenario.Iso(March(4)),
+            amount = 100m,
+            label = "Virement",
+        });
+
+        var comparison = await admin.GetJsonAsync("/api/dashboard/2026-03/comparison");
+
+        comparison.GetProperty("period").GetProperty("key").GetString().ShouldBe("2026-03");
+        var current = comparison.GetProperty("current");
+        current.Decimal("income").ShouldBe(2000m);
+        current.Decimal("variable").ShouldBe(120m);
+        current.Decimal("savings").ShouldBe(0m); // virement sans catégorie : exclu (R5)
+        comparison.GetProperty("previous").GetProperty("key").GetString().ShouldBe("2026-02");
+        comparison.GetProperty("previous").Decimal("variable").ShouldBe(300m);
+        comparison.GetProperty("lastYear").GetProperty("key").GetString().ShouldBe("2025-03");
+        comparison.GetProperty("lastYear").Decimal("income").ShouldBe(0m);
+
+        var lines = comparison.GetProperty("categories").EnumerateArray().ToDictionary(c => c.GetProperty("categoryId").GetGuid());
+        lines.Keys.ShouldBe([salary, groceries, restaurants], ignoreOrder: true);
+        lines[groceries].Decimal("current").ShouldBe(100m);
+        lines[groceries].Decimal("previous").ShouldBe(300m);
+        lines[groceries].Decimal("lastYear").ShouldBe(250m);
+        // La sous-catégorie est comptée dans sa catégorie principale.
+        lines[restaurants].Decimal("current").ShouldBe(20m);
+
+        (await admin.GetAsync("/api/dashboard/mars/comparison")).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
 }

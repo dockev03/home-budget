@@ -11,7 +11,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HomeBudget.Api.Features.Dashboard;
 
-/// <summary>Tableau de bord d'une période : chiffres clés (G1), dépenses par catégorie (G2), budget et réel (G3), 12 périodes (G4).</summary>
+/// <summary>
+/// Tableau de bord d'une période : chiffres clés (G1), dépenses par catégorie (G2), budget et réel (G3), 12 périodes (G4),
+/// top des tiers (G7) et comparaison avec la période précédente et la même période un an avant (G6).
+/// </summary>
 public static class DashboardEndpoints
 {
     public const int HistoryLength = 12;
@@ -23,6 +26,9 @@ public static class DashboardEndpoints
         group.MapGet("/{periodKey}", GetAsync)
             .Produces<DashboardDto>().ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("Tableau de bord de la période (clé AAAA-MM) : chiffres clés, dépenses par catégorie, budget comparé au réel et 12 dernières périodes.");
+        group.MapGet("/{periodKey}/comparison", ComparisonAsync)
+            .Produces<ComparisonDto>().ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Réalisé de la période comparé à la période précédente et à la même période un an avant, par nature et par catégorie principale.");
 
         return app;
     }
@@ -65,6 +71,78 @@ public static class DashboardEndpoints
         List<BudgetComparisonDto> BudgetVsActual,
         List<PeriodTotalsDto> History,
         List<PayeeAmountDto> TopPayees);
+
+    /// <summary>Réalisé d'une période par nature, en positif (G6).</summary>
+    public sealed record ComparedPeriodDto(
+        string Key, DateOnly Start, DateOnly End, decimal Income, decimal Fixed, decimal Variable, decimal Savings);
+
+    /// <summary>Réalisé d'une catégorie principale (sous-catégories comprises), positif pour une dépense comme pour un revenu.</summary>
+    public sealed record ComparedCategoryDto(
+        Guid CategoryId, string Name, string? Color, CategoryKind Kind, decimal Current, decimal Previous, decimal LastYear);
+
+    /// <param name="Current">La période ; en cours, son réalisé s'arrête à aujourd'hui.</param>
+    /// <param name="Previous">La période précédente.</param>
+    /// <param name="LastYear">La période du même nom, un an avant.</param>
+    /// <param name="Categories">Catégories principales avec du réalisé sur au moins une des trois périodes.</param>
+    public sealed record ComparisonDto(
+        PeriodEndpoints.PeriodDto Period,
+        ComparedPeriodDto Current,
+        ComparedPeriodDto Previous,
+        ComparedPeriodDto LastYear,
+        List<ComparedCategoryDto> Categories);
+
+    /// <summary>
+    /// Comparaison (G6) : réalisé de la période, de la précédente et de celle du même nom un an avant, par nature
+    /// (D8) et par catégorie principale. Les virements sans catégorie n'en font pas partie (R5).
+    /// </summary>
+    private static async Task<IResult> ComparisonAsync(string periodKey, AppDbContext db, TimeProvider clock, CancellationToken ct)
+    {
+        var calculator = await PeriodEndpoints.CalculatorAsync(db);
+        if (!calculator.TryParse(periodKey, out var period)
+            || !calculator.TryParse($"{period.Year - 1:D4}-{period.Month:D2}", out var lastYear))
+        {
+            return PeriodEndpoints.UnknownPeriod();
+        }
+        var previous = calculator.Previous(period);
+        var categories = await db.Categories.AsNoTracking().ToListAsync(ct);
+        var byId = categories.ToDictionary(c => c.Id);
+
+        async Task<Dictionary<Guid, decimal>> ActualAsync(Period p)
+        {
+            var (sums, _) = await BudgetEndpoints.ActualSumsAsync(db, p.Start, p.End, ct);
+            var result = new Dictionary<Guid, decimal>();
+            foreach (var (id, sum) in sums)
+            {
+                if (byId.TryGetValue(id, out var c))
+                {
+                    var main = c.ParentId is { } parentId && byId.TryGetValue(parentId, out var parent) ? parent : c;
+                    result[main.Id] = result.GetValueOrDefault(main.Id) + (main.Kind == CategoryKind.Income ? sum : -sum);
+                }
+            }
+            return result;
+        }
+        var current = await ActualAsync(period);
+        var before = await ActualAsync(previous);
+        var yearBefore = await ActualAsync(lastYear);
+
+        ComparedPeriodDto Totals(Period p, Dictionary<Guid, decimal> actual)
+        {
+            decimal Sum(CategoryKind kind) => actual.Where(a => byId[a.Key].Kind == kind).Sum(a => a.Value);
+            return new ComparedPeriodDto(p.Key, p.Start, p.End, Sum(CategoryKind.Income), Sum(CategoryKind.Fixed), Sum(CategoryKind.Variable), Sum(CategoryKind.Savings));
+        }
+
+        return TypedResults.Ok(new ComparisonDto(
+            PeriodEndpoints.ToDto(calculator, period, clock),
+            Totals(period, current),
+            Totals(previous, before),
+            Totals(lastYear, yearBefore),
+            [.. categories
+                .Where(c => c.ParentId is null)
+                .Select(c => new ComparedCategoryDto(
+                    c.Id, c.Name, c.Color, c.Kind, current.GetValueOrDefault(c.Id), before.GetValueOrDefault(c.Id), yearBefore.GetValueOrDefault(c.Id)))
+                .Where(c => c.Current != 0 || c.Previous != 0 || c.LastYear != 0)
+                .OrderBy(c => c.Kind).ThenBy(c => byId[c.CategoryId].SortOrder).ThenBy(c => c.Name)]));
+    }
 
     private static async Task<IResult> GetAsync(
         string periodKey, AppDbContext db, TimeProvider clock, IBudgetScheduleSource schedule, ForecastService forecasts, CancellationToken ct)

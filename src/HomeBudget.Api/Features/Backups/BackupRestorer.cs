@@ -23,6 +23,8 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
 {
     public async Task<BackupDocument> ExportAsync(CancellationToken ct)
     {
+        // Sauvegarde complète (administrateur ou tâche de fond) : les comptes privés de chacun en font partie.
+        db.IgnoreVisibility = true;
         var settings = await db.HouseholdSettings.AsNoTracking().SingleAsync(ct);
         var accounts = await db.Accounts.AsNoTracking().OrderBy(a => a.Id).ToListAsync(ct);
         var categories = await db.Categories.AsNoTracking().OrderBy(c => c.Id).ToListAsync(ct);
@@ -94,6 +96,8 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
             return entity;
         }
 
+        // La restauration remplace toute la base, comptes privés compris.
+        db.IgnoreVisibility = true;
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
 
         // Ordre imposé par les clés étrangères : des dépendants vers les éléments référencés.
@@ -143,7 +147,7 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 InitialBalance = a.InitialBalance,
                 InitialDate = a.InitialDate,
                 OwnerId = User(a.OwnerId),
-                Visibility = a.Visibility,
+                Visibility = User(a.OwnerId) is null ? Domain.Accounts.AccountVisibility.Shared : a.Visibility,
                 Color = a.Color,
                 Icon = a.Icon,
                 IncludeInForecast = a.IncludeInForecast,

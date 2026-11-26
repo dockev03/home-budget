@@ -27,6 +27,7 @@ import { cleanTags, correctionOf, isCorrection, recentShortcuts, type Correction
 import { netCostText } from '@/utils/reconciliation'
 import { categoryKindTitle } from '@/utils/labels'
 import { required } from '@/utils/rules'
+import { authorText } from '@/utils/users'
 
 type Kind = 'expense' | 'income' | 'transfer'
 interface Line {
@@ -78,6 +79,10 @@ const source = computed(() => editor.transaction)
 const isEdit = computed(() => editor.mode === 'edit' && !!source.value)
 /** Opération rapprochée (A5, R7) : seuls ses liens de remboursement et d'avance restent modifiables. */
 const locked = computed(() => isEdit.value && !!source.value?.isReconciled)
+/** Auteur et dates de création et de modification (K2). */
+const author = computed(() =>
+  isEdit.value && source.value ? authorText(source.value, reference.userNames) : null,
+)
 /** Liens d'un revenu existant (B11, B12) : la dépense remboursée et l'avance soldée. */
 const showLinks = computed(() => isEdit.value && kind.value === 'income')
 const reimbursesId = ref<string | null>(null)
@@ -780,6 +785,9 @@ async function remove() {
             />
           </div>
         </template>
+        <div v-if="author" class="text-caption text-medium-emphasis mt-2" data-testid="author">
+          {{ author }}
+        </div>
       </v-card-text>
 
       <v-card-actions v-if="similar">

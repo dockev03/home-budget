@@ -5,7 +5,7 @@ import { mdiContentCopy, mdiDownload, mdiShieldCheck, mdiShieldOffOutline } from
 import { api, type Schemas } from '@/api/client'
 import { ApiError, unwrap } from '@/api/errors'
 import { useAuthStore } from '@/stores/auth'
-import { required, totpCode } from '@/utils/rules'
+import { passwordRules, required, totpCode } from '@/utils/rules'
 
 const auth = useAuthStore()
 
@@ -88,11 +88,40 @@ function downloadCodes() {
   URL.revokeObjectURL(url)
 }
 
+// Changement du mot de passe : les autres sessions sont fermées par le serveur.
+const passwordForm = ref({ current: '', next: '', confirmation: '' })
+const passwordValid = ref(false)
+const passwordChanged = ref(false)
+const sameAsNew = (value: string) => value === passwordForm.value.next || 'Les deux saisies diffèrent.'
+
+const changePassword = () =>
+  guarded(async () => {
+    if (!passwordValid.value) return
+    passwordChanged.value = false
+    await unwrap(
+      api.POST('/api/account/password', {
+        body: { currentPassword: passwordForm.value.current, newPassword: passwordForm.value.next },
+      }),
+    )
+    passwordForm.value = { current: '', next: '', confirmation: '' }
+    passwordChanged.value = true
+  })
+
 onMounted(loadStatus)
 </script>
 
 <template>
   <h1 class="text-h5 font-weight-bold mb-4">Sécurité</h1>
+
+  <v-alert
+    v-if="auth.user?.twoFactorRequired && !auth.user.twoFactorEnabled"
+    type="warning"
+    variant="tonal"
+    class="mb-4"
+    data-testid="two-factor-required"
+    title="Double authentification requise"
+    text="Activez-la pour accéder à l'application : c'est obligatoire pour les comptes invités."
+  />
 
   <v-alert
     v-if="error"
@@ -139,7 +168,9 @@ onMounted(loadStatus)
     </v-card-text>
     <v-card-actions v-if="status?.enabled">
       <v-btn @click="passwordDialog = 'regenerate'">Nouveaux codes de secours</v-btn>
-      <v-btn color="error" @click="passwordDialog = 'disable'">Désactiver</v-btn>
+      <v-btn v-if="!auth.user?.twoFactorRequired" color="error" @click="passwordDialog = 'disable'"
+        >Désactiver</v-btn
+      >
     </v-card-actions>
 
     <template v-else-if="status && !setup">
@@ -178,6 +209,46 @@ onMounted(loadStatus)
           >Confirmer l'activation</v-btn
         >
         <v-btn variant="text" class="ml-2" @click="setup = null">Annuler</v-btn>
+      </v-form>
+    </v-card-text>
+  </v-card>
+
+  <v-card class="mt-4">
+    <v-card-title>Mot de passe</v-card-title>
+    <v-card-text>
+      <v-alert
+        v-if="passwordChanged"
+        type="success"
+        variant="tonal"
+        class="mb-4"
+        text="Mot de passe changé. Vos autres appareils devront se reconnecter."
+      />
+      <v-form v-model="passwordValid" style="max-width: 420px" @submit.prevent="changePassword">
+        <v-text-field
+          v-model="passwordForm.current"
+          label="Mot de passe actuel"
+          type="password"
+          autocomplete="current-password"
+          :rules="[required]"
+        />
+        <v-text-field
+          v-model="passwordForm.next"
+          label="Nouveau mot de passe"
+          type="password"
+          autocomplete="new-password"
+          hint="12 caractères minimum ; une phrase de passe est idéale."
+          :rules="passwordRules"
+        />
+        <v-text-field
+          v-model="passwordForm.confirmation"
+          label="Confirmation"
+          type="password"
+          autocomplete="new-password"
+          :rules="[required, sameAsNew]"
+        />
+        <v-btn type="submit" color="primary" :loading="loading" :disabled="!passwordValid"
+          >Changer le mot de passe</v-btn
+        >
       </v-form>
     </v-card-text>
   </v-card>

@@ -93,6 +93,24 @@ export const router = createRouter({
       meta: { title: 'Paramètres', admin: true },
     },
     {
+      path: '/utilisateurs',
+      name: 'users',
+      component: () => import('@/views/UsersView.vue'),
+      meta: { title: 'Utilisateurs', admin: true },
+    },
+    {
+      path: '/journal',
+      name: 'audit',
+      component: () => import('@/views/AuditView.vue'),
+      meta: { title: 'Journal d’audit', admin: true },
+    },
+    {
+      path: '/invitation',
+      name: 'invitation',
+      component: () => import('@/views/InvitationView.vue'),
+      meta: { public: true, title: 'Invitation' },
+    },
+    {
       path: '/premier-lancement',
       name: 'setup',
       component: () => import('@/views/SetupView.vue'),
@@ -118,6 +136,7 @@ router.beforeEach(async (to) => {
   if (!to.meta.public && !auth.isAuthenticated) {
     return { name: 'login', query: to.fullPath !== '/' ? { redirect: to.fullPath } : {} }
   }
+  if (auth.twoFactorPending && !to.meta.public && to.name !== 'security') return { name: 'security' }
   if (to.meta.admin && !auth.isAdmin) return { name: 'home' }
   return true
 })

@@ -3,12 +3,14 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import {
+  mdiAccountGroupOutline,
   mdiApi,
   mdiBankOutline,
   mdiCalendarCheckOutline,
   mdiCalendarSync,
   mdiCogOutline,
   mdiChartDonut,
+  mdiClipboardTextClockOutline,
   mdiFileUploadOutline,
   mdiFormatListBulleted,
   mdiHandCoinOutline,
@@ -29,6 +31,7 @@ import { usePendingStore } from '@/stores/pending'
 import { useReferenceStore } from '@/stores/reference'
 import { useTransactionEditor } from '@/stores/transactionEditor'
 import { useThemePreference } from '@/composables/useThemePreference'
+import { roleLabel } from '@/utils/users'
 
 const auth = useAuthStore()
 const reference = useReferenceStore()
@@ -87,6 +90,22 @@ const navigation = computed(() =>
       title: 'Paramètres',
       icon: mdiCogOutline,
       to: { name: 'settings' },
+      exact: true,
+      bottom: false,
+      admin: true,
+    },
+    {
+      title: 'Utilisateurs',
+      icon: mdiAccountGroupOutline,
+      to: { name: 'users' },
+      exact: true,
+      bottom: false,
+      admin: true,
+    },
+    {
+      title: 'Journal d’audit',
+      icon: mdiClipboardTextClockOutline,
+      to: { name: 'audit' },
       exact: true,
       bottom: false,
       admin: true,
@@ -150,7 +169,7 @@ async function logout() {
         </v-btn>
       </template>
       <v-list density="compact">
-        <v-list-item :title="auth.user?.userName" :subtitle="auth.isAdmin ? 'Administrateur' : 'Membre'" />
+        <v-list-item :title="auth.user?.displayName" :subtitle="roleLabel(auth.user?.roles[0])" />
         <v-divider />
         <template v-if="!mdAndUp">
           <v-list-item

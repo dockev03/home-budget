@@ -72,6 +72,8 @@ public static partial class CategoryMergeEndpoints
 
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var result = await CountAsync(db, source, target!, ct);
+        // Les lignes et récurrences des comptes privés des autres membres sont déplacées aussi.
+        db.IgnoreVisibility = true;
         var targetId = target!.Id;
         await db.TransactionLines.Where(l => l.CategoryId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(l => l.CategoryId, targetId), ct);

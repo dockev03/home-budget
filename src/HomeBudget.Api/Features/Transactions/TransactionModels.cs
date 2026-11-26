@@ -23,6 +23,7 @@ public sealed record TransactionLineDto(Guid Id, Guid? CategoryId, decimal Amoun
 /// <param name="ReimbursesId">Dépense remboursée par ce revenu (B11).</param>
 /// <param name="ReimbursedAmount">Pour une dépense, total des remboursements liés : coût net = montant + remboursé.</param>
 /// <param name="AdvanceId">Avance soldée en tout ou partie par ce revenu (B12).</param>
+/// <param name="CreatedBy">Auteur de l'opération (K2) ; null pour une opération générée ou importée sans session.</param>
 public sealed record TransactionDto(
     Guid Id,
     Guid AccountId,
@@ -42,7 +43,9 @@ public sealed record TransactionDto(
     bool IsReconciled,
     Guid? ReimbursesId,
     decimal ReimbursedAmount,
-    Guid? AdvanceId);
+    Guid? AdvanceId,
+    Guid? CreatedBy,
+    Guid? UpdatedBy);
 
 /// <summary>
 /// Liens d'un revenu (B11, B12) : la dépense qu'il rembourse et l'avance qu'il solde. Modifiables même sur une

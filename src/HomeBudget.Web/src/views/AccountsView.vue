@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { mdiPencil, mdiPlus } from '@mdi/js'
+import { mdiLockOutline, mdiPencil, mdiPlus } from '@mdi/js'
 import { ApiError } from '@/api/errors'
 import AccountDialog from '@/components/AccountDialog.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -87,6 +87,13 @@ onMounted(() => reference.load(true).catch(() => (error.value = 'Chargement impo
         </template>
         <v-list-item-title>
           {{ account.name }}
+          <v-icon
+            v-if="account.isPrivate"
+            :icon="mdiLockOutline"
+            size="small"
+            class="ml-1"
+            title="Compte privé"
+          />
           <v-chip v-if="account.isArchived" size="x-small" class="ml-2">Archivé</v-chip>
         </v-list-item-title>
         <v-list-item-subtitle v-if="account.futureBalance !== account.balance">

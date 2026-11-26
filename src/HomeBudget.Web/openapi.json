@@ -926,6 +926,102 @@
         }
       }
     },
+    "/api/account/password": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Change le mot de passe (mot de passe actuel requis) ; les autres sessions sont ferm\u00E9es.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/audit": {
+      "get": {
+        "tags": [
+          "Audit"
+        ],
+        "summary": "Journal d\u0027audit, du plus r\u00E9cent au plus ancien, filtrable par action et par utilisateur.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AuditAction"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/transactions": {
       "get": {
         "tags": [
@@ -3839,10 +3935,345 @@
           }
         }
       }
+    },
+    "/api/users/directory": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Noms des utilisateurs du foyer, pour afficher l\u0027auteur d\u0027une op\u00E9ration (K2).",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Utilisateurs du foyer avec leur r\u00F4le.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/{id}/role": {
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Change le r\u00F4le d\u0027un utilisateur ; ses sessions sont ferm\u00E9es. Le dernier administrateur actif reste administrateur.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/{id}/status": {
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "D\u00E9sactive ou r\u00E9active un utilisateur ; un utilisateur d\u00E9sactiv\u00E9 perd aussit\u00F4t ses sessions.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/invitations": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Invitations en attente.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvitationDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Invite un utilisateur ; le lien n\u0027est renvoy\u00E9 qu\u0027une fois.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedInvitation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/invitations/{id}": {
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "R\u00E9voque une invitation en attente.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/invitations/lookup": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "V\u00E9rifie un lien d\u0027invitation.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationPreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/invitations/accept": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Accepte une invitation : cr\u00E9e le compte avec le mot de passe choisi et ouvre la session.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUser"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AcceptRequest": {
+        "required": [
+          "token",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": "string"
+          }
+        }
+      },
       "AccountDto": {
         "required": [
           "id",
@@ -3859,7 +4290,9 @@
           "sortOrder",
           "balance",
           "futureBalance",
-          "version"
+          "version",
+          "isPrivate",
+          "ownerId"
         ],
         "type": "object",
         "properties": {
@@ -3921,6 +4354,16 @@
           "version": {
             "type": "integer",
             "format": "int32"
+          },
+          "isPrivate": {
+            "type": "boolean"
+          },
+          "ownerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -4026,6 +4469,12 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "isPrivate": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -4148,6 +4597,121 @@
           "Open",
           "Settled"
         ]
+      },
+      "AuditAction": {
+        "enum": [
+          "LoginSucceeded",
+          "LoginFailed",
+          "LoginLockedOut",
+          "PasswordChanged",
+          "TwoFactorEnabled",
+          "TwoFactorDisabled",
+          "UserInvited",
+          "InvitationRevoked",
+          "InvitationAccepted",
+          "RoleChanged",
+          "UserDeactivated",
+          "UserReactivated",
+          "AccountVisibilityChanged",
+          "Exported",
+          "BackupExported",
+          "Restored",
+          "Deleted"
+        ]
+      },
+      "AuditEntryDto": {
+        "required": [
+          "id",
+          "at",
+          "userId",
+          "userName",
+          "action",
+          "target",
+          "targetId",
+          "details",
+          "ipAddress"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "userId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "userName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "action": {
+            "$ref": "#/components/schemas/AuditAction"
+          },
+          "target": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "targetId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "details": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ipAddress": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AuditPage": {
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditEntryDto"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
       },
       "AuthenticatorSetup": {
         "required": [
@@ -5800,6 +6364,23 @@
           }
         }
       },
+      "ChangePasswordRequest": {
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string"
+          },
+          "newPassword": {
+            "maxLength": 256,
+            "minLength": 0,
+            "type": "string"
+          }
+        }
+      },
       "ClearRequest": {
         "required": [
           "isCleared"
@@ -5864,6 +6445,21 @@
           }
         }
       },
+      "CreatedInvitation": {
+        "required": [
+          "invitation",
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "invitation": {
+            "$ref": "#/components/schemas/InvitationDto"
+          },
+          "token": {
+            "type": "string"
+          }
+        }
+      },
       "CsrfToken": {
         "required": [
           "token"
@@ -5881,7 +6477,9 @@
           "userName",
           "email",
           "roles",
-          "twoFactorEnabled"
+          "twoFactorEnabled",
+          "displayName",
+          "twoFactorRequired"
         ],
         "type": "object",
         "properties": {
@@ -5905,6 +6503,12 @@
             }
           },
           "twoFactorEnabled": {
+            "type": "boolean"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "twoFactorRequired": {
             "type": "boolean"
           }
         }
@@ -6558,6 +7162,96 @@
           "duplicates": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "InvitationDto": {
+        "required": [
+          "id",
+          "userName",
+          "displayName",
+          "role",
+          "createdAt",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "role": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "InvitationPreview": {
+        "required": [
+          "userName",
+          "displayName",
+          "role",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "userName": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "role": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "InvitationRequest": {
+        "required": [
+          "userName",
+          "displayName",
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "userName": {
+            "maxLength": 64,
+            "minLength": 3,
+            "type": "string"
+          },
+          "displayName": {
+            "maxLength": 60,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "role": {
+            "type": "string"
           }
         }
       },
@@ -7542,6 +8236,17 @@
           }
         }
       },
+      "RoleRequest": {
+        "required": [
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          }
+        }
+      },
       "RuleDto": {
         "required": [
           "id",
@@ -7681,6 +8386,17 @@
           }
         }
       },
+      "StatusRequest": {
+        "required": [
+          "isActive"
+        ],
+        "type": "object",
+        "properties": {
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
       "SubscriptionDto": {
         "required": [
           "recurrenceId",
@@ -7816,6 +8532,19 @@
           }
         }
       },
+      "TokenRequest": {
+        "required": [
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          }
+        }
+      },
       "ToleranceUnit": {
         "enum": [
           "Amount",
@@ -7842,7 +8571,9 @@
           "isReconciled",
           "reimbursesId",
           "reimbursedAmount",
-          "advanceId"
+          "advanceId",
+          "createdBy",
+          "updatedBy"
         ],
         "type": "object",
         "properties": {
@@ -7937,6 +8668,20 @@
             "format": "double"
           },
           "advanceId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "createdBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "updatedBy": {
             "type": [
               "null",
               "string"
@@ -8282,6 +9027,77 @@
             "format": "int32"
           }
         }
+      },
+      "UserDto": {
+        "required": [
+          "id",
+          "userName",
+          "displayName",
+          "email",
+          "role",
+          "isActive",
+          "twoFactorEnabled",
+          "twoFactorRequired",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "role": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "twoFactorEnabled": {
+            "type": "boolean"
+          },
+          "twoFactorRequired": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UserSummary": {
+        "required": [
+          "id",
+          "name",
+          "isActive"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
       }
     }
   },
@@ -8312,6 +9128,9 @@
     },
     {
       "name": "Recurrences"
+    },
+    {
+      "name": "Audit"
     },
     {
       "name": "Transactions"
@@ -8348,6 +9167,9 @@
     },
     {
       "name": "Advances"
+    },
+    {
+      "name": "Users"
     }
   ]
 }

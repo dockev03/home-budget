@@ -26,7 +26,7 @@ public sealed class Account : AuditableEntity
 
     public DateOnly InitialDate { get; set; }
 
-    /// <summary>Propriétaire d'un compte privé. Le filtre de visibilité (R8) arrive avec le lot L3.</summary>
+    /// <summary>Propriétaire d'un compte privé, seul à le voir (R8, filtre global de AppDbContext).</summary>
     public Guid? OwnerId { get; set; }
 
     public AccountVisibility Visibility { get; set; } = AccountVisibility.Shared;

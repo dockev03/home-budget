@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Claims;
 
+using HomeBudget.Api.Domain.Audit;
 using HomeBudget.Api.Domain.Categories;
 using HomeBudget.Api.Features.Transactions;
 using HomeBudget.Api.Infrastructure.Data;
@@ -32,6 +33,7 @@ public static partial class ExportEndpoints
         TimeProvider clock,
         ClaimsPrincipal user,
         ILoggerFactory loggers,
+        AuditTrail audit,
         string? format,
         Guid? accountId,
         Guid? categoryId,
@@ -55,6 +57,7 @@ public static partial class ExportEndpoints
         var rows = await LoadRowsAsync(db, filter, ct);
 
         LogExport(loggers.CreateLogger("HomeBudget.Exports"), user.Identity?.Name, kind, rows.Count);
+        await audit.RecordAsync(AuditAction.Exported, "Transaction", details: $"Export {kind.ToUpperInvariant()} : {rows.Count} ligne(s).");
 
         var stamp = DateOnly.FromDateTime(clock.GetLocalNow().DateTime).ToString("yyyyMMdd", CultureInfo.InvariantCulture);
         return kind == "csv"

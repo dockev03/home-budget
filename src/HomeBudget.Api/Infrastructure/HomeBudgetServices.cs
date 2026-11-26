@@ -107,6 +107,7 @@ public static class HomeBudgetServices
         services.AddScoped<ForecastService>();
         services.AddScoped<BackupRestorer>();
         services.AddScoped<ImportService>();
+        services.AddScoped<AuditTrail>();
         services.AddHostedService<BackupWorker>();
         services.AddHostedService<RecurrenceWorker>();
         return builder;
@@ -147,6 +148,8 @@ public static class HomeBudgetServices
             o.SlidingExpiration = true;
             o.Events.OnRedirectToLogin = ctx => WriteStatus(ctx, StatusCodes.Status401Unauthorized);
             o.Events.OnRedirectToAccessDenied = ctx => WriteStatus(ctx, StatusCodes.Status403Forbidden);
+            // Session revalidée à chaque requête : désactivation et changement de droits pris en compte aussitôt.
+            o.Events.OnValidatePrincipal = SessionValidator.ValidateAsync;
         });
 
         services.Configure<CookieAuthenticationOptions>(IdentityConstants.TwoFactorUserIdScheme, o =>

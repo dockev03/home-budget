@@ -39,6 +39,9 @@ public sealed class Account : AuditableEntity
 
     public bool IncludeInNetWorth { get; set; } = true;
 
+    /// <summary>Compte d'épargne de précaution (J3) : par défaut, les comptes de type épargne.</summary>
+    public bool IsEmergencyFund { get; set; }
+
     /// <summary>Seuil d'alerte de la prévision (F3).</summary>
     public decimal OverdraftThreshold { get; set; }
 

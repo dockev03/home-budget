@@ -6,6 +6,7 @@ import {
   chartColors,
   expensesDonutOption,
   historyOption,
+  netWorthOption,
   shortPeriodLabel,
 } from './charts'
 import { formatAmount } from './format'
@@ -147,5 +148,30 @@ describe('axisTooltip', () => {
       { name: '02/03', seriesName: 'Prévu', value: null, marker: '' },
     ])
     expect(text).toBe(`02/03<br>Réel : ${formatAmount(1234.5)}`)
+  })
+})
+
+describe('netWorthOption', () => {
+  it('trace le total puis une courbe par type de compte présent', () => {
+    const option = netWorthOption(
+      [
+        {
+          key: '2026-01',
+          date: '2026-01-31',
+          total: 8500,
+          byType: [
+            { type: 'Checking', amount: 1000 },
+            { type: 'Investment', amount: 7500 },
+          ],
+        },
+        { key: '2026-02', date: '2026-02-10', total: 8300, byType: [{ type: 'Investment', amount: 8300 }] },
+      ],
+      colors,
+    )
+    const series = seriesOf(option)
+    expect(series.map((s) => s.name)).toEqual(['Patrimoine net', 'Compte courant', 'Investissement'])
+    expect(series[0]!.data).toEqual([8500, 8300])
+    expect(series[1]!.data).toEqual([1000, 0])
+    expect(series[1]!.lineStyle?.type).toBe('dashed')
   })
 })

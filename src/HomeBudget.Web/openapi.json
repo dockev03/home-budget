@@ -584,6 +584,280 @@
         }
       }
     },
+    "/api/accounts/{accountId}/valuations": {
+      "get": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Valorisations du compte, de la plus r\u00E9cente \u00E0 la plus ancienne.",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ValuationDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Saisit la valeur d\u0027un compte d\u0027investissement \u00E0 une date.",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValuationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValuationDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{accountId}/valuations/{id}": {
+      "put": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Modifie une valorisation (If-Match requis).",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValuationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValuationDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Supprime une valorisation (If-Match requis).",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/categories": {
       "get": {
         "tags": [
@@ -3762,6 +4036,289 @@
         }
       }
     },
+    "/api/savings-goals": {
+      "get": {
+        "tags": [
+          "Savings"
+        ],
+        "summary": "Objectifs d\u0027\u00E9pargne avec leur avancement, par date cible puis par nom.",
+        "parameters": [
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SavingsGoalDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Savings"
+        ],
+        "summary": "Cr\u00E9e un objectif d\u0027\u00E9pargne.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavingsGoalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavingsGoalDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/savings-goals/{id}": {
+      "put": {
+        "tags": [
+          "Savings"
+        ],
+        "summary": "Modifie un objectif d\u0027\u00E9pargne (If-Match requis). L\u0027archivage passe par isArchived.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavingsGoalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavingsGoalDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Savings"
+        ],
+        "summary": "Supprime un objectif d\u0027\u00E9pargne (If-Match requis).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/net-worth": {
+      "get": {
+        "tags": [
+          "Savings"
+        ],
+        "summary": "Patrimoine net en fin de chaque p\u00E9riode (aujourd\u0027hui pour la p\u00E9riode en cours), sur 12, 24 ou 60 p\u00E9riodes, par type de compte.",
+        "parameters": [
+          {
+            "name": "months",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetWorthDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/emergency-fund": {
+      "get": {
+        "tags": [
+          "Savings"
+        ],
+        "summary": "\u00C9pargne de pr\u00E9caution : solde des comptes marqu\u00E9s, d\u00E9pense moyenne par p\u00E9riode et nombre de mois couverts.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmergencyFundDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/dashboard/{periodKey}": {
       "get": {
         "tags": [
@@ -5393,7 +5950,8 @@
           "futureBalance",
           "version",
           "isPrivate",
-          "ownerId"
+          "ownerId",
+          "isEmergencyFund"
         ],
         "type": "object",
         "properties": {
@@ -5465,6 +6023,9 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "isEmergencyFund": {
+            "type": "boolean"
           }
         }
       },
@@ -5572,6 +6133,12 @@
             "format": "int32"
           },
           "isPrivate": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "isEmergencyFund": {
             "type": [
               "null",
               "boolean"
@@ -6062,6 +6629,12 @@
                 "$ref": "#/components/schemas/BackupAudit"
               }
             ]
+          },
+          "isEmergencyFund": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -6456,6 +7029,24 @@
             ],
             "items": {
               "$ref": "#/components/schemas/BackupScenarioEvent"
+            }
+          },
+          "valuations": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BackupValuation"
+            }
+          },
+          "savingsGoals": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BackupSavingsGoal"
             }
           }
         }
@@ -6999,6 +7590,88 @@
           }
         }
       },
+      "BackupSavingsGoal": {
+        "required": [
+          "id",
+          "name",
+          "targetAmount",
+          "targetDate",
+          "accountId",
+          "categoryId",
+          "startDate",
+          "color",
+          "icon",
+          "isArchived",
+          "audit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "targetAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "targetDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "accountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "icon": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isArchived": {
+            "type": "boolean"
+          },
+          "audit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BackupAudit"
+              }
+            ]
+          }
+        }
+      },
       "BackupScenario": {
         "required": [
           "id",
@@ -7160,6 +7833,11 @@
             "$ref": "#/components/schemas/ForecastStrategy"
           },
           "forecastAverageMonths": {
+            "type": "integer",
+            "format": "int32",
+            "default": 6
+          },
+          "emergencyFundAverageMonths": {
             "type": "integer",
             "format": "int32",
             "default": 6
@@ -7389,6 +8067,51 @@
               "type": "string",
               "format": "uuid"
             }
+          }
+        }
+      },
+      "BackupValuation": {
+        "required": [
+          "id",
+          "accountId",
+          "date",
+          "value",
+          "note",
+          "audit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "audit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BackupAudit"
+              }
+            ]
           }
         }
       },
@@ -8380,6 +9103,64 @@
           "version": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "EmergencyFundAccountDto": {
+        "required": [
+          "id",
+          "name",
+          "balance"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "balance": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "EmergencyFundDto": {
+        "required": [
+          "amount",
+          "monthlyExpenses",
+          "averageMonths",
+          "monthsCovered",
+          "accounts"
+        ],
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "monthlyExpenses": {
+            "type": "number",
+            "format": "double"
+          },
+          "averageMonths": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "monthsCovered": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "accounts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmergencyFundAccountDto"
+            }
           }
         }
       },
@@ -9438,6 +10219,64 @@
           }
         }
       },
+      "NetWorthByTypeDto": {
+        "required": [
+          "type",
+          "amount"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/AccountType"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "NetWorthDto": {
+        "required": [
+          "points"
+        ],
+        "type": "object",
+        "properties": {
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetWorthPointDto"
+            }
+          }
+        }
+      },
+      "NetWorthPointDto": {
+        "required": [
+          "key",
+          "date",
+          "total",
+          "byType"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "total": {
+            "type": "number",
+            "format": "double"
+          },
+          "byType": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetWorthByTypeDto"
+            }
+          }
+        }
+      },
       "OccurrenceResultDto": {
         "required": [
           "id",
@@ -10419,6 +11258,193 @@
           }
         }
       },
+      "SavingsGoalDto": {
+        "required": [
+          "id",
+          "name",
+          "targetAmount",
+          "targetDate",
+          "accountId",
+          "categoryId",
+          "startDate",
+          "color",
+          "icon",
+          "isArchived",
+          "saved",
+          "remaining",
+          "percent",
+          "status",
+          "remainingPeriods",
+          "monthlyContribution",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "targetAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "targetDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "accountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "icon": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isArchived": {
+            "type": "boolean"
+          },
+          "saved": {
+            "type": "number",
+            "format": "double"
+          },
+          "remaining": {
+            "type": "number",
+            "format": "double"
+          },
+          "percent": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SavingsGoalStatus"
+          },
+          "remainingPeriods": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "monthlyContribution": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SavingsGoalRequest": {
+        "required": [
+          "name",
+          "targetAmount",
+          "targetDate",
+          "accountId",
+          "categoryId",
+          "startDate",
+          "color",
+          "icon"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "targetAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "targetDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "accountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "startDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "color": {
+            "maxLength": 16,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "icon": {
+            "maxLength": 40,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isArchived": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "SavingsGoalStatus": {
+        "enum": [
+          "InProgress",
+          "Reached",
+          "Overdue"
+        ]
+      },
       "ScenarioDto": {
         "required": [
           "id",
@@ -10631,6 +11657,7 @@
           "budgetAlertPercent",
           "forecastStrategy",
           "forecastAverageMonths",
+          "emergencyFundAverageMonths",
           "version"
         ],
         "type": "object",
@@ -10654,6 +11681,10 @@
             "$ref": "#/components/schemas/ForecastStrategy"
           },
           "forecastAverageMonths": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "emergencyFundAverageMonths": {
             "type": "integer",
             "format": "int32"
           },
@@ -10697,6 +11728,13 @@
             "$ref": "#/components/schemas/ForecastStrategy"
           },
           "forecastAverageMonths": {
+            "maximum": 24,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32",
+            "default": 6
+          },
+          "emergencyFundAverageMonths": {
             "maximum": 24,
             "minimum": 1,
             "type": "integer",
@@ -11483,6 +12521,79 @@
             "type": "boolean"
           }
         }
+      },
+      "ValuationDto": {
+        "required": [
+          "id",
+          "accountId",
+          "date",
+          "value",
+          "note",
+          "change",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "change": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ValuationRequest": {
+        "required": [
+          "date",
+          "value",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "note": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
       }
     }
   },
@@ -11543,6 +12654,9 @@
     },
     {
       "name": "Scenarios"
+    },
+    {
+      "name": "Savings"
     },
     {
       "name": "Dashboard"

@@ -11,6 +11,7 @@ using HomeBudget.Api.Domain.Payees;
 using HomeBudget.Api.Domain.Reconciliations;
 using HomeBudget.Api.Domain.Recurrences;
 using HomeBudget.Api.Domain.Rules;
+using HomeBudget.Api.Domain.Savings;
 using HomeBudget.Api.Domain.Scenarios;
 using HomeBudget.Api.Domain.Settings;
 using HomeBudget.Api.Domain.Tags;
@@ -71,6 +72,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
     public DbSet<Scenario> Scenarios => Set<Scenario>();
 
     public DbSet<ScenarioEvent> ScenarioEvents => Set<ScenarioEvent>();
+
+    public DbSet<AccountValuation> AccountValuations => Set<AccountValuation>();
+
+    public DbSet<SavingsGoal> SavingsGoals => Set<SavingsGoal>();
 
     public DbSet<Recurrence> Recurrences => Set<Recurrence>();
 
@@ -151,6 +156,29 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
             e.HasOne<Category>().WithMany().HasForeignKey(v => v.CategoryId).OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(v => v.ScenarioId);
             e.HasQueryFilter(v => SeesAllAccounts || Accounts.Any(a => a.Id == v.AccountId));
+        });
+
+        builder.Entity<AccountValuation>(e =>
+        {
+            ConfigureAudit(e);
+            e.Property(v => v.Note).HasMaxLength(AccountValuation.MaxNoteLength);
+            // Les valorisations (A7) disparaissent avec leur compte, et suivent sa visibilité (R8).
+            e.HasOne<Account>().WithMany().HasForeignKey(v => v.AccountId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(v => new { v.AccountId, v.Date }).IsUnique();
+            e.HasQueryFilter(v => SeesAllAccounts || Accounts.Any(a => a.Id == v.AccountId));
+        });
+
+        builder.Entity<SavingsGoal>(e =>
+        {
+            ConfigureAudit(e);
+            e.Property(g => g.Name).HasMaxLength(SavingsGoal.MaxNameLength);
+            e.Property(g => g.Color).HasMaxLength(16);
+            e.Property(g => g.Icon).HasMaxLength(40);
+            // Un compte ou une catégorie rattachés à un objectif (J1) ne se suppriment pas : on les archive.
+            e.HasOne<Account>().WithMany().HasForeignKey(g => g.AccountId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Category>().WithMany().HasForeignKey(g => g.CategoryId).OnDelete(DeleteBehavior.Restrict);
+            // Un objectif rattaché à un compte privé n'est visible que de son propriétaire (R8).
+            e.HasQueryFilter(g => SeesAllAccounts || g.AccountId == null || Accounts.Any(a => a.Id == g.AccountId));
         });
 
         builder.Entity<TransactionChange>(e =>

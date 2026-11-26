@@ -46,6 +46,17 @@ public static class BackupValidator
             errors.Add("Fichier invalide : un élément de liste est vide (null).");
             return errors.List;
         }
+        var hasSavings = document.FormatVersion >= BackupDocument.SavingsVersion;
+        if (hasSavings && (document.Valuations is null || document.SavingsGoals is null))
+        {
+            errors.Add("Fichier incomplet : valorisations et objectifs d'épargne attendus.");
+            return errors.List;
+        }
+        if (hasSavings && (document.Valuations!.Contains(null) || document.SavingsGoals!.Contains(null)))
+        {
+            errors.Add("Fichier invalide : un élément de liste est vide (null).");
+            return errors.List;
+        }
         var hasScenarios = document.FormatVersion >= BackupDocument.ScenariosVersion;
         if (hasScenarios && (document.Scenarios is null || document.ScenarioEvents is null))
         {
@@ -377,6 +388,47 @@ public static class BackupValidator
             Audit(where, e.Audit, errors);
         }
 
+        UniqueIds("valorisation", (document.Valuations ?? []).Select(v => v!.Id), errors);
+        var valuationDates = new HashSet<(Guid, DateOnly)>();
+        foreach (var v in (document.Valuations ?? []).OfType<BackupValuation>())
+        {
+            var where = $"Valorisation {v.Id}";
+            Reference(where, "compte", v.AccountId, accountIds, errors);
+            if (!valuationDates.Add((v.AccountId, v.Date)))
+            {
+                errors.Add($"{where} : une seule valorisation par compte et par date.");
+            }
+            Amount(where, v.Value, errors);
+            Text(where, "note", v.Note, Domain.Accounts.AccountValuation.MaxNoteLength, required: false, errors);
+            Audit(where, v.Audit, errors);
+        }
+
+        UniqueIds("objectif d'épargne", (document.SavingsGoals ?? []).Select(g => g!.Id), errors);
+        foreach (var g in (document.SavingsGoals ?? []).OfType<BackupSavingsGoal>())
+        {
+            var where = $"Objectif d'épargne {g.Id}";
+            Text(where, "nom", g.Name, Domain.Savings.SavingsGoal.MaxNameLength, required: true, errors);
+            if (g.TargetAmount <= 0)
+            {
+                errors.Add($"{where} : montant cible positif requis.");
+            }
+            Amount(where, g.TargetAmount, errors);
+            if ((g.AccountId is null) == (g.CategoryId is null))
+            {
+                errors.Add($"{where} : un compte ou une catégorie, l'un ou l'autre.");
+            }
+            OptionalReference(where, "compte", g.AccountId, accountIds, errors);
+            OptionalReference(where, "catégorie", g.CategoryId, categoryIds, errors);
+            if (g.CategoryId is { } goalCategory && categoryById.TryGetValue(goalCategory, out var category)
+                && category.Kind != Domain.Categories.CategoryKind.Savings)
+            {
+                errors.Add($"{where} : la catégorie doit être une catégorie d'épargne.");
+            }
+            Text(where, "couleur", g.Color, 16, required: false, errors);
+            Text(where, "icône", g.Icon, 40, required: false, errors);
+            Audit(where, g.Audit, errors);
+        }
+
         UniqueIds("modification d'opération", (document.TransactionChanges ?? []).Select(c => c!.Id), errors);
         foreach (var c in (document.TransactionChanges ?? []).OfType<BackupTransactionChange>())
         {
@@ -466,6 +518,10 @@ public static class BackupValidator
         }
         Amount(where, s.SafetyThreshold, errors);
         Defined(where, s.ForecastStrategy, errors);
+        if (s.EmergencyFundAverageMonths is < 1 or > Domain.Settings.HouseholdSettings.MaxForecastAverageMonths)
+        {
+            errors.Add($"{where} : nombre de périodes de l'épargne de précaution invalide.");
+        }
         if (s.ForecastAverageMonths is < 1 or > Domain.Settings.HouseholdSettings.MaxForecastAverageMonths)
         {
             errors.Add($"{where} : nombre de périodes de la moyenne invalide.");

@@ -114,12 +114,13 @@ Tous les montants sont signés (négatif = sortie). Chaque entité porte `Create
 ```
 User (Identity)            Id, UserName, Email, Role, IncomeShare?
 HouseholdSettings          PeriodMode, PeriodStartDay, SafetyThreshold, ForecastIncludesIncome, AlertThresholds,
-                           ForecastStrategy{Budget,Average}, ForecastAverageMonths   (F7)
+                           ForecastStrategy{Budget,Average}, ForecastAverageMonths   (F7),
+                           EmergencyFundAverageMonths   (J3)
 
 Account                    Id, Name, Type{Checking,Savings,Investment,Cash,Credit}, InitialBalance, InitialDate,
                            OwnerId?, Visibility{Shared,Private}, Color, Icon, IncludeInForecast, IncludeInNetWorth,
-                           OverdraftThreshold, IsArchived
-AccountValuation           AccountId, Date, Value                       (A7)
+                           OverdraftThreshold, IsEmergencyFund (J3), IsArchived
+AccountValuation           AccountId, Date, Value, Note   (A7 ; unique par compte et date ; visibilité du compte, R8)
 Loan                       AccountId, Principal, AnnualRate, StartDate, Months, InsuranceMonthly   (A8)
 Reconciliation             AccountId, Date, StatementBalance, Difference, ClosedAt                (A5)
 
@@ -148,7 +149,8 @@ Recurrence                 Id, AccountId, Label, PayeeId?, Frequency{Day,Week,Mo
 RecurrenceLine             RecurrenceId, CategoryId, Amount
 RecurrenceOccurrence       RecurrenceId, Date, State{Generated,Skipped,Matched}, TransactionId?
 
-SavingsGoal                Id, Name, TargetAmount, TargetDate, AccountId?, CategoryId?   (J1–J4)
+SavingsGoal                Id, Name, TargetAmount, TargetDate?, AccountId? | CategoryId?, StartDate,
+                           Color, Icon, IsArchived   (J1–J4 ; un compte ou une catégorie d'épargne)
 Scenario                   Id, Name, IsActive                                              (F5)
 ScenarioEvent              ScenarioId, Label, AccountId, CategoryId?, Amount, Date,
                            Frequency{Once,Monthly}, EndDate?   (visibilité du compte, R8)
@@ -242,6 +244,14 @@ Il n'y a pas d'éditeur de règles. L'appli apprend des corrections :
 - La tâche `AlertWorker` s'exécute toutes les heures. Elle vérifie les seuils de budget, le passage sous le seuil prévu, les échéances du lendemain et les opérations à valider.
 - Une même alerte n'est pas envoyée deux fois : chaque alerte est enregistrée par (type, objet, période).
 - Les envois se font en Web Push (VAPID) et/ou par e-mail (MailKit). Le résumé par e-mail part chaque semaine ou chaque mois, selon les préférences de chaque utilisateur.
+
+### 6.8 Épargne et patrimoine (A7, G5, J1–J4)
+
+- **Solde d'un compte valorisé** (A7) : la dernière valorisation (valeur en fin de jour, opérations du jour comprises), plus les opérations datées après elle. Sans valorisation, le solde reste « solde initial + opérations ». Ce calcul vaut pour le solde affiché, le patrimoine net et les objectifs. La prévision et le rapprochement n'en tiennent pas compte : ils portent sur les mouvements réels des comptes courants.
+- **Patrimoine net** (G5, `BalanceHistory`, fonction pure) : solde de chaque compte « inclus dans le patrimoine » en fin de chaque période (aujourd'hui pour la période en cours), archivés compris, sur 12, 24 ou 60 périodes. Avant sa date d'ouverture, un compte vaut 0.
+- **Objectif d'épargne** (J1, J2, `SavingsGoalPlan`) : l'épargne réunie est le solde du compte rattaché, ou l'opposé du cumul des lignes de la catégorie d'épargne (sous-catégories comprises) depuis `StartDate`. Le versement conseillé répartit le reste à réunir sur les périodes restantes jusqu'à celle de la date cible, la période en cours comprise, arrondi au centime supérieur. L'épargne d'un enfant (J4) est un objectif rattaché à son livret ou à une catégorie dédiée.
+- **Épargne de précaution** (J3) : solde des comptes marqués `IsEmergencyFund` (par défaut les comptes d'épargne), divisé par les dépenses fixes et variables moyennes des N dernières périodes clôturées. La moyenne ne remonte pas avant la période de la première opération.
+- **Visibilité** (R8) : valorisations et objectifs rattachés à un compte suivent sa visibilité ; le cumul d'une catégorie ne compte que les opérations visibles.
 
 ## 7. Conventions d'API
 

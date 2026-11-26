@@ -24,6 +24,7 @@ const form = ref<Schemas['SettingsRequest']>({
   budgetAlertPercent: 100,
   forecastStrategy: 'Budget',
   forecastAverageMonths: 6,
+  emergencyFundAverageMonths: 6,
 })
 const valid = ref(false)
 const saving = ref(false)
@@ -53,6 +54,7 @@ async function load() {
       budgetAlertPercent,
       forecastStrategy,
       forecastAverageMonths,
+      emergencyFundAverageMonths,
     } = settings.value
     form.value = {
       periodMode,
@@ -61,6 +63,7 @@ async function load() {
       budgetAlertPercent,
       forecastStrategy,
       forecastAverageMonths,
+      emergencyFundAverageMonths,
     }
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : 'Chargement impossible.'
@@ -81,6 +84,7 @@ async function save() {
           budgetWarningPercent: Number(form.value.budgetWarningPercent),
           budgetAlertPercent: Number(form.value.budgetAlertPercent),
           forecastAverageMonths: Number(form.value.forecastAverageMonths),
+          emergencyFundAverageMonths: Number(form.value.emergencyFundAverageMonths),
         },
       }),
     )
@@ -192,6 +196,20 @@ onMounted(load)
       </v-card-text>
     </v-card>
 
+    <v-card class="mb-4" title="Épargne de précaution">
+      <v-card-text>
+        <v-select
+          v-model="form.emergencyFundAverageMonths"
+          :items="averageMonths"
+          label="Dépenses moyennes sur"
+          hint="Périodes clôturées retenues pour estimer combien de mois de dépenses l'épargne de précaution couvre."
+          persistent-hint
+          style="max-width: 420px"
+          data-testid="emergency-fund-months"
+        />
+      </v-card-text>
+    </v-card>
+
     <v-btn type="submit" color="primary" :loading="saving" :disabled="!valid">Enregistrer</v-btn>
   </v-form>
 
@@ -199,9 +217,10 @@ onMounted(load)
   <v-card class="mt-8" title="Sauvegarde et restauration" data-testid="backup">
     <v-card-text>
       <p class="mb-4">
-        Le fichier JSON contient les paramètres, comptes, catégories, tiers, budgets, opérations, récurrences
-        et échéances. Il ne contient ni les comptes utilisateurs, ni les mots de passe, ni les secrets de
-        double authentification. Conservez-le en lieu sûr : il contient toutes vos données financières.
+        Le fichier JSON contient les paramètres, comptes et leurs valorisations, catégories, tiers, budgets,
+        opérations, récurrences, échéances, scénarios et objectifs d'épargne. Il ne contient ni les comptes
+        utilisateurs, ni les mots de passe, ni les secrets de double authentification. Conservez-le en lieu
+        sûr : il contient toutes vos données financières.
       </p>
       <v-btn href="/api/backups/export" download color="primary" variant="tonal" :prepend-icon="mdiDownload"
         >Télécharger la sauvegarde</v-btn

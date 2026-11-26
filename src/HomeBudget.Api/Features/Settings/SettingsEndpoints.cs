@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HomeBudget.Api.Features.Settings;
 
-/// <summary>Paramètres du foyer : période budgétaire (R1, D10), seuils des jauges (D9) et stratégie de prévision (F7).</summary>
+/// <summary>Paramètres du foyer : période budgétaire (R1, D10), seuils des jauges (D9), stratégie de prévision (F7) et épargne de précaution (J3).</summary>
 public static class SettingsEndpoints
 {
     public static IEndpointRouteBuilder MapSettingsEndpoints(this IEndpointRouteBuilder app)
@@ -33,13 +33,15 @@ public static class SettingsEndpoints
         [property: Range(1, 100)] int BudgetWarningPercent,
         [property: Range(1, 200)] int BudgetAlertPercent,
         ForecastStrategy ForecastStrategy = ForecastStrategy.Budget,
-        [property: Range(1, HouseholdSettings.MaxForecastAverageMonths)] int ForecastAverageMonths = HouseholdSettings.DefaultForecastAverageMonths);
+        [property: Range(1, HouseholdSettings.MaxForecastAverageMonths)] int ForecastAverageMonths = HouseholdSettings.DefaultForecastAverageMonths,
+        [property: Range(1, HouseholdSettings.MaxForecastAverageMonths)] int EmergencyFundAverageMonths = HouseholdSettings.DefaultForecastAverageMonths);
 
     /// <param name="ForecastStrategy">Prévision par le budget, ou par la moyenne des dernières périodes (F7).</param>
     /// <param name="ForecastAverageMonths">Nombre de périodes clôturées de la moyenne.</param>
+    /// <param name="EmergencyFundAverageMonths">Nombre de périodes clôturées de la dépense moyenne de l'épargne de précaution (J3).</param>
     public sealed record SettingsDto(
         PeriodMode PeriodMode, int PeriodStartDay, int BudgetWarningPercent, int BudgetAlertPercent,
-        ForecastStrategy ForecastStrategy, int ForecastAverageMonths, int Version);
+        ForecastStrategy ForecastStrategy, int ForecastAverageMonths, int EmergencyFundAverageMonths, int Version);
 
     private static async Task<Ok<SettingsDto>> GetAsync(AppDbContext db) =>
         TypedResults.Ok(ToDto(await db.HouseholdSettings.AsNoTracking().SingleAsync()));
@@ -72,9 +74,10 @@ public static class SettingsEndpoints
         settings.BudgetAlertPercent = request.BudgetAlertPercent;
         settings.ForecastStrategy = request.ForecastStrategy;
         settings.ForecastAverageMonths = request.ForecastAverageMonths;
+        settings.EmergencyFundAverageMonths = request.EmergencyFundAverageMonths;
         return await db.TrySaveAsync() ? TypedResults.Ok(ToDto(settings)) : Concurrency.Conflict();
     }
 
     private static SettingsDto ToDto(HouseholdSettings s) =>
-        new(s.PeriodMode, s.PeriodStartDay, s.BudgetWarningPercent, s.BudgetAlertPercent, s.ForecastStrategy, s.ForecastAverageMonths, s.Version);
+        new(s.PeriodMode, s.PeriodStartDay, s.BudgetWarningPercent, s.BudgetAlertPercent, s.ForecastStrategy, s.ForecastAverageMonths, s.EmergencyFundAverageMonths, s.Version);
 }

@@ -7,6 +7,7 @@ using HomeBudget.Api.Domain.Payees;
 using HomeBudget.Api.Domain.Reconciliations;
 using HomeBudget.Api.Domain.Recurrences;
 using HomeBudget.Api.Domain.Rules;
+using HomeBudget.Api.Domain.Savings;
 using HomeBudget.Api.Domain.Scenarios;
 using HomeBudget.Api.Domain.Settings;
 using HomeBudget.Api.Domain.Tags;
@@ -45,6 +46,8 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
         var changes = await db.TransactionChanges.AsNoTracking().OrderBy(c => c.Id).ToListAsync(ct);
         var scenarios = await db.Scenarios.AsNoTracking().OrderBy(s => s.Id).ToListAsync(ct);
         var scenarioEvents = await db.ScenarioEvents.AsNoTracking().OrderBy(e => e.Id).ToListAsync(ct);
+        var valuations = await db.AccountValuations.AsNoTracking().OrderBy(v => v.Id).ToListAsync(ct);
+        var goals = await db.SavingsGoals.AsNoTracking().OrderBy(g => g.Id).ToListAsync(ct);
 
         return new BackupDocument(
             BackupDocument.FormatName,
@@ -53,10 +56,10 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
             new BackupSettings(
                 settings.Id, settings.PeriodMode, settings.PeriodStartDay, settings.SafetyThreshold, settings.ForecastIncludesIncome,
                 settings.BudgetWarningPercent, settings.BudgetAlertPercent, settings.DefaultCategoriesCreated, AuditOf(settings),
-                settings.ForecastStrategy, settings.ForecastAverageMonths),
+                settings.ForecastStrategy, settings.ForecastAverageMonths, settings.EmergencyFundAverageMonths),
             [.. accounts.Select(a => new BackupAccount(
                 a.Id, a.Name, a.Type, a.InitialBalance, a.InitialDate, a.OwnerId, a.Visibility, a.Color, a.Icon,
-                a.IncludeInForecast, a.IncludeInNetWorth, a.OverdraftThreshold, a.IsArchived, a.SortOrder, AuditOf(a)))],
+                a.IncludeInForecast, a.IncludeInNetWorth, a.OverdraftThreshold, a.IsArchived, a.SortOrder, AuditOf(a), a.IsEmergencyFund))],
             [.. categories.Select(c => new BackupCategory(
                 c.Id, c.ParentId, c.Name, c.Kind, c.Color, c.Icon, c.SortOrder, c.IsArchived, AuditOf(c)))],
             [.. payees.Select(p => new BackupPayee(p.Id, p.Name, AuditOf(p)))],
@@ -85,7 +88,10 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
             [.. changes.Select(c => new BackupTransactionChange(c.Id, c.TransactionId, c.At, c.UserId, c.Changes))],
             [.. scenarios.Select(s => new BackupScenario(s.Id, s.Name, s.IsActive, AuditOf(s)))],
             [.. scenarioEvents.Select(e => new BackupScenarioEvent(
-                e.Id, e.ScenarioId, e.Label, e.AccountId, e.CategoryId, e.Amount, e.Date, e.Frequency, e.EndDate, AuditOf(e)))]);
+                e.Id, e.ScenarioId, e.Label, e.AccountId, e.CategoryId, e.Amount, e.Date, e.Frequency, e.EndDate, AuditOf(e)))],
+            [.. valuations.Select(v => new BackupValuation(v.Id, v.AccountId, v.Date, v.Value, v.Note, AuditOf(v)))],
+            [.. goals.Select(g => new BackupSavingsGoal(
+                g.Id, g.Name, g.TargetAmount, g.TargetDate, g.AccountId, g.CategoryId, g.StartDate, g.Color, g.Icon, g.IsArchived, AuditOf(g)))]);
     }
 
     /// <summary>
@@ -115,6 +121,9 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
 
         // Ordre imposé par les clés étrangères : des dépendants vers les éléments référencés.
         await db.RecurrenceOccurrences.ExecuteDeleteAsync(ct);
+        // Remplacés quelle que soit la version : une sauvegarde antérieure à la v7 n'en contient pas.
+        await db.SavingsGoals.ExecuteDeleteAsync(ct);
+        await db.AccountValuations.ExecuteDeleteAsync(ct);
         // Remplacés quelle que soit la version : une sauvegarde antérieure à la v6 n'en contient pas.
         await db.ScenarioEvents.ExecuteDeleteAsync(ct);
         await db.Scenarios.ExecuteDeleteAsync(ct);
@@ -157,6 +166,7 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
             DefaultCategoriesCreated = s.DefaultCategoriesCreated,
             ForecastStrategy = s.ForecastStrategy,
             ForecastAverageMonths = s.ForecastAverageMonths,
+            EmergencyFundAverageMonths = s.EmergencyFundAverageMonths,
         }, s.Audit));
 
         foreach (var a in document.Accounts!.OfType<BackupAccount>())
@@ -177,6 +187,8 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 OverdraftThreshold = a.OverdraftThreshold,
                 IsArchived = a.IsArchived,
                 SortOrder = a.SortOrder,
+                // Avant la v7, l'épargne de précaution suit le type du compte, comme à la migration.
+                IsEmergencyFund = a.IsEmergencyFund ?? a.Type == Domain.Accounts.AccountType.Savings,
             }, a.Audit));
         }
 
@@ -390,6 +402,35 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 Frequency = e.Frequency,
                 EndDate = e.Frequency == ScenarioEventFrequency.Monthly ? e.EndDate : null,
             }, e.Audit));
+        }
+
+        foreach (var v in (document.Valuations ?? []).OfType<BackupValuation>())
+        {
+            db.AccountValuations.Add(Stamp(new Domain.Accounts.AccountValuation
+            {
+                Id = v.Id,
+                AccountId = v.AccountId,
+                Date = v.Date,
+                Value = v.Value,
+                Note = string.IsNullOrWhiteSpace(v.Note) ? null : v.Note.Trim(),
+            }, v.Audit));
+        }
+
+        foreach (var g in (document.SavingsGoals ?? []).OfType<BackupSavingsGoal>())
+        {
+            db.SavingsGoals.Add(Stamp(new SavingsGoal
+            {
+                Id = g.Id,
+                Name = g.Name!.Trim(),
+                TargetAmount = g.TargetAmount,
+                TargetDate = g.TargetDate,
+                AccountId = g.AccountId,
+                CategoryId = g.AccountId is null ? g.CategoryId : null,
+                StartDate = g.StartDate,
+                Color = g.Color,
+                Icon = g.Icon,
+                IsArchived = g.IsArchived,
+            }, g.Audit));
         }
 
         db.PreserveAuditFields = true;

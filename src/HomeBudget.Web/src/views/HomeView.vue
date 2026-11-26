@@ -6,6 +6,7 @@ import { mdiAlertOutline, mdiCalendarCheckOutline, mdiShieldAlertOutline } from 
 import { api, type Schemas } from '@/api/client'
 import { ApiError, unwrap } from '@/api/errors'
 import PeriodNavigator from '@/components/PeriodNavigator.vue'
+import WealthCard from '@/components/WealthCard.vue'
 import { VChart } from '@/plugins/echarts'
 import { useAuthStore } from '@/stores/auth'
 import { usePendingStore } from '@/stores/pending'
@@ -530,6 +531,9 @@ onMounted(async () => {
       <v-card-text v-else class="text-medium-emphasis">Aucune dépense rattachée à un tiers.</v-card-text>
     </v-card>
   </template>
+
+  <!-- G5, J1 à J3 : patrimoine et épargne, indépendants de la période affichée. -->
+  <WealthCard />
 
   <v-card class="mb-4">
     <v-card-title class="d-flex align-center">

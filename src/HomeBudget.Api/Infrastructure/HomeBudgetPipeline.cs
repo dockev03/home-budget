@@ -16,6 +16,7 @@ using HomeBudget.Api.Features.Reconciliations;
 using HomeBudget.Api.Features.Recurrences;
 using HomeBudget.Api.Features.Reports;
 using HomeBudget.Api.Features.Rules;
+using HomeBudget.Api.Features.Savings;
 using HomeBudget.Api.Features.Scenarios;
 using HomeBudget.Api.Features.Settings;
 using HomeBudget.Api.Features.Setup;
@@ -71,6 +72,7 @@ public static class HomeBudgetPipeline
         app.MapAuthEndpoints();
         app.MapTwoFactorEndpoints();
         app.MapAccountEndpoints();
+        app.MapValuationEndpoints();
         app.MapCategoryEndpoints();
         app.MapPayeeEndpoints();
         app.MapTransactionEndpoints();
@@ -84,6 +86,8 @@ public static class HomeBudgetPipeline
         app.MapRecurrenceEndpoints();
         app.MapForecastEndpoints();
         app.MapScenarioEndpoints();
+        app.MapSavingsGoalEndpoints();
+        app.MapWealthEndpoints();
         app.MapDashboardEndpoints();
         app.MapExportEndpoints();
         app.MapBackupEndpoints();

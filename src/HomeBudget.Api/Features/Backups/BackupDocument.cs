@@ -3,6 +3,7 @@ using HomeBudget.Api.Domain.Budgets;
 using HomeBudget.Api.Domain.Categories;
 using HomeBudget.Api.Domain.Imports;
 using HomeBudget.Api.Domain.Recurrences;
+using HomeBudget.Api.Domain.Savings;
 using HomeBudget.Api.Domain.Scenarios;
 using HomeBudget.Api.Domain.Settings;
 
@@ -36,11 +37,13 @@ public sealed record BackupDocument(
     List<BackupProvision?>? Provisions = null,
     List<BackupTransactionChange?>? TransactionChanges = null,
     List<BackupScenario?>? Scenarios = null,
-    List<BackupScenarioEvent?>? ScenarioEvents = null)
+    List<BackupScenarioEvent?>? ScenarioEvents = null,
+    List<BackupValuation?>? Valuations = null,
+    List<BackupSavingsGoal?>? SavingsGoals = null)
 {
     public const string FormatName = "home-budget-backup";
 
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 7;
 
     /// <summary>Version 1 : sans profils ni historique d'import (étapes 1 à 4), toujours restaurable.</summary>
     public const int MinVersion = 1;
@@ -59,6 +62,9 @@ public sealed record BackupDocument(
 
     /// <summary>Version 6 : scénarios « et si… » et stratégie de prévision (étape 10).</summary>
     public const int ScenariosVersion = 6;
+
+    /// <summary>Version 7 : valorisations, objectifs d'épargne et épargne de précaution (étape 11).</summary>
+    public const int SavingsVersion = 7;
 }
 
 /// <summary>Traçabilité (K2) et version de concurrence, conservées à la restauration.</summary>
@@ -75,7 +81,8 @@ public sealed record BackupSettings(
     bool DefaultCategoriesCreated,
     BackupAudit? Audit,
     ForecastStrategy ForecastStrategy = ForecastStrategy.Budget,
-    int ForecastAverageMonths = HouseholdSettings.DefaultForecastAverageMonths);
+    int ForecastAverageMonths = HouseholdSettings.DefaultForecastAverageMonths,
+    int EmergencyFundAverageMonths = HouseholdSettings.DefaultForecastAverageMonths);
 
 public sealed record BackupAccount(
     Guid Id,
@@ -92,6 +99,24 @@ public sealed record BackupAccount(
     decimal OverdraftThreshold,
     bool IsArchived,
     int SortOrder,
+    BackupAudit? Audit,
+    bool? IsEmergencyFund = null);
+
+/// <summary>Valorisation d'un compte d'investissement (A7).</summary>
+public sealed record BackupValuation(Guid Id, Guid AccountId, DateOnly Date, decimal Value, string? Note, BackupAudit? Audit);
+
+/// <summary>Objectif d'épargne (J1).</summary>
+public sealed record BackupSavingsGoal(
+    Guid Id,
+    string? Name,
+    decimal TargetAmount,
+    DateOnly? TargetDate,
+    Guid? AccountId,
+    Guid? CategoryId,
+    DateOnly StartDate,
+    string? Color,
+    string? Icon,
+    bool IsArchived,
     BackupAudit? Audit);
 
 public sealed record BackupCategory(

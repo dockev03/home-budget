@@ -57,6 +57,12 @@ export const router = createRouter({
       meta: { title: 'Scénarios' },
     },
     {
+      path: '/objectifs',
+      name: 'savings',
+      component: () => import('@/views/SavingsGoalsView.vue'),
+      meta: { title: 'Objectifs d’épargne' },
+    },
+    {
       path: '/abonnements',
       name: 'subscriptions',
       component: () => import('@/views/SubscriptionsView.vue'),

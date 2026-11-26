@@ -748,6 +748,242 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/accounts/{accountId}/valuations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Valorisations du compte, de la plus récente à la plus ancienne. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    accountId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValuationDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Saisit la valeur d'un compte d'investissement à une date. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    accountId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ValuationRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValuationDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/{accountId}/valuations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Modifie une valorisation (If-Match requis). */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    accountId: string;
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ValuationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValuationDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Supprime une valorisation (If-Match requis). */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    accountId: string;
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/categories": {
         parameters: {
             query?: never;
@@ -3864,6 +4100,303 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/savings-goals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Objectifs d'épargne avec leur avancement, par date cible puis par nom. */
+        get: {
+            parameters: {
+                query?: {
+                    includeArchived?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SavingsGoalDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Crée un objectif d'épargne. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SavingsGoalRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SavingsGoalDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/savings-goals/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Modifie un objectif d'épargne (If-Match requis). L'archivage passe par isArchived. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SavingsGoalRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SavingsGoalDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Supprime un objectif d'épargne (If-Match requis). */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/net-worth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Patrimoine net en fin de chaque période (aujourd'hui pour la période en cours), sur 12, 24 ou 60 périodes, par type de compte. */
+        get: {
+            parameters: {
+                query?: {
+                    months?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetWorthDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/emergency-fund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Épargne de précaution : solde des comptes marqués, dépense moyenne par période et nombre de mois couverts. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EmergencyFundDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dashboard/{periodKey}": {
         parameters: {
             query?: never;
@@ -5551,6 +6084,7 @@ export interface components {
             isPrivate: boolean;
             /** Format: uuid */
             ownerId: null | string;
+            isEmergencyFund: boolean;
         };
         AccountList: {
             items: components["schemas"]["AccountDto"][];
@@ -5574,6 +6108,7 @@ export interface components {
             /** Format: int32 */
             sortOrder: null | number;
             isPrivate?: null | boolean;
+            isEmergencyFund?: null | boolean;
         };
         /** @enum {unknown} */
         AccountType: "Checking" | "Savings" | "Investment" | "Cash" | "Credit";
@@ -5707,6 +6242,7 @@ export interface components {
             /** Format: int32 */
             sortOrder: number;
             audit: null | components["schemas"]["BackupAudit"];
+            isEmergencyFund?: null | boolean;
         };
         BackupAdvance: {
             /** Format: uuid */
@@ -5781,6 +6317,8 @@ export interface components {
             transactionChanges?: null | components["schemas"]["BackupTransactionChange"][];
             scenarios?: null | components["schemas"]["BackupScenario"][];
             scenarioEvents?: null | components["schemas"]["BackupScenarioEvent"][];
+            valuations?: null | components["schemas"]["BackupValuation"][];
+            savingsGoals?: null | components["schemas"]["BackupSavingsGoal"][];
         };
         BackupImportBatch: {
             /** Format: uuid */
@@ -5927,6 +6465,25 @@ export interface components {
             isSubscription: boolean;
             businessDayShift?: components["schemas"]["BusinessDayShift"];
         };
+        BackupSavingsGoal: {
+            /** Format: uuid */
+            id: string;
+            name: null | string;
+            /** Format: double */
+            targetAmount: number;
+            /** Format: date */
+            targetDate: null | string;
+            /** Format: uuid */
+            accountId: null | string;
+            /** Format: uuid */
+            categoryId: null | string;
+            /** Format: date */
+            startDate: string;
+            color: null | string;
+            icon: null | string;
+            isArchived: boolean;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
         BackupScenario: {
             /** Format: uuid */
             id: string;
@@ -5974,6 +6531,11 @@ export interface components {
              * @default 6
              */
             forecastAverageMonths: number;
+            /**
+             * Format: int32
+             * @default 6
+             */
+            emergencyFundAverageMonths: number;
         };
         BackupTag: {
             /** Format: uuid */
@@ -6028,6 +6590,18 @@ export interface components {
             amount: number;
             memo: null | string;
             tagIds?: null | string[];
+        };
+        BackupValuation: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            accountId: string;
+            /** Format: date */
+            date: string;
+            /** Format: double */
+            value: number;
+            note: null | string;
+            audit: null | components["schemas"]["BackupAudit"];
         };
         BudgetComparisonDto: {
             /** Format: uuid */
@@ -6277,6 +6851,24 @@ export interface components {
             value: number;
             /** Format: int32 */
             version: number;
+        };
+        EmergencyFundAccountDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: double */
+            balance: number;
+        };
+        EmergencyFundDto: {
+            /** Format: double */
+            amount: number;
+            /** Format: double */
+            monthlyExpenses: number;
+            /** Format: int32 */
+            averageMonths: number;
+            /** Format: double */
+            monthsCovered: null | number;
+            accounts: components["schemas"]["EmergencyFundAccountDto"][];
         };
         EnableTwoFactorRequest: {
             code: string;
@@ -6566,6 +7158,22 @@ export interface components {
         MergeRequest: {
             /** Format: uuid */
             targetId: string;
+        };
+        NetWorthByTypeDto: {
+            type: components["schemas"]["AccountType"];
+            /** Format: double */
+            amount: number;
+        };
+        NetWorthDto: {
+            points: components["schemas"]["NetWorthPointDto"][];
+        };
+        NetWorthPointDto: {
+            key: string;
+            /** Format: date */
+            date: string;
+            /** Format: double */
+            total: number;
+            byType: components["schemas"]["NetWorthByTypeDto"][];
         };
         OccurrenceResultDto: {
             /** Format: uuid */
@@ -6868,6 +7476,56 @@ export interface components {
             /** Format: int32 */
             version: number;
         };
+        SavingsGoalDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: double */
+            targetAmount: number;
+            /** Format: date */
+            targetDate: null | string;
+            /** Format: uuid */
+            accountId: null | string;
+            /** Format: uuid */
+            categoryId: null | string;
+            /** Format: date */
+            startDate: string;
+            color: null | string;
+            icon: null | string;
+            isArchived: boolean;
+            /** Format: double */
+            saved: number;
+            /** Format: double */
+            remaining: number;
+            /** Format: int32 */
+            percent: number;
+            status: components["schemas"]["SavingsGoalStatus"];
+            /** Format: int32 */
+            remainingPeriods: null | number;
+            /** Format: double */
+            monthlyContribution: null | number;
+            /** Format: int32 */
+            version: number;
+        };
+        SavingsGoalRequest: {
+            name: string;
+            /** Format: double */
+            targetAmount: number;
+            /** Format: date */
+            targetDate: null | string;
+            /** Format: uuid */
+            accountId: null | string;
+            /** Format: uuid */
+            categoryId: null | string;
+            /** Format: date */
+            startDate: null | string;
+            color: null | string;
+            icon: null | string;
+            /** @default false */
+            isArchived: boolean;
+        };
+        /** @enum {unknown} */
+        SavingsGoalStatus: "InProgress" | "Reached" | "Overdue";
         ScenarioDto: {
             /** Format: uuid */
             id: string;
@@ -6939,6 +7597,8 @@ export interface components {
             /** Format: int32 */
             forecastAverageMonths: number;
             /** Format: int32 */
+            emergencyFundAverageMonths: number;
+            /** Format: int32 */
             version: number;
         };
         SettingsRequest: {
@@ -6955,6 +7615,11 @@ export interface components {
              * @default 6
              */
             forecastAverageMonths: number;
+            /**
+             * Format: int32
+             * @default 6
+             */
+            emergencyFundAverageMonths: number;
         };
         SetupStatus: {
             required: boolean;
@@ -7163,6 +7828,28 @@ export interface components {
             id: string;
             name: string;
             isActive: boolean;
+        };
+        ValuationDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            accountId: string;
+            /** Format: date */
+            date: string;
+            /** Format: double */
+            value: number;
+            note: null | string;
+            /** Format: double */
+            change: null | number;
+            /** Format: int32 */
+            version: number;
+        };
+        ValuationRequest: {
+            /** Format: date */
+            date: string;
+            /** Format: double */
+            value: number;
+            note: null | string;
         };
     };
     responses: never;

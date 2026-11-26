@@ -21,6 +21,7 @@ import {
   mdiScaleBalance,
   mdiShapeOutline,
   mdiLogout,
+  mdiPiggyBankOutline,
   mdiShieldLockOutline,
   mdiTimelineQuestionOutline,
   mdiThemeLightDark,
@@ -86,6 +87,7 @@ const navigation = computed(() =>
       exact: true,
       bottom: false,
     },
+    { title: 'Objectifs', icon: mdiPiggyBankOutline, to: { name: 'savings' }, exact: true, bottom: false },
     { title: 'Abonnements', icon: mdiRepeat, to: { name: 'subscriptions' }, exact: true, bottom: false },
     {
       title: 'Rapprochement',

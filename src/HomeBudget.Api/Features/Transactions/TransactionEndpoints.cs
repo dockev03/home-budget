@@ -393,7 +393,9 @@ public static class TransactionEndpoints
             t.IsReconciled,
             t.ReimbursesId,
             reimbursed.GetValueOrDefault(t.Id),
-            t.AdvanceId))];
+            t.AdvanceId,
+            t.CreatedBy,
+            t.UpdatedBy))];
     }
 
     private static async Task<IResult> SetLinksAsync(Guid id, TransactionLinksRequest request, AppDbContext db, CancellationToken ct)

@@ -1,6 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 
 using HomeBudget.Api.Domain.Accounts;
+using HomeBudget.Api.Domain.Audit;
+using HomeBudget.Api.Domain.Users;
 using HomeBudget.Api.Infrastructure;
 using HomeBudget.Api.Infrastructure.Data;
 using HomeBudget.Api.Infrastructure.Http;
@@ -46,7 +49,8 @@ public static class AccountEndpoints
         bool? IncludeInNetWorth,
         [property: Range(-999_999_999, 999_999_999)] decimal? OverdraftThreshold,
         bool? IsArchived,
-        int? SortOrder);
+        int? SortOrder,
+        bool? IsPrivate = null);
 
     public sealed record AccountDto(
         Guid Id,
@@ -63,7 +67,9 @@ public static class AccountEndpoints
         int SortOrder,
         decimal Balance,
         decimal FutureBalance,
-        int Version);
+        int Version,
+        bool IsPrivate,
+        Guid? OwnerId);
 
     public sealed record AccountList(IReadOnlyList<AccountDto> Items, decimal NetWorth);
 
@@ -100,13 +106,18 @@ public static class AccountEndpoints
         Apply(account, request);
         account.IncludeInForecast = request.IncludeInForecast ?? request.Type == AccountType.Checking;
         account.SortOrder = request.SortOrder ?? (await db.Accounts.MaxAsync(a => (int?)a.SortOrder) ?? -1) + 1;
+        if (request.IsPrivate == true)
+        {
+            account.Visibility = AccountVisibility.Private;
+            account.OwnerId = db.ViewerId;
+        }
         db.Accounts.Add(account);
         await db.SaveChangesAsync();
         return TypedResults.Created($"/api/accounts/{account.Id}", ToDto(account, await Balances.ComputeAsync(db, clock, [account.Id])));
     }
 
     private static async Task<IResult> UpdateAsync(
-        Guid id, AccountRequest request, HttpRequest http, AppDbContext db, TimeProvider clock)
+        Guid id, AccountRequest request, HttpRequest http, AppDbContext db, TimeProvider clock, ClaimsPrincipal principal, AuditTrail audit)
     {
         var account = await db.Accounts.FirstOrDefaultAsync(a => a.Id == id);
         if (account is null)
@@ -120,6 +131,21 @@ public static class AccountEndpoints
         if (await ValidateAsync(request, db, account) is { } problem)
         {
             return problem;
+        }
+        var isPrivate = account.Visibility == AccountVisibility.Private;
+        if (request.IsPrivate is { } wanted && wanted != isPrivate)
+        {
+            // Rendre un compte partagé privé le retire aux autres membres : réservé à son auteur et aux administrateurs.
+            if (wanted && account.CreatedBy != db.ViewerId && !principal.IsInRole(Roles.Admin))
+            {
+                return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["isPrivate"] = ["Seul l'auteur du compte ou un administrateur peut le rendre privé."],
+                });
+            }
+            account.Visibility = wanted ? AccountVisibility.Private : AccountVisibility.Shared;
+            account.OwnerId = wanted ? db.ViewerId : null;
+            audit.Add(AuditAction.AccountVisibilityChanged, "Account", account.Id, wanted ? "Compte rendu privé." : "Compte partagé.");
         }
         account.Name = request.Name.Trim();
         Apply(account, request);
@@ -150,7 +176,7 @@ public static class AccountEndpoints
                 title: "Ce compte contient des opérations.",
                 detail: "Archivez-le plutôt : il sera masqué et son historique conservé.");
         }
-        if (await db.Recurrences.AnyAsync(r => r.AccountId == id || r.ToAccountId == id))
+        if (await db.Recurrences.IgnoreQueryFilters().AnyAsync(r => r.AccountId == id || r.ToAccountId == id))
         {
             return TypedResults.Problem(
                 statusCode: StatusCodes.Status409Conflict,
@@ -200,6 +226,7 @@ public static class AccountEndpoints
         return new AccountDto(
             a.Id, a.Name, a.Type, a.InitialBalance, a.InitialDate, a.Color, a.Icon, a.IncludeInForecast,
             a.IncludeInNetWorth, a.OverdraftThreshold, a.IsArchived, a.SortOrder,
-            a.InitialBalance + balance.UntilToday, a.InitialBalance + balance.Total, a.Version);
+            a.InitialBalance + balance.UntilToday, a.InitialBalance + balance.Total, a.Version,
+            a.Visibility == AccountVisibility.Private, a.OwnerId);
     }
 }

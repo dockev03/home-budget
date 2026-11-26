@@ -1112,6 +1112,103 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change le mot de passe (mot de passe actuel requis) ; les autres sessions sont fermées. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ChangePasswordRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Journal d'audit, du plus récent au plus ancien, filtrable par action et par utilisateur. */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    pageSize?: number;
+                    action?: components["schemas"]["AuditAction"];
+                    userId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AuditPage"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/transactions": {
         parameters: {
             query?: never;
@@ -3990,10 +4087,398 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/users/directory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Noms des utilisateurs du foyer, pour afficher l'auteur d'une opération (K2). */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Utilisateurs du foyer avec leur rôle. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{id}/role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change le rôle d'un utilisateur ; ses sessions sont fermées. Le dernier administrateur actif reste administrateur. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RoleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Désactive ou réactive un utilisateur ; un utilisateur désactivé perd aussitôt ses sessions. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["StatusRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserDto"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Invitations en attente. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InvitationDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Invite un utilisateur ; le lien n'est renvoyé qu'une fois. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["InvitationRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreatedInvitation"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/invitations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Révoque une invitation en attente. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/invitations/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Vérifie un lien d'invitation. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TokenRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InvitationPreview"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/invitations/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accepte une invitation : crée le compte avec le mot de passe choisi et ouvre la session. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AcceptRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CurrentUser"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AcceptRequest: {
+            token: string;
+            password: string;
+        };
         AccountDto: {
             /** Format: uuid */
             id: string;
@@ -4018,6 +4503,9 @@ export interface components {
             futureBalance: number;
             /** Format: int32 */
             version: number;
+            isPrivate: boolean;
+            /** Format: uuid */
+            ownerId: null | string;
         };
         AccountList: {
             items: components["schemas"]["AccountDto"][];
@@ -4040,6 +4528,7 @@ export interface components {
             isArchived: null | boolean;
             /** Format: int32 */
             sortOrder: null | number;
+            isPrivate?: null | boolean;
         };
         /** @enum {unknown} */
         AccountType: "Checking" | "Savings" | "Investment" | "Cash" | "Credit";
@@ -4076,6 +4565,32 @@ export interface components {
         };
         /** @enum {unknown} */
         AdvanceStatus: "Open" | "Settled";
+        /** @enum {unknown} */
+        AuditAction: "LoginSucceeded" | "LoginFailed" | "LoginLockedOut" | "PasswordChanged" | "TwoFactorEnabled" | "TwoFactorDisabled" | "UserInvited" | "InvitationRevoked" | "InvitationAccepted" | "RoleChanged" | "UserDeactivated" | "UserReactivated" | "AccountVisibilityChanged" | "Exported" | "BackupExported" | "Restored" | "Deleted";
+        AuditEntryDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            at: string;
+            /** Format: uuid */
+            userId: null | string;
+            userName: null | string;
+            action: components["schemas"]["AuditAction"];
+            target: null | string;
+            /** Format: uuid */
+            targetId: null | string;
+            details: null | string;
+            ipAddress: null | string;
+        };
+        AuditPage: {
+            items: components["schemas"]["AuditEntryDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+        };
         AuthenticatorSetup: {
             sharedKey: string;
             authenticatorUri: string;
@@ -4478,6 +4993,10 @@ export interface components {
             sortOrder: null | number;
             isArchived: null | boolean;
         };
+        ChangePasswordRequest: {
+            currentPassword: string;
+            newPassword: string;
+        };
         ClearRequest: {
             isCleared: boolean;
         };
@@ -4493,6 +5012,10 @@ export interface components {
             email: null | string;
             password: string;
         };
+        CreatedInvitation: {
+            invitation: components["schemas"]["InvitationDto"];
+            token: string;
+        };
         CsrfToken: {
             token: string;
         };
@@ -4503,6 +5026,8 @@ export interface components {
             email: null | string;
             roles: string[];
             twoFactorEnabled: boolean;
+            displayName: string;
+            twoFactorRequired: boolean;
         };
         DashboardDto: {
             period: components["schemas"]["PeriodDto"];
@@ -4679,6 +5204,29 @@ export interface components {
             matched: number;
             /** Format: int32 */
             duplicates: number;
+        };
+        InvitationDto: {
+            /** Format: uuid */
+            id: string;
+            userName: string;
+            displayName: null | string;
+            role: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        InvitationPreview: {
+            userName: string;
+            displayName: null | string;
+            role: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        InvitationRequest: {
+            userName: string;
+            displayName: null | string;
+            role: string;
         };
         KeyFiguresDto: {
             /** Format: double */
@@ -4981,6 +5529,9 @@ export interface components {
             occurrences: number;
             snapshot: string;
         };
+        RoleRequest: {
+            role: string;
+        };
         RuleDto: {
             /** Format: uuid */
             id: string;
@@ -5023,6 +5574,9 @@ export interface components {
             line: number;
             message: string;
         };
+        StatusRequest: {
+            isActive: boolean;
+        };
         SubscriptionDto: {
             /** Format: uuid */
             recurrenceId: string;
@@ -5063,6 +5617,9 @@ export interface components {
             /** Format: int32 */
             usageCount: number;
         };
+        TokenRequest: {
+            token: string;
+        };
         /** @enum {unknown} */
         ToleranceUnit: "Amount" | "Percent";
         TransactionDto: {
@@ -5098,6 +5655,10 @@ export interface components {
             reimbursedAmount: number;
             /** Format: uuid */
             advanceId: null | string;
+            /** Format: uuid */
+            createdBy: null | string;
+            /** Format: uuid */
+            updatedBy: null | string;
         };
         TransactionLineDto: {
             /** Format: uuid */
@@ -5183,6 +5744,25 @@ export interface components {
             enabled: boolean;
             /** Format: int32 */
             recoveryCodesLeft: number;
+        };
+        UserDto: {
+            /** Format: uuid */
+            id: string;
+            userName: string;
+            displayName: null | string;
+            email: null | string;
+            role: string;
+            isActive: boolean;
+            twoFactorEnabled: boolean;
+            twoFactorRequired: boolean;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        UserSummary: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            isActive: boolean;
         };
     };
     responses: never;

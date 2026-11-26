@@ -131,8 +131,8 @@ public static class CategoryEndpoints
             return precondition;
         }
         if (await db.Categories.AnyAsync(c => c.ParentId == id)
-            || await db.TransactionLines.AnyAsync(l => l.CategoryId == id)
-            || await db.Recurrences.AnyAsync(r => r.CategoryId == id))
+            || await db.TransactionLines.IgnoreQueryFilters().AnyAsync(l => l.CategoryId == id)
+            || await db.Recurrences.IgnoreQueryFilters().AnyAsync(r => r.CategoryId == id))
         {
             return TypedResults.Problem(
                 statusCode: StatusCodes.Status409Conflict,

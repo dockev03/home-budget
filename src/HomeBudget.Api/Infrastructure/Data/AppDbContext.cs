@@ -1,6 +1,9 @@
+using System.Security.Claims;
+
 using HomeBudget.Api.Domain;
 using HomeBudget.Api.Domain.Accounts;
 using HomeBudget.Api.Domain.Advances;
+using HomeBudget.Api.Domain.Audit;
 using HomeBudget.Api.Domain.Budgets;
 using HomeBudget.Api.Domain.Categories;
 using HomeBudget.Api.Domain.Imports;
@@ -18,9 +21,26 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HomeBudget.Api.Infrastructure.Data;
 
-public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
+/// <param name="http">
+/// Requête en cours : sa session fixe les comptes visibles (R8). Sans requête (tâches de fond, démarrage,
+/// outils), tous les comptes sont visibles.
+/// </param>
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpContextAccessor? http = null)
     : IdentityDbContext<AppUser, AppRole, Guid>(options)
 {
+    /// <summary>
+    /// Lève le filtre des comptes privés pour ce contexte : réservé aux traitements qui portent sur toute
+    /// la base (sauvegarde et restauration par un administrateur, contrôles d'intégrité, fusion).
+    /// </summary>
+    public bool IgnoreVisibility { get; set; }
+
+    /// <summary>Vrai quand aucun filtre de visibilité ne s'applique (lu par les filtres de requête globaux).</summary>
+    public bool SeesAllAccounts => IgnoreVisibility || http?.HttpContext is null;
+
+    /// <summary>Utilisateur de la session ; <see cref="Guid.Empty"/> hors session (seuls les comptes partagés sont visibles).</summary>
+    public Guid ViewerId =>
+        Guid.TryParse(http?.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : Guid.Empty;
+
     /// <summary>
     /// Restauration d'une sauvegarde : les auteurs, dates et versions des entités ajoutées sont conservés
     /// au lieu d'être renseignés par <see cref="AuditInterceptor"/>.
@@ -57,6 +77,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<Advance> Advances => Set<Advance>();
 
+    public DbSet<Invitation> Invitations => Set<Invitation>();
+
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         // Tous les montants sont stockés en centimes (voir DM1 dans docs/ARCHITECTURE.md).
@@ -92,6 +116,35 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(a => a.Color).HasMaxLength(16);
             e.Property(a => a.Icon).HasMaxLength(40);
             e.HasOne<AppUser>().WithMany().HasForeignKey(a => a.OwnerId).OnDelete(DeleteBehavior.Restrict);
+            // R8 (DM5) : un compte privé n'est visible que de son propriétaire. Les filtres des opérations,
+            // lignes, récurrences, échéances, rapprochements et imports s'appuient sur celui-ci.
+            e.HasQueryFilter(a => SeesAllAccounts || a.Visibility == AccountVisibility.Shared || a.OwnerId == ViewerId);
+        });
+
+        builder.Entity<AppUser>(e =>
+        {
+            e.Property(u => u.DisplayName).HasMaxLength(AppUser.MaxDisplayNameLength);
+            e.Ignore(u => u.Name);
+        });
+
+        builder.Entity<Invitation>(e =>
+        {
+            ConfigureAudit(e);
+            e.Property(i => i.UserName).HasMaxLength(64);
+            e.Property(i => i.DisplayName).HasMaxLength(AppUser.MaxDisplayNameLength);
+            e.Property(i => i.Role).HasMaxLength(16);
+            e.Property(i => i.TokenHash).HasMaxLength(64);
+            e.HasIndex(i => i.TokenHash).IsUnique();
+        });
+
+        builder.Entity<AuditLog>(e =>
+        {
+            e.Property(l => l.UserName).HasMaxLength(AuditLog.MaxUserNameLength);
+            e.Property(l => l.Target).HasMaxLength(AuditLog.MaxTargetLength);
+            e.Property(l => l.Details).HasMaxLength(AuditLog.MaxDetailsLength);
+            e.Property(l => l.IpAddress).HasMaxLength(45);
+            e.HasIndex(l => l.Action);
+            e.HasIndex(l => l.UserId);
         });
 
         builder.Entity<Category>(e =>
@@ -136,11 +189,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasOne<Advance>().WithMany().HasForeignKey(t => t.AdvanceId).OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(t => t.AdvanceId);
             e.Ignore(t => t.IsReconciled);
+            e.HasQueryFilter(t => SeesAllAccounts || Accounts.Any(a => a.Id == t.AccountId));
         });
 
         builder.Entity<Reconciliation>(e =>
         {
             ConfigureAudit(e);
+            e.HasQueryFilter(r => SeesAllAccounts || Accounts.Any(a => a.Id == r.AccountId));
             e.HasOne<Account>().WithMany().HasForeignKey(r => r.AccountId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(r => new { r.AccountId, r.Date }).IsUnique();
         });
@@ -155,6 +210,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<TransactionLine>(e =>
         {
             e.Property(l => l.Memo).HasMaxLength(200);
+            e.HasQueryFilter(l => SeesAllAccounts || Transactions.Any(t => t.Id == l.TransactionId));
             e.HasOne<Category>().WithMany().HasForeignKey(l => l.CategoryId).OnDelete(DeleteBehavior.Restrict);
             e.HasMany(l => l.Tags).WithMany().UsingEntity<Dictionary<string, object>>(
                 "TransactionLineTag",
@@ -198,6 +254,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Ignore(r => r.Rule);
             e.Ignore(r => r.States);
             e.Ignore(r => r.AmountTolerance);
+            // Un virement récurrent vers un compte privé reste invisible des autres membres.
+            e.HasQueryFilter(r => SeesAllAccounts
+                || (Accounts.Any(a => a.Id == r.AccountId) && (r.ToAccountId == null || Accounts.Any(a => a.Id == r.ToAccountId))));
         });
 
         builder.Entity<RecurrenceOccurrence>(e =>
@@ -206,6 +265,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             // Idempotence de la génération (R6) : une échéance n'existe qu'une fois.
             e.HasIndex(o => new { o.RecurrenceId, o.ScheduledDate }).IsUnique();
             e.HasIndex(o => new { o.Status, o.DueDate });
+            e.HasQueryFilter(o => SeesAllAccounts || Recurrences.Any(r => r.Id == o.RecurrenceId));
             // L'opération générée peut être supprimée : l'échéance reste, pour ne pas être régénérée.
             e.HasOne<Transaction>().WithMany().HasForeignKey(o => o.TransactionId).OnDelete(DeleteBehavior.SetNull);
         });
@@ -240,6 +300,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             ConfigureAudit(e);
             e.Property(b => b.FileName).HasMaxLength(200);
             e.HasOne<Account>().WithMany().HasForeignKey(b => b.AccountId).OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(b => SeesAllAccounts || Accounts.Any(a => a.Id == b.AccountId));
         });
     }
 

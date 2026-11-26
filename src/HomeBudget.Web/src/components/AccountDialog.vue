@@ -24,6 +24,7 @@ const form = ref({
   includeInNetWorth: true,
   overdraftThreshold: '0',
   isArchived: false,
+  isPrivate: false,
 })
 const valid = ref(false)
 const saving = ref(false)
@@ -47,6 +48,7 @@ watch(visible, (open) => {
         includeInNetWorth: a.includeInNetWorth,
         overdraftThreshold: String(a.overdraftThreshold).replace('.', ','),
         isArchived: a.isArchived,
+        isPrivate: a.isPrivate,
       }
     : {
         name: '',
@@ -59,6 +61,7 @@ watch(visible, (open) => {
         includeInNetWorth: true,
         overdraftThreshold: '0',
         isArchived: false,
+        isPrivate: false,
       }
 })
 
@@ -87,6 +90,7 @@ async function save() {
     overdraftThreshold: parseAmount(f.overdraftThreshold) ?? 0,
     isArchived: f.isArchived,
     sortOrder: null,
+    isPrivate: f.isPrivate,
   }
   try {
     if (props.account) {
@@ -154,6 +158,14 @@ async function save() {
             label="Inclus dans le patrimoine"
             color="primary"
             hide-details
+          />
+          <v-switch
+            v-model="form.isPrivate"
+            label="Compte privé (visible de vous seul)"
+            color="primary"
+            hint="Ses opérations et son solde sont masqués aux autres membres du foyer, y compris dans les totaux."
+            persistent-hint
+            class="mb-2"
           />
           <v-switch
             v-if="account"

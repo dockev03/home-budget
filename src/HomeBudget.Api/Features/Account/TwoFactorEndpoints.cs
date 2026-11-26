@@ -2,9 +2,11 @@ using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using System.Text;
 
+using HomeBudget.Api.Domain.Audit;
 using HomeBudget.Api.Domain.Users;
 using HomeBudget.Api.Features.Auth;
 using HomeBudget.Api.Infrastructure;
+using HomeBudget.Api.Infrastructure.Data;
 
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
@@ -57,7 +59,7 @@ public static class TwoFactorEndpoints
     }
 
     private static async Task<Results<Ok<AuthenticatorSetup>, ProblemHttpResult, UnauthorizedHttpResult>> SetupAsync(
-        ClaimsPrincipal principal, UserManager<AppUser> users)
+        ClaimsPrincipal principal, UserManager<AppUser> users, SignInManager<AppUser> signIn)
     {
         var user = await users.GetCurrentAsync(principal);
         if (user is null)
@@ -70,6 +72,8 @@ public static class TwoFactorEndpoints
         }
 
         await users.ResetAuthenticatorKeyAsync(user);
+        // La nouvelle clé change l'empreinte de sécurité : la session courante est renouvelée, les autres fermées.
+        await signIn.RefreshSignInAsync(user);
         var key = await users.GetAuthenticatorKeyAsync(user)
             ?? throw new InvalidOperationException("Clé d'authentification non générée.");
         var label = Uri.EscapeDataString($"{Issuer}:{user.UserName}");
@@ -78,7 +82,7 @@ public static class TwoFactorEndpoints
     }
 
     private static async Task<Results<Ok<RecoveryCodes>, ProblemHttpResult, UnauthorizedHttpResult>> EnableAsync(
-        EnableTwoFactorRequest request, ClaimsPrincipal principal, UserManager<AppUser> users, SignInManager<AppUser> signIn)
+        EnableTwoFactorRequest request, ClaimsPrincipal principal, UserManager<AppUser> users, SignInManager<AppUser> signIn, AuditTrail audit)
     {
         var user = await users.GetCurrentAsync(principal);
         if (user is null)
@@ -104,16 +108,24 @@ public static class TwoFactorEndpoints
         await users.SetTwoFactorEnabledAsync(user, true);
         var codes = await users.GenerateNewTwoFactorRecoveryCodesAsync(user, RecoveryCodeCount);
         await signIn.RefreshSignInAsync(user);
+        await audit.RecordAsync(AuditAction.TwoFactorEnabled, actor: user);
         return TypedResults.Ok(new RecoveryCodes([.. codes ?? []]));
     }
 
     private static async Task<Results<NoContent, ProblemHttpResult, UnauthorizedHttpResult>> DisableAsync(
-        PasswordConfirmation request, ClaimsPrincipal principal, UserManager<AppUser> users, SignInManager<AppUser> signIn)
+        PasswordConfirmation request, ClaimsPrincipal principal, UserManager<AppUser> users, SignInManager<AppUser> signIn, AuditTrail audit)
     {
         var user = await users.GetCurrentAsync(principal);
         if (user is null)
         {
             return TypedResults.Unauthorized();
+        }
+        if (user.TwoFactorRequired)
+        {
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "La double authentification est imposée à votre compte.",
+                detail: "Régénérez vos codes de secours si vous changez de téléphone.");
         }
         var check = await CheckPasswordAsync(signIn, user, request.Password);
         if (check is not null)
@@ -124,6 +136,7 @@ public static class TwoFactorEndpoints
         await users.SetTwoFactorEnabledAsync(user, false);
         await users.ResetAuthenticatorKeyAsync(user);
         await signIn.RefreshSignInAsync(user);
+        await audit.RecordAsync(AuditAction.TwoFactorDisabled, actor: user);
         return TypedResults.NoContent();
     }
 

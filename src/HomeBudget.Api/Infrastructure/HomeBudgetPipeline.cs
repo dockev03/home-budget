@@ -1,6 +1,7 @@
 using HomeBudget.Api.Features.Account;
 using HomeBudget.Api.Features.Accounts;
 using HomeBudget.Api.Features.Advances;
+using HomeBudget.Api.Features.Audit;
 using HomeBudget.Api.Features.Auth;
 using HomeBudget.Api.Features.Backups;
 using HomeBudget.Api.Features.Budgets;
@@ -18,6 +19,7 @@ using HomeBudget.Api.Features.Settings;
 using HomeBudget.Api.Features.Setup;
 using HomeBudget.Api.Features.Tags;
 using HomeBudget.Api.Features.Transactions;
+using HomeBudget.Api.Features.Users;
 using HomeBudget.Api.Infrastructure.Http;
 using HomeBudget.Api.Infrastructure.Security;
 
@@ -54,6 +56,7 @@ public static class HomeBudgetPipeline
         app.UseRouting();
         app.UseRateLimiter();
         app.UseAuthentication();
+        app.UseMiddleware<TwoFactorEnforcementMiddleware>();
         app.UseAuthorization();
         app.UseMiddleware<BodySizeLimitMiddleware>();
         app.UseMiddleware<AntiforgeryValidationMiddleware>();
@@ -86,6 +89,10 @@ public static class HomeBudgetPipeline
         app.MapAdvanceEndpoints();
         app.MapSubscriptionEndpoints();
         app.MapCategoryMergeEndpoints();
+        app.MapUserEndpoints();
+        app.MapInvitationEndpoints();
+        app.MapPasswordEndpoints();
+        app.MapAuditEndpoints();
 
         app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
         app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") }).AllowAnonymous();

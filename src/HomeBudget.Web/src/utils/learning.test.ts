@@ -34,6 +34,8 @@ const transaction = (
   reimbursesId: null,
   reimbursedAmount: 0,
   advanceId: null,
+  createdBy: null,
+  updatedBy: null,
   ...overrides,
 })
 

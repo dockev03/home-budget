@@ -61,6 +61,16 @@ export const useAuthStore = defineStore('auth', () => {
     return handleLogin(await unwrap(api.POST('/api/auth/login/recovery-code', { body: { recoveryCode } })))
   }
 
+  /** Accepte une invitation : le compte est créé et la session ouverte. */
+  async function acceptInvitation(token: string, password: string) {
+    signedIn(await unwrap(api.POST('/api/invitations/accept', { body: { token, password } })))
+  }
+
+  /** Double authentification imposée mais pas encore activée : seule la page Sécurité est ouverte. */
+  const twoFactorPending = computed(
+    () => (user.value?.twoFactorRequired ?? false) && !(user.value?.twoFactorEnabled ?? false),
+  )
+
   async function logout() {
     try {
       await unwrap(api.POST('/api/auth/logout'))
@@ -75,6 +85,8 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     isAdmin,
     canWrite,
+    twoFactorPending,
+    acceptInvitation,
     init,
     refreshUser,
     setup,

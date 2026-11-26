@@ -11,6 +11,8 @@ export const useReferenceStore = defineStore('reference', () => {
   const accounts = ref<Account[]>([])
   const netWorth = ref(0)
   const categories = ref<Category[]>([])
+  /** Noms des utilisateurs, pour afficher l'auteur d'une opération (K2). */
+  const userNames = ref(new Map<string, string>())
   const loaded = ref(false)
 
   async function loadAccounts() {
@@ -25,9 +27,14 @@ export const useReferenceStore = defineStore('reference', () => {
     )
   }
 
+  async function loadUsers() {
+    const users = await unwrap(api.GET('/api/users/directory'))
+    userNames.value = new Map(users.map((u) => [u.id, u.name]))
+  }
+
   async function load(force = false) {
     if (loaded.value && !force) return
-    await Promise.all([loadAccounts(), loadCategories()])
+    await Promise.all([loadAccounts(), loadCategories(), loadUsers()])
     loaded.value = true
   }
 
@@ -48,11 +55,14 @@ export const useReferenceStore = defineStore('reference', () => {
     accounts.value = []
     categories.value = []
     netWorth.value = 0
+    userNames.value = new Map()
     loaded.value = false
   }
 
   return {
     accounts,
+    userNames,
+    loadUsers,
     netWorth,
     categories,
     activeAccounts,

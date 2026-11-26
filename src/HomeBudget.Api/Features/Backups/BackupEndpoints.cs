@@ -2,8 +2,10 @@ using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
 
+using HomeBudget.Api.Domain.Audit;
 using HomeBudget.Api.Infrastructure;
 using HomeBudget.Api.Infrastructure.Backups;
+using HomeBudget.Api.Infrastructure.Data;
 
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Options;
@@ -38,11 +40,12 @@ public static partial class BackupEndpoints
     }
 
     private static async Task<IResult> ExportAsync(
-        BackupRestorer restorer, IOptions<JsonOptions> json, TimeProvider clock, ClaimsPrincipal user, ILoggerFactory loggers, CancellationToken ct)
+        BackupRestorer restorer, IOptions<JsonOptions> json, TimeProvider clock, ClaimsPrincipal user, ILoggerFactory loggers, AuditTrail audit, CancellationToken ct)
     {
         var document = await restorer.ExportAsync(ct);
         var bytes = JsonSerializer.SerializeToUtf8Bytes(document, json.Value.SerializerOptions);
         LogExport(loggers.CreateLogger("HomeBudget.Backups"), user.Identity?.Name, document.Transactions?.Count ?? 0);
+        await audit.RecordAsync(AuditAction.BackupExported, details: $"Sauvegarde JSON : {document.Transactions?.Count ?? 0} opération(s).");
         var stamp = clock.GetLocalNow().ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
         return TypedResults.File(bytes, "application/json", $"home-budget-sauvegarde-{stamp}.json");
     }
@@ -54,6 +57,7 @@ public static partial class BackupEndpoints
         IOptions<JsonOptions> json,
         ClaimsPrincipal user,
         ILoggerFactory loggers,
+        AuditTrail audit,
         CancellationToken ct)
     {
         var logger = loggers.CreateLogger("HomeBudget.Backups");
@@ -116,6 +120,7 @@ public static partial class BackupEndpoints
             document.Occurrences!.Count,
             Path.GetFileName(snapshot));
         LogRestored(logger, user.Identity?.Name, result.Transactions, result.Snapshot);
+        await audit.RecordAsync(AuditAction.Restored, details: $"{result.Transactions} opération(s) restaurée(s) ; instantané {result.Snapshot}.");
         return TypedResults.Ok(result);
     }
 

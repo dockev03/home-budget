@@ -44,9 +44,10 @@ public static class HomeBudgetServices
         services.AddSingleton(TimeProvider.System);
         services.AddHttpContextAccessor();
         services.AddSingleton<AuditInterceptor>();
+        services.AddSingleton<TransactionHistoryInterceptor>();
         services.AddDbContext<AppDbContext>((sp, db) => db
             .UseSqlite($"Data Source={options.DatabasePath}")
-            .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()));
+            .AddInterceptors(sp.GetRequiredService<AuditInterceptor>(), sp.GetRequiredService<TransactionHistoryInterceptor>()));
 
         // Clés de chiffrement des cookies persistées : les sessions survivent aux redémarrages.
         services.AddDataProtection()

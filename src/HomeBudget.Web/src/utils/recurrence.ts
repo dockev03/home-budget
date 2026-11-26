@@ -4,6 +4,7 @@ import { formatDate } from '@/utils/format'
 export type FrequencyUnit = Schemas['FrequencyUnit']
 export type RecurrenceEnd = Schemas['RecurrenceEnd']
 export type RecurrenceMode = Schemas['RecurrenceMode']
+export type BusinessDayShift = Schemas['BusinessDayShift']
 
 export const frequencyUnits: { value: FrequencyUnit; title: string }[] = [
   { value: 'Day', title: 'jour(s)' },
@@ -22,6 +23,18 @@ export const recurrenceModes: { value: RecurrenceMode; title: string; hint: stri
   { value: 'Automatic', title: 'Automatique', hint: 'L’opération est créée le jour de l’échéance.' },
   { value: 'ToValidate', title: 'À valider', hint: 'L’échéance attend votre confirmation.' },
 ]
+
+/** Report d'une échéance qui tombe un week-end ou un jour férié (E9). */
+export const businessDayShifts: { value: BusinessDayShift; title: string }[] = [
+  { value: 'None', title: 'Ne pas décaler' },
+  { value: 'Next', title: 'Jour ouvré suivant' },
+  { value: 'Previous', title: 'Jour ouvré précédent' },
+]
+
+/** Le report demande au moins 7 jours entre deux échéances (sinon deux échéances tomberaient le même jour). */
+export function canShift(unit: FrequencyUnit, interval: number): boolean {
+  return unit !== 'Day' || interval >= 7
+}
 
 const single: Record<FrequencyUnit, string> = {
   Day: 'Tous les jours',

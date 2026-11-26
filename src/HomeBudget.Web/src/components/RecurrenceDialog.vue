@@ -9,9 +9,12 @@ import { useReferenceStore } from '@/stores/reference'
 import { parseAmount, roundCents, todayIso } from '@/utils/format'
 import { categoryKindTitle } from '@/utils/labels'
 import {
+  businessDayShifts,
+  canShift,
   frequencyUnits,
   recurrenceEnds,
   recurrenceModes,
+  type BusinessDayShift,
   type FrequencyUnit,
   type RecurrenceEnd,
   type RecurrenceMode,
@@ -47,6 +50,7 @@ const isInstallment = ref(false)
 const tolerance = ref('0')
 const toleranceUnit = ref<'Amount' | 'Percent'>('Amount')
 const isSubscription = ref(false)
+const businessDayShift = ref<BusinessDayShift>('None')
 
 const valid = ref(false)
 const saving = ref(false)
@@ -86,6 +90,7 @@ const toleranceRule = (v: string) => {
 }
 const intervalRule = (v: string) => (/^\d{1,3}$/.test(v) && Number(v) >= 1 ? true : 'De 1 à 999.')
 const differentAccount = (v: string | null) => v !== accountId.value || 'Choisissez deux comptes différents.'
+const shiftAllowed = computed(() => canShift(unit.value, Number(interval.value) || 1))
 const endDateRule = (v: string | null) =>
   end.value !== 'OnDate' || (!!v && v >= startDate.value) || 'La fin doit suivre le départ.'
 
@@ -124,6 +129,7 @@ async function reset() {
     tolerance.value = '0'
     toleranceUnit.value = 'Amount'
     isSubscription.value = false
+    businessDayShift.value = 'None'
     return
   }
   kind.value = r.toAccountId ? 'transfer' : r.amount > 0 ? 'income' : 'expense'
@@ -145,6 +151,7 @@ async function reset() {
   tolerance.value = String(r.tolerance).replace('.', ',')
   toleranceUnit.value = r.toleranceUnit
   isSubscription.value = r.isSubscription
+  businessDayShift.value = r.businessDayShift
 }
 
 watch(visible, (open) => {
@@ -186,6 +193,7 @@ async function save() {
     tolerance: roundCents(parseAmount(tolerance.value) ?? 0),
     toleranceUnit: toleranceUnit.value,
     isSubscription: kind.value !== 'transfer' && isSubscription.value,
+    businessDayShift: shiftAllowed.value ? businessDayShift.value : 'None',
   }
   try {
     if (props.recurrence) {
@@ -347,6 +355,16 @@ async function remove() {
               <v-select v-model="end" :items="recurrenceEnds" label="Fin" :disabled="isInstallment" />
             </v-col>
           </v-row>
+
+          <v-select
+            v-if="shiftAllowed"
+            v-model="businessDayShift"
+            :items="businessDayShifts"
+            label="Si l’échéance tombe un week-end ou un jour férié"
+            hint="Jours fériés de France métropolitaine"
+            persistent-hint
+            class="mb-2"
+          />
 
           <v-text-field
             v-if="end === 'OnDate'"

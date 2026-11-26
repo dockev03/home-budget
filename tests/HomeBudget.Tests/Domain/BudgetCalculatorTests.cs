@@ -177,4 +177,27 @@ public sealed class BudgetCalculatorTests
         result.Actual.Income.ShouldBe(3100m);
         result.Categories[Salary].Remaining.ShouldBe(-100m);
     }
+
+    [Fact]
+    public void Provisions_reserve_a_share_and_free_the_whole_amount_at_due_date()
+    {
+        var categories = new List<BudgetCategory> { new(Rent, null, CategoryKind.Fixed, BudgetMode.Amount, 500m) };
+
+        // Période ordinaire : 100 € réservés, la prévision n'en sort rien des comptes.
+        var saving = BudgetCalculator.Compute(new BudgetInput(categories, new Dictionary<Guid, decimal>(), new Dictionary<Guid, decimal>(), Thresholds,
+            new Dictionary<Guid, ProvisionAmounts> { [Rent] = new(100m, 0m, 0m) }));
+        saving.Categories[Rent].Budgeted.ShouldBe(600m);
+        saving.Categories[Rent].OwnProvisioned.ShouldBe(100m);
+        saving.Categories[Rent].CashBudgeted.ShouldBe(500m);
+        saving.Budgeted.Fixed.ShouldBe(600m);
+
+        // Période de l'échéance : la jauge dispose des 1 200 €, le récapitulatif ne compte que la part.
+        var due = BudgetCalculator.Compute(new BudgetInput(categories, new Dictionary<Guid, decimal> { [Rent] = -1700m }, new Dictionary<Guid, decimal>(), Thresholds,
+            new Dictionary<Guid, ProvisionAmounts> { [Rent] = new(100m, 100m, 1200m) }));
+        due.Categories[Rent].Budgeted.ShouldBe(1700m);
+        due.Categories[Rent].Status.ShouldBe(BudgetStatus.Exceeded);
+        due.Categories[Rent].Remaining.ShouldBe(0m);
+        due.Categories[Rent].CashBudgeted.ShouldBe(1700m);
+        due.Budgeted.Fixed.ShouldBe(600m);
+    }
 }

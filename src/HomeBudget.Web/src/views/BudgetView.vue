@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { mdiAlertOutline } from '@mdi/js'
+import { mdiAlertOutline, mdiContentCopy } from '@mdi/js'
 import { api, type Schemas } from '@/api/client'
 import { ApiError, unwrap } from '@/api/errors'
 import BudgetDialog from '@/components/BudgetDialog.vue'
+import CopyBudgetDialog from '@/components/CopyBudgetDialog.vue'
+import ProvisionsCard from '@/components/ProvisionsCard.vue'
 import PeriodNavigator from '@/components/PeriodNavigator.vue'
 import { useAuthStore } from '@/stores/auth'
 import { budgetModeLabel, gaugeValue, remainingLabel, statusColor, type BudgetLine } from '@/utils/budget'
@@ -21,8 +23,16 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const dialog = ref(false)
 const editing = ref<BudgetLine | null>(null)
+const copyDialog = ref(false)
+const copied = ref<string | null>(null)
 
 const periodKey = computed(() => (route.params.period as string | undefined) || null)
+const copiedVisible = computed({
+  get: () => copied.value !== null,
+  set: (open: boolean) => {
+    if (!open) copied.value = null
+  },
+})
 
 const sections = computed(() =>
   categoryKinds.map((kind) => {
@@ -61,6 +71,11 @@ function goTo(key: string | null) {
   router.push(key ? { name: 'budget', params: { period: key } } : { name: 'budget' })
 }
 
+async function onCopied(count: number) {
+  copied.value = count > 1 ? `${count} budgets copiés.` : count === 1 ? '1 budget copié.' : null
+  await load()
+}
+
 function edit(line: BudgetLine) {
   if (!auth.canWrite) return
   editing.value = line
@@ -73,8 +88,18 @@ watch(periodKey, load, { immediate: true })
 <template>
   <div class="d-flex align-center flex-wrap ga-2 mb-4">
     <h1 class="text-h5 font-weight-bold mr-auto">Budget</h1>
+    <v-btn
+      v-if="auth.canWrite && budget"
+      :prepend-icon="mdiContentCopy"
+      variant="text"
+      color="primary"
+      @click="copyDialog = true"
+    >
+      Copier
+    </v-btn>
     <PeriodNavigator :period="budget?.period ?? null" @go="goTo" />
   </div>
+  <v-snackbar v-model="copiedVisible" :text="copied ?? ''" timeout="3000" />
 
   <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-2" />
   <v-alert v-if="error" type="error" variant="tonal" class="mb-4" :text="error" />
@@ -167,5 +192,14 @@ watch(periodKey, load, { immediate: true })
     </v-card>
   </template>
 
-  <BudgetDialog v-model="dialog" :line="editing" :income-base="budget?.incomeBase ?? 0" @saved="load" />
+  <ProvisionsCard v-if="budget" @changed="load" />
+
+  <BudgetDialog
+    v-model="dialog"
+    :line="editing"
+    :income-base="budget?.incomeBase ?? 0"
+    :period-key="budget?.period.key ?? null"
+    @saved="load"
+  />
+  <CopyBudgetDialog v-model="copyDialog" :period-key="budget?.period.key ?? null" @saved="onCopied" />
 </template>

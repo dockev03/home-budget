@@ -28,6 +28,7 @@ import { netCostText } from '@/utils/reconciliation'
 import { categoryKindTitle } from '@/utils/labels'
 import { required } from '@/utils/rules'
 import { authorText } from '@/utils/users'
+import TransactionHistory from '@/components/TransactionHistory.vue'
 
 type Kind = 'expense' | 'income' | 'transfer'
 interface Line {
@@ -788,6 +789,7 @@ async function remove() {
         <div v-if="author" class="text-caption text-medium-emphasis mt-2" data-testid="author">
           {{ author }}
         </div>
+        <TransactionHistory v-if="isEdit && source" :transaction-id="source.id" />
       </v-card-text>
 
       <v-card-actions v-if="similar">

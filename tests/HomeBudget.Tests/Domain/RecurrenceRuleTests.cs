@@ -119,4 +119,37 @@ public sealed class RecurrenceRuleTests
         RecurrenceSchedule.Label("Montre", isInstallment: true, index: 3, count: 4).ShouldBe("Montre 4/4");
         RecurrenceSchedule.Label("Loyer", isInstallment: false, index: 3, count: null).ShouldBe("Loyer");
     }
+
+    [Fact]
+    public void Business_day_shift_is_applied_after_computing_each_date()
+    {
+        // Le 31 : janvier 2026 tombe un samedi, mai un dimanche, octobre un samedi.
+        var next = new RecurrenceRule(D(2026, 1, 31), FrequencyUnit.Month, 1, Shift: BusinessDayShift.Next);
+        Dates(next, D(2026, 1, 1), D(2026, 6, 30)).ShouldBe(
+            [D(2026, 2, 2), D(2026, 3, 2), D(2026, 3, 31), D(2026, 4, 30), D(2026, 6, 1), D(2026, 6, 30)]);
+
+        var previous = new RecurrenceRule(D(2026, 1, 31), FrequencyUnit.Month, 1, Shift: BusinessDayShift.Previous);
+        Dates(previous, D(2026, 1, 1), D(2026, 3, 31)).ShouldBe([D(2026, 1, 30), D(2026, 2, 27), D(2026, 3, 31)]);
+    }
+
+    [Fact]
+    public void Shifted_dates_are_found_across_the_interval_bounds()
+    {
+        var next = new RecurrenceRule(D(2026, 1, 31), FrequencyUnit.Month, 1, Shift: BusinessDayShift.Next);
+        // L'échéance du 31 janvier (samedi) tombe le 2 février : elle appartient à février, pas à janvier.
+        Dates(next, D(2026, 1, 1), D(2026, 1, 31)).ShouldBeEmpty();
+        next.Between(D(2026, 2, 1), D(2026, 2, 2)).ShouldBe([new ScheduledDate(0, D(2026, 2, 2))]);
+
+        var previous = new RecurrenceRule(D(2026, 2, 1), FrequencyUnit.Month, 1, Shift: BusinessDayShift.Previous);
+        // Le 1er février 2026 est un dimanche : l'échéance avance au vendredi 30 janvier.
+        Dates(previous, D(2026, 1, 1), D(2026, 1, 31)).ShouldBe([D(2026, 1, 30)]);
+    }
+
+    [Fact]
+    public void Shift_needs_at_least_a_week_between_two_dates()
+    {
+        new RecurrenceRule(D(2026, 1, 1), FrequencyUnit.Day, 3, Shift: BusinessDayShift.Next).Validate().ShouldContainKey("businessDayShift");
+        new RecurrenceRule(D(2026, 1, 1), FrequencyUnit.Day, 14, Shift: BusinessDayShift.Next).Validate().ShouldBeEmpty();
+        new RecurrenceRule(D(2026, 1, 1), FrequencyUnit.Week, 1, Shift: BusinessDayShift.Previous).Validate().ShouldBeEmpty();
+    }
 }

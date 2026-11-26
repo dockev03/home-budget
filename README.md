@@ -9,7 +9,7 @@ Application web auto-hébergée de gestion du budget du foyer : opérations, bud
 
 ## Publier une version
 
-Une fois l'étape fusionnée sur `main` et la CI verte, poser un tag annoté et le pousser. Numérotation : étape N → `v0.N.0`, correctif → `v0.N.1`, docs ou CI seules → pas de tag ; `v1.0.0` quand le lot L1 est validé (règles complètes dans le [CLAUDE.md](CLAUDE.md)).
+Une fois l'étape fusionnée sur `main` et la CI verte, poser un tag annoté et le pousser. Numérotation : étape N → `v0.N.0`, correctif → `v0.N.1`, docs ou CI seules → pas de tag ; `v1.0.0` quand tous les lots sont terminés et validés (règles complètes dans le [CLAUDE.md](CLAUDE.md)).
 
 ```bash
 git switch main && git pull

@@ -42,10 +42,11 @@ public sealed class ForecastService(AppDbContext db, TimeProvider clock, IBudget
 
         var (scheduled, scheduledByCategory) = await ScheduledAsync(period, accountIds, ct);
 
-        var (categories, _, budget, _) = await BudgetEndpoints.ComputeAsync(db, settings, period, schedule, ct);
+        var (categories, _, _, budget, _) = await BudgetEndpoints.ComputeAsync(db, settings, period, schedule, ct);
         var budgets = categories
-            .Where(c => c.ParentId is null && budget.Categories[c.Id].Budgeted > 0)
-            .Select(c => new ForecastBudget(c.Id, budget.Categories[c.Id].Remaining))
+            // Budget qui sortira des comptes (D11) : les parts réservées des provisions restent sur les comptes.
+            .Where(c => c.ParentId is null && budget.Categories[c.Id].CashBudgeted > 0)
+            .Select(c => new ForecastBudget(c.Id, budget.Categories[c.Id].CashBudgeted - budget.Categories[c.Id].Actual))
             .ToList();
 
         var result = ForecastEngine.Compute(new ForecastInput(

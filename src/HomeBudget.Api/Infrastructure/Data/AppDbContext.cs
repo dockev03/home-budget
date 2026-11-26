@@ -61,6 +61,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
 
     public DbSet<CategoryBudget> CategoryBudgets => Set<CategoryBudget>();
 
+    public DbSet<PeriodBudget> PeriodBudgets => Set<PeriodBudget>();
+
+    public DbSet<Provision> Provisions => Set<Provision>();
+
+    public DbSet<TransactionChange> TransactionChanges => Set<TransactionChange>();
+
     public DbSet<Recurrence> Recurrences => Set<Recurrence>();
 
     public DbSet<RecurrenceOccurrence> RecurrenceOccurrences => Set<RecurrenceOccurrence>();
@@ -107,6 +113,30 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
             ConfigureAudit(e);
             e.HasOne<Category>().WithMany().HasForeignKey(b => b.CategoryId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(b => b.CategoryId).IsUnique();
+        });
+
+        builder.Entity<PeriodBudget>(e =>
+        {
+            ConfigureAudit(e);
+            e.Property(b => b.PeriodKey).HasMaxLength(7);
+            e.HasOne<Category>().WithMany().HasForeignKey(b => b.CategoryId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(b => new { b.PeriodKey, b.CategoryId }).IsUnique();
+        });
+
+        builder.Entity<Provision>(e =>
+        {
+            ConfigureAudit(e);
+            e.Property(p => p.Label).HasMaxLength(Provision.MaxLabelLength);
+            e.HasOne<Category>().WithMany().HasForeignKey(p => p.CategoryId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<TransactionChange>(e =>
+        {
+            e.Property(c => c.UserName).HasMaxLength(AuditLog.MaxUserNameLength);
+            e.HasOne<Transaction>().WithMany().HasForeignKey(c => c.TransactionId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(c => new { c.TransactionId, c.At });
+            // L'historique suit la visibilité de son opération (R8).
+            e.HasQueryFilter(c => SeesAllAccounts || Transactions.Any(t => t.Id == c.TransactionId));
         });
 
         builder.Entity<Account>(e =>

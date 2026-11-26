@@ -55,6 +55,7 @@ public sealed class BackupRestoreTests
             end = "Never",
             isInstallment = false,
             isSubscription = true,
+            businessDayShift = "Next",
         });
         var ofx = "<OFX><BANKTRANLIST><STMTTRN><DTPOSTED>" + TestScenario.Today.AddDays(-1).ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture)
             + "<TRNAMT>-12.34<FITID>F1<NAME>ACHAT CB BOULANGERIE</STMTTRN></BANKTRANLIST></OFX>";
@@ -85,6 +86,17 @@ public sealed class BackupRestoreTests
         await admin.CreateAsync($"/api/transactions/{expense.GetProperty("id").GetGuid()}/clear", new { isCleared = true });
         await admin.CreateAsync($"/api/transactions/{refund.GetProperty("id").GetGuid()}/clear", new { isCleared = true });
         await admin.CreateAsync($"/api/accounts/{joint}/reconciliations", new { date = TestScenario.Iso(TestScenario.Today), statementBalance = 75m });
+
+        // Budget propre à une période et provision (étape 9).
+        (await admin.PutAsync($"/api/budgets/2026-12/categories/{groceries}", new { mode = "Amount", value = 600m }, null)).EnsureSuccessStatusCode();
+        await admin.CreateAsync("/api/provisions", new
+        {
+            label = "Taxe foncière",
+            categoryId = await admin.CategoryIdAsync("Courses"),
+            amount = 1200m,
+            dueDate = TestScenario.Iso(TestScenario.Today.AddMonths(6)),
+            isAnnual = true,
+        });
     }
 
     private static async Task<string> ExportAsync(ApiClient client)
@@ -122,7 +134,12 @@ public sealed class BackupRestoreTests
 
         var document = JsonNode.Parse(backup)!;
         document["format"]!.GetValue<string>().ShouldBe("home-budget-backup");
-        document["formatVersion"]!.GetValue<int>().ShouldBe(4);
+        document["formatVersion"]!.GetValue<int>().ShouldBe(5);
+        document["periodBudgets"]!.AsArray().ShouldHaveSingleItem()!["periodKey"]!.GetValue<string>().ShouldBe("2026-12");
+        document["provisions"]!.AsArray().ShouldHaveSingleItem()!["isAnnual"]!.GetValue<bool>().ShouldBeTrue();
+        document["recurrences"]![0]!["businessDayShift"]!.GetValue<string>().ShouldBe("Next");
+        // Correction de l'opération importée, liens, pointages et rapprochement : autant de modifications tracées.
+        document["transactionChanges"]!.AsArray().Count.ShouldBeGreaterThanOrEqualTo(4);
         document["transactions"]!.AsArray().Count.ShouldBe(6);
         document["reconciliations"]!.AsArray().Count.ShouldBe(1);
         document["advances"]!.AsArray().Count.ShouldBe(1);

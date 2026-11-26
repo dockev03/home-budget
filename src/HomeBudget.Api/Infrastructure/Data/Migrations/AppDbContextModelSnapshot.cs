@@ -220,6 +220,101 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.ToTable("CategoryBudgets");
                 });
 
+            modelBuilder.Entity("HomeBudget.Api.Domain.Budgets.PeriodBudget", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PeriodKey")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Value")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("PeriodKey", "CategoryId")
+                        .IsUnique();
+
+                    b.ToTable("PeriodBudgets");
+                });
+
+            modelBuilder.Entity("HomeBudget.Api.Domain.Budgets.Provision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Amount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("DueDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsAnnual")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.ToTable("Provisions");
+                });
+
             modelBuilder.Entity("HomeBudget.Api.Domain.Categories.Category", b =>
                 {
                     b.Property<Guid>("Id")
@@ -488,6 +583,11 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
 
                     b.Property<long>("Amount")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("BusinessDayShift")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid?>("CategoryId")
                         .HasColumnType("TEXT");
@@ -857,6 +957,35 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.ToTable("Transactions");
                 });
 
+            modelBuilder.Entity("HomeBudget.Api.Domain.Transactions.TransactionChange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Changes")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TransactionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TransactionId", "At");
+
+                    b.ToTable("TransactionChanges");
+                });
+
             modelBuilder.Entity("HomeBudget.Api.Domain.Transactions.TransactionLine", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1180,6 +1309,24 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("HomeBudget.Api.Domain.Budgets.PeriodBudget", b =>
+                {
+                    b.HasOne("HomeBudget.Api.Domain.Categories.Category", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("HomeBudget.Api.Domain.Budgets.Provision", b =>
+                {
+                    b.HasOne("HomeBudget.Api.Domain.Categories.Category", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("HomeBudget.Api.Domain.Categories.Category", b =>
                 {
                     b.HasOne("HomeBudget.Api.Domain.Categories.Category", null)
@@ -1289,6 +1436,15 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                         .WithMany()
                         .HasForeignKey("ReimbursesId")
                         .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("HomeBudget.Api.Domain.Transactions.TransactionChange", b =>
+                {
+                    b.HasOne("HomeBudget.Api.Domain.Transactions.Transaction", null)
+                        .WithMany()
+                        .HasForeignKey("TransactionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("HomeBudget.Api.Domain.Transactions.TransactionLine", b =>

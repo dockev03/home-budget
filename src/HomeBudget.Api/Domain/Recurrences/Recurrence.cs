@@ -56,6 +56,9 @@ public sealed class Recurrence : AuditableEntity
     /// <summary>Abonnement (E10) : compté dans la vue « Abonnements ».</summary>
     public bool IsSubscription { get; set; }
 
+    /// <summary>Report au jour ouvré d'une échéance qui tombe un week-end ou un jour férié (E9).</summary>
+    public BusinessDayShift BusinessDayShift { get; set; }
+
     public AmountTolerance AmountTolerance => new(Tolerance, ToleranceUnit);
 
     /// <summary>Date à partir de laquelle les échéances produisent des opérations (création ou changement de règle).</summary>
@@ -63,7 +66,7 @@ public sealed class Recurrence : AuditableEntity
 
     public List<RecurrenceOccurrence> Occurrences { get; private set; } = [];
 
-    public RecurrenceRule Rule => new(StartDate, Unit, Interval, End, EndDate, Count);
+    public RecurrenceRule Rule => new(StartDate, Unit, Interval, End, EndDate, Count, BusinessDayShift);
 
     public IReadOnlyCollection<OccurrenceState> States =>
         [.. Occurrences.Select(o => new OccurrenceState(o.ScheduledDate, o.Status, o.DueDate))];

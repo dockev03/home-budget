@@ -7,6 +7,7 @@ using HomeBudget.Api.Domain.Audit;
 using HomeBudget.Api.Domain.Budgets;
 using HomeBudget.Api.Domain.Categories;
 using HomeBudget.Api.Domain.Imports;
+using HomeBudget.Api.Domain.Notifications;
 using HomeBudget.Api.Domain.Payees;
 using HomeBudget.Api.Domain.Reconciliations;
 using HomeBudget.Api.Domain.Recurrences;
@@ -39,11 +40,17 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
     public bool IgnoreVisibility { get; set; }
 
     /// <summary>Vrai quand aucun filtre de visibilité ne s'applique (lu par les filtres de requête globaux).</summary>
-    public bool SeesAllAccounts => IgnoreVisibility || http?.HttpContext is null;
+    public bool SeesAllAccounts => IgnoreVisibility || (ActAsViewer is null && http?.HttpContext is null);
+
+    /// <summary>
+    /// Tâche de fond qui calcule pour un utilisateur (alertes, résumé) : ses comptes privés et les comptes partagés
+    /// sont visibles, comme dans sa session (R8).
+    /// </summary>
+    public Guid? ActAsViewer { get; set; }
 
     /// <summary>Utilisateur de la session ; <see cref="Guid.Empty"/> hors session (seuls les comptes partagés sont visibles).</summary>
-    public Guid ViewerId =>
-        Guid.TryParse(http?.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : Guid.Empty;
+    public Guid ViewerId => ActAsViewer
+        ?? (Guid.TryParse(http?.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : Guid.Empty);
 
     /// <summary>
     /// Restauration d'une sauvegarde : les auteurs, dates et versions des entités ajoutées sont conservés
@@ -104,6 +111,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
     public DbSet<Invitation> Invitations => Set<Invitation>();
 
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
+    public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
+
+    public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
+
+    public DbSet<SentAlert> SentAlerts => Set<SentAlert>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -250,6 +263,33 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
             e.Property(i => i.Role).HasMaxLength(16);
             e.Property(i => i.TokenHash).HasMaxLength(64);
             e.HasIndex(i => i.TokenHash).IsUnique();
+        });
+
+        // Notifications (M1, M2) : données propres à chaque utilisateur, supprimées avec lui.
+        builder.Entity<PushSubscription>(e =>
+        {
+            e.Property(p => p.Endpoint).HasMaxLength(PushSubscription.MaxEndpointLength);
+            e.Property(p => p.P256dh).HasMaxLength(PushSubscription.MaxKeyLength);
+            e.Property(p => p.Auth).HasMaxLength(PushSubscription.MaxKeyLength);
+            e.Property(p => p.Device).HasMaxLength(PushSubscription.MaxDeviceLength);
+            e.HasOne<AppUser>().WithMany().HasForeignKey(p => p.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(p => p.Endpoint).IsUnique();
+            e.HasIndex(p => p.UserId);
+        });
+
+        builder.Entity<NotificationPreference>(e =>
+        {
+            e.HasOne<AppUser>().WithMany().HasForeignKey(p => p.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(p => p.UserId).IsUnique();
+        });
+
+        builder.Entity<SentAlert>(e =>
+        {
+            e.Property(a => a.ObjectKey).HasMaxLength(SentAlert.MaxKeyLength);
+            e.Property(a => a.PeriodKey).HasMaxLength(SentAlert.MaxKeyLength);
+            e.HasOne<AppUser>().WithMany().HasForeignKey(a => a.UserId).OnDelete(DeleteBehavior.Cascade);
+            // Une alerte (type, objet, période) ne part qu'une fois par utilisateur.
+            e.HasIndex(a => new { a.UserId, a.Kind, a.ObjectKey, a.PeriodKey }).IsUnique();
         });
 
         builder.Entity<AuditLog>(e =>

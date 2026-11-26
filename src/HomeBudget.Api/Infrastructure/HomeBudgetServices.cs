@@ -6,10 +6,12 @@ using HomeBudget.Api.Features.Backups;
 using HomeBudget.Api.Features.Budgets;
 using HomeBudget.Api.Features.Forecasts;
 using HomeBudget.Api.Features.Imports;
+using HomeBudget.Api.Features.Notifications;
 using HomeBudget.Api.Features.Recurrences;
 using HomeBudget.Api.Infrastructure.Backups;
 using HomeBudget.Api.Infrastructure.Configuration;
 using HomeBudget.Api.Infrastructure.Data;
+using HomeBudget.Api.Infrastructure.Notifications;
 using HomeBudget.Api.Infrastructure.Security;
 
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -111,6 +113,13 @@ public static class HomeBudgetServices
         services.AddScoped<AuditTrail>();
         services.AddHostedService<BackupWorker>();
         services.AddHostedService<RecurrenceWorker>();
+
+        // Notifications (M1, M2) : Web Push signé VAPID et e-mail SMTP, inactifs sans configuration.
+        services.AddHttpClient(WebPushSender.HttpClientName, c => c.Timeout = TimeSpan.FromSeconds(15));
+        services.AddSingleton<WebPushSender>();
+        services.AddSingleton<IEmailSender, SmtpEmailSender>();
+        services.AddScoped<AlertService>();
+        services.AddHostedService<AlertWorker>();
         return builder;
     }
 

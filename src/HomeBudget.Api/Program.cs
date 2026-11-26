@@ -10,6 +10,15 @@ if (args.Contains("--healthcheck"))
     return await HealthCheckCommand.RunAsync();
 }
 
+if (args.Contains("--generate-vapid-keys"))
+{
+    // Clés des notifications push, à placer dans HB__Push__VapidPublicKey et HB__Push__VapidPrivateKey.
+    var (publicKey, privateKey) = HomeBudget.Api.Infrastructure.Notifications.Vapid.Generate();
+    Console.WriteLine($"HB__Push__VapidPublicKey={publicKey}");
+    Console.WriteLine($"HB__Push__VapidPrivateKey={privateKey}");
+    return 0;
+}
+
 var builder = WebApplication.CreateBuilder(args);
 builder.AddHomeBudget();
 

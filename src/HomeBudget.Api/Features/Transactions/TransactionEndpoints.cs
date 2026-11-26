@@ -303,7 +303,7 @@ public static class TransactionEndpoints
         return TypedResults.Ok((await ToDtosAsync(db, [transaction]))[0]);
     }
 
-    private static async Task<ValidationProblem?> ValidateAsync(TransactionRequest request, AppDbContext db, Transaction? existing)
+    internal static async Task<ValidationProblem?> ValidateAsync(TransactionRequest request, AppDbContext db, Transaction? existing)
     {
         var errors = new Dictionary<string, string[]>();
         await TransactionValidation.CheckAccountAsync(db, request.AccountId, request.Date, existing?.AccountId, "accountId", errors);
@@ -332,7 +332,7 @@ public static class TransactionEndpoints
         return errors.Count == 0 ? null : TypedResults.ValidationProblem(errors);
     }
 
-    private static async Task ApplyAsync(Transaction transaction, TransactionRequest request, AppDbContext db)
+    internal static async Task ApplyAsync(Transaction transaction, TransactionRequest request, AppDbContext db)
     {
         transaction.AccountId = request.AccountId;
         transaction.Date = request.Date;

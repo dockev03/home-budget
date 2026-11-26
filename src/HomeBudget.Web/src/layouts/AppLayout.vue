@@ -6,6 +6,8 @@ import {
   mdiChartBar,
   mdiAccountGroupOutline,
   mdiApi,
+  mdiBellOutline,
+  mdiCloudOffOutline,
   mdiBankOutline,
   mdiCalendarCheckOutline,
   mdiCalendarMonthOutline,
@@ -33,16 +35,21 @@ import {
 } from '@mdi/js'
 import TransactionDialog from '@/components/TransactionDialog.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useOfflineStore } from '@/stores/offline'
 import { usePendingStore } from '@/stores/pending'
 import { useReferenceStore } from '@/stores/reference'
 import { useTransactionEditor } from '@/stores/transactionEditor'
 import { useThemePreference } from '@/composables/useThemePreference'
 import { roleLabel } from '@/utils/users'
+import { api } from '@/api/client'
+import { clearApiCache, warmUpCache } from '@/offline/cache'
+import { applyUpdate, updateAvailable } from '@/pwa'
 
 const auth = useAuthStore()
 const reference = useReferenceStore()
 const pending = usePendingStore()
 const editor = useTransactionEditor()
+const offline = useOfflineStore()
 const router = useRouter()
 const { mdAndUp } = useDisplay()
 const { preference } = useThemePreference()
@@ -50,6 +57,27 @@ const loggingOut = ref(false)
 
 // Badge « À valider » : rafraîchi aussi par l'accueil et par l'écran des échéances.
 onMounted(() => pending.load().catch(() => undefined))
+
+// Hors ligne (L4) : rejeu de la file d'attente, et données des dernières périodes gardées pour la consultation.
+onMounted(async () => {
+  offline.start()
+  if (!navigator.onLine) return
+  const { data } = await api.GET('/api/periods/current').catch(() => ({ data: undefined }))
+  if (data) await warmUpCache(data.key)
+})
+
+const syncMessage = computed(() => {
+  const result = offline.lastResult
+  if (!result) return null
+  const parts = []
+  if (result.created > 0)
+    parts.push(
+      `${result.created} opération${result.created > 1 ? 's' : ''} saisie${result.created > 1 ? 's' : ''} hors ligne envoyée${result.created > 1 ? 's' : ''}`,
+    )
+  if (result.rejected > 0)
+    parts.push(`${result.rejected} refusée${result.rejected > 1 ? 's' : ''} par le serveur (voir Opérations)`)
+  return parts.join(' ; ') + '.'
+})
 
 // Menu du bas (mobile) : 5 entrées au plus ; les autres sont dans le menu du compte.
 const navigation = computed(() =>
@@ -109,6 +137,13 @@ const navigation = computed(() =>
     },
     { title: 'Avances', icon: mdiHandCoinOutline, to: { name: 'advances' }, exact: true, bottom: false },
     { title: 'Répartition', icon: mdiCallSplit, to: { name: 'split' }, exact: false, bottom: false },
+    {
+      title: 'Notifications',
+      icon: mdiBellOutline,
+      to: { name: 'notifications' },
+      exact: true,
+      bottom: false,
+    },
     { title: 'Sécurité', icon: mdiShieldLockOutline, to: { name: 'security' }, exact: true, bottom: false },
     {
       title: 'Paramètres',
@@ -152,6 +187,8 @@ async function logout() {
   try {
     await auth.logout()
   } finally {
+    // Les données du foyer ne restent pas sur l'appareil (la file d'attente, liée à l'utilisateur, est gardée).
+    await clearApiCache().catch(() => undefined)
     reference.reset()
     pending.reset()
     loggingOut.value = false
@@ -244,6 +281,13 @@ async function logout() {
   </v-navigation-drawer>
 
   <v-main>
+    <v-system-bar v-if="!offline.online" color="warning" height="32" data-testid="offline-banner">
+      <v-icon :icon="mdiCloudOffOutline" class="mr-2" />
+      <span class="text-truncate">
+        Hors ligne : consultation seule ; les opérations saisies sont mises en attente
+        <template v-if="offline.pendingCount > 0">({{ offline.pendingCount }})</template>.
+      </span>
+    </v-system-bar>
     <v-container class="py-6" style="max-width: 1100px">
       <slot />
     </v-container>
@@ -262,6 +306,21 @@ async function logout() {
     @click="editor.open('create', null, ($route.query.accountId as string) ?? null)"
   />
   <TransactionDialog />
+
+  <v-snackbar :model-value="updateAvailable" timeout="-1" location="top">
+    Une nouvelle version de l'appli est disponible.
+    <template #actions>
+      <v-btn color="primary" variant="text" @click="applyUpdate">Mettre à jour</v-btn>
+    </template>
+  </v-snackbar>
+  <v-snackbar
+    :model-value="!!syncMessage"
+    :color="offline.lastResult?.rejected ? 'warning' : undefined"
+    data-testid="sync-message"
+    @update:model-value="(v) => !v && (offline.lastResult = null)"
+  >
+    {{ syncMessage }}
+  </v-snackbar>
 
   <v-bottom-navigation v-if="!mdAndUp" grow>
     <v-btn v-for="item in bottomNavigation" :key="item.title" :to="item.to" :exact="item.exact">

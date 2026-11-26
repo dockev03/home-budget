@@ -11,6 +11,7 @@ using HomeBudget.Api.Features.Dashboard;
 using HomeBudget.Api.Features.Exports;
 using HomeBudget.Api.Features.Forecasts;
 using HomeBudget.Api.Features.Imports;
+using HomeBudget.Api.Features.Notifications;
 using HomeBudget.Api.Features.Payees;
 using HomeBudget.Api.Features.Periods;
 using HomeBudget.Api.Features.Reconciliations;
@@ -22,6 +23,7 @@ using HomeBudget.Api.Features.Scenarios;
 using HomeBudget.Api.Features.Settings;
 using HomeBudget.Api.Features.Setup;
 using HomeBudget.Api.Features.Split;
+using HomeBudget.Api.Features.Sync;
 using HomeBudget.Api.Features.Tags;
 using HomeBudget.Api.Features.Transactions;
 using HomeBudget.Api.Features.Users;
@@ -111,6 +113,8 @@ public static class HomeBudgetPipeline
         app.MapPasswordEndpoints();
         app.MapAuditEndpoints();
         app.MapSplitEndpoints();
+        app.MapNotificationEndpoints();
+        app.MapSyncEndpoints();
 
         app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
         app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") }).AllowAnonymous();

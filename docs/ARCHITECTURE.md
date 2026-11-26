@@ -47,12 +47,12 @@
 | Documentation de l'API | OpenAPI intégré + Scalar | Accessible en `/api/docs` (administrateurs uniquement) |
 | Observabilité | OpenTelemetry + export Prometheus, HealthChecks | `/metrics` restreint au réseau interne |
 | E-mail | MailKit | SMTP configuré par variables d'environnement |
-| Push | Web Push (VAPID) | Bibliothèque `WebPush` |
+| Push | Web Push (VAPID) | Sans bibliothèque : chiffrement RFC 8291 et jeton VAPID RFC 8292 avec les primitives .NET (ECDH P-256, HKDF, AES-GCM, ES256) |
 | Front | Vue 3 + TypeScript + Vite | Composition API, Pinia, Vue Router |
 | Interface | Vuetify 3 | Composants mobiles : bouton flottant, menu du bas, tiroirs |
 | Graphiques | Apache ECharts (`vue-echarts`) | Courbes, anneau, barres, Sankey, calendrier |
 | PWA | `vite-plugin-pwa` (Workbox) | Coquille de l'appli mise en cache, mises à jour |
-| Stockage local | Dexie (IndexedDB) | Cache de lecture et file d'attente hors ligne |
+| Stockage local | Dexie (IndexedDB) et cache Workbox | File d'attente hors ligne (Dexie) ; réponses GET de l'API gardées par le service worker (cache `hb-api`) |
 | Client API | `openapi-typescript` + `openapi-fetch` | Généré depuis `/openapi/v1.json` |
 | Tests back | xUnit + `WebApplicationFactory` + SQLite en mémoire | Assertions via `Shouldly` (FluentAssertions v8 n'est plus libre de droits) |
 | Tests front | Vitest | |
@@ -165,7 +165,10 @@ ImportProfile              Id, Name, Delimiter, DateFormat, DecimalSeparator, Da
 ImportBatch                Id, AccountId, FileName, Format{Csv,Ofx,Qif}, Created, Matched, Duplicates   (date et auteur : CreatedAt, CreatedBy)
 
 AuditLog                   Id, At, UserId, Action, Entity, EntityId, Changes(JSON), Ip
-PushSubscription           UserId, Endpoint, P256dh, Auth, Preferences(JSON)
+PushSubscription           Id, UserId, Endpoint (unique), P256dh, Auth, Device?, CreatedAt, LastSuccessAt?   (M1, un par appareil)
+NotificationPreference     Id, UserId (unique), BudgetAlerts, ForecastAlerts, DueTomorrowAlerts, PendingAlerts,
+                           EmailSummary{None,Weekly,Monthly}   (M1, M2 ; sans ligne : toutes les alertes, pas de résumé)
+SentAlert                  Id, UserId, Kind, ObjectKey, PeriodKey, SentAt   (unique (UserId, Kind, ObjectKey, PeriodKey) ; purgé après 400 jours)
 ApiToken                   Id, UserId, Name, Hash, Scopes, ExpiresAt, LastUsedAt   (I5)
 Webhook                    Id, Url, Secret, Events, IsActive                       (I5)
 ```
@@ -208,11 +211,11 @@ Il n'y a pas d'éditeur de règles. L'appli apprend des corrections :
 
 ### 6.4 Hors ligne (L5)
 
-- Le service worker met en cache la coquille de l'appli et les données de référence (comptes, catégories, tiers) ainsi que les 3 dernières périodes, stockées dans Dexie.
-- Une saisie faite hors ligne est ajoutée à une file d'attente locale (`{id UUIDv7, type, payload}`) et s'affiche immédiatement avec un badge « en attente ».
-- Au retour du réseau (ou à l'ouverture de l'appli : la Background Sync API n'existe pas sur iOS), la file est rejouée via `POST /api/sync`. Le serveur est idempotent grâce aux identifiants générés côté client.
-- En cas de conflit de `Version`, c'est le serveur qui l'emporte et l'utilisateur est prévenu.
-- Hors ligne, seule la création d'opérations est autorisée.
+- **Installation (L2)** : `vite-plugin-pwa` génère le manifeste et le service worker (Workbox). La coquille de l'appli (HTML, JS, CSS, icônes) est précachée ; une nouvelle version est proposée par un bandeau « Mettre à jour », sans rechargement forcé. L'enregistrement est fait par le bundle (`src/pwa.ts`) : aucun script inline (CSP).
+- **Lecture** : les réponses GET de `/api/*` passent par une stratégie « réseau d'abord » (délai de 6 s) et sont gardées dans le cache `hb-api` (400 entrées, 31 jours), sauf les exports, les sauvegardes et le jeton anti-CSRF. Au démarrage, l'appli précharge le tableau de bord, le budget et le calendrier de la période en cours et des 2 précédentes, ainsi que la prévision. Le cache est vidé à la déconnexion.
+- **Saisie** : une opération créée hors ligne (ou dont l'envoi échoue faute de réseau) est ajoutée à une file IndexedDB (Dexie) `{id UUIDv7, userId, request, status}` et s'affiche aussitôt dans **Opérations** avec le badge « en attente ».
+- **Rejeu** : au retour du réseau, à l'ouverture de l'appli et à chaque retour sur l'onglet (la Background Sync API n'existe pas sur iOS), la file de l'utilisateur connecté est envoyée par lots de 100 à `POST /api/sync`. L'identifiant généré par l'appareil rend l'envoi idempotent : un élément déjà reçu répond `AlreadyApplied`. Un élément refusé (compte archivé, catégorie supprimée) reste dans la file avec le motif du serveur, que l'utilisateur corrige ou supprime : **le serveur l'emporte et l'utilisateur est prévenu**. Un lot refusé en bloc (400, élément mal formé) est renvoyé élément par élément.
+- **Hors ligne, seule la création d'opérations est autorisée** : toute autre modification est refusée immédiatement par le client (`offlineGuard`), avec un message explicite. Les virements ne sont pas mis en file.
 
 ### 6.5 Sécurité
 
@@ -246,9 +249,18 @@ Il n'y a pas d'éditeur de règles. L'appli apprend des corrections :
 
 ### 6.7 Notifications (M1, M2)
 
-- La tâche `AlertWorker` s'exécute toutes les heures. Elle vérifie les seuils de budget, le passage sous le seuil prévu, les échéances du lendemain et les opérations à valider.
-- Une même alerte n'est pas envoyée deux fois : chaque alerte est enregistrée par (type, objet, période).
-- Les envois se font en Web Push (VAPID) et/ou par e-mail (MailKit). Le résumé par e-mail part chaque semaine ou chaque mois, selon les préférences de chaque utilisateur.
+- **`AlertWorker`** : toutes les heures (`HB__Notifications__IntervalMinutes`), seulement si le push ou l'e-mail est configuré. Aucune notification de 22 h à `HB__Notifications__Hour` (8 h par défaut) : elles attendent la vérification suivante.
+- **`AlertService`** calcule les alertes **pour chaque utilisateur, avec ses seuls comptes visibles** (R8 : `AppDbContext.ActAsViewer`) :
+  - budget à 80 % puis à 100 % (seuils du foyer), seulement pour les catégories qui ont un budget ;
+  - passage prévu sous le seuil des comptes de la prévision (F3), une fois par période ;
+  - échéances de demain (à venir ou à valider reportées), regroupées en une notification ;
+  - échéances à valider (E5), regroupées.
+- **Une alerte ne part qu'une fois** : chaque envoi est enregistré par (utilisateur, type, objet, période) dans `SentAlert`, avant l'envoi (une panne du service push ne provoque pas de rafale au retour). Une alerte regroupée repart quand un nouvel objet s'y ajoute.
+- **Web Push** (`WebPushSender`) : message JSON `{title, body, url, tag}` chiffré en `aes128gcm` (RFC 8291) et signé VAPID ES256 (RFC 8292), sans bibliothèque tierce ; le chiffrement est vérifié par le vecteur de test de la RFC. Un abonnement qui répond 404 ou 410 est supprimé. Le service worker (`public/push-sw.js`) affiche la notification et ouvre la page de l'appli au clic.
+- **Adresses push limitées** aux services des navigateurs (`fcm.googleapis.com`, `push.services.mozilla.com`, `push.apple.com`, `notify.windows.com`, en HTTPS sur le port par défaut) : l'API ne peut pas servir à appeler une adresse du réseau interne.
+- **Résumé par e-mail** (MailKit, `IEmailSender`) : le lundi pour la semaine écoulée, le 1er pour le mois écoulé. Revenus, dépenses et épargne de la période couverte, position de la période en cours (solde, solde prévu, reste à vivre), budgets en alerte, échéances à valider et des 7 prochains jours. Texte et HTML échappé, sans ressource externe. Un échec d'envoi est retenté à la vérification suivante.
+- **Préférences** : par utilisateur (lecture seule compris), dans **Notifications**. L'adresse du résumé est l'e-mail du compte ; elle est modifiée sans changer le tampon de sécurité, pour ne pas fermer les sessions.
+- Les abonnements, préférences et alertes envoyées sont propres à chaque utilisateur : ils ne font pas partie de la sauvegarde JSON, comme les comptes utilisateurs.
 
 ### 6.8 Épargne et patrimoine (A7, G5, J1–J4)
 
@@ -300,9 +312,10 @@ services:
       HB__PublicUrl: https://budget.example.fr
       HB__KnownProxyNetwork: 172.20.0.0/16
       HB__Backup__KeepDaily: 7
-      HB__Smtp__Host: ""
-      HB__Push__VapidPublicKey: ""
+      HB__Push__VapidPublicKey: ""   # --generate-vapid-keys
       HB__Push__VapidPrivateKey: ""
+      HB__Smtp__Host: ""
+      HB__Smtp__From: ""
     volumes:
       - home-budget-data:/data
     networks: [npm]
@@ -324,8 +337,9 @@ networks:
 | `HB__KnownProxyNetwork` | Réseau du reverse proxy, à qui l'appli fait confiance | — |
 | `HB__DataPath` | Dossier des données | `/data` |
 | `HB__Backup__KeepDaily` / `__KeepWeekly` / `__KeepMonthly` | Rotation des sauvegardes | 7 / 4 / 12 |
-| `HB__Smtp__Host` / `__Port` / `__User` / `__Password` / `__From` | Envoi d'e-mails | désactivé |
+| `HB__Smtp__Host` / `__Port` / `__Security` / `__User` / `__Password` / `__From` | Envoi d'e-mails (résumé) | désactivé |
 | `HB__Push__VapidPublicKey` / `__VapidPrivateKey` / `__Subject` | Notifications push | désactivé |
+| `HB__Notifications__Enabled` / `__IntervalMinutes` / `__Hour` | Vérification des alertes | `true` / 60 / 8 |
 | `HB__Metrics__AllowedNetwork` | Réseau autorisé à interroger `/metrics` | réseau Docker |
 
 ## 9. CI/CD (GitHub Actions)
@@ -349,3 +363,5 @@ Le serveur ne construit plus l'image : les fichiers compose tirent l'image versi
 | Clean Architecture multi-projets, MediatR | Complexité sans bénéfice à cette échelle |
 | Hangfire ou Quartz | `BackgroundService` + `PeriodicTimer` suffisent |
 | Synchronisation complète hors ligne (local-first à la Actual) | Coût très élevé ; la file d'attente de saisie couvre le besoin |
+| Bibliothèque `WebPush` (.NET) | Dépendance de plus à surveiller (Trivy, Dependabot) ; le chiffrement et la signature tiennent en deux classes avec les primitives .NET |
+| Background Sync API | Absente sur iOS : le rejeu se fait au retour du réseau, à l'ouverture et au retour sur l'onglet |

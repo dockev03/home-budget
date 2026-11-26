@@ -10,9 +10,11 @@ import {
   mdiLockOutline,
   mdiPlus,
 } from '@mdi/js'
-import { api } from '@/api/client'
+import { api, type Schemas } from '@/api/client'
 import { ifMatch } from '@/api/concurrency'
 import { ApiError, unwrap } from '@/api/errors'
+import { isNetworkError } from '@/api/offline'
+import { useOfflineStore } from '@/stores/offline'
 import { useReferenceStore } from '@/stores/reference'
 import { useTransactionEditor, type Transaction } from '@/stores/transactionEditor'
 import {
@@ -43,6 +45,7 @@ const emptyLine = (): Line => ({ categoryId: null, amount: '', memo: '', tags: [
 const LAST_ACCOUNT_KEY = 'hb.lastAccountId'
 
 const editor = useTransactionEditor()
+const offline = useOfflineStore()
 const reference = useReferenceStore()
 const { smAndDown } = useDisplay()
 
@@ -411,8 +414,8 @@ async function save() {
           await reference.loadAccounts()
           return
         }
-      } else {
-        await unwrap(api.POST('/api/transactions', { body }))
+      } else if (await createOrQueue(body)) {
+        return
       }
     }
     rememberAccount(accountId.value)
@@ -423,6 +426,25 @@ async function save() {
   } finally {
     saving.value = false
   }
+}
+
+/**
+ * Crée l'opération, ou la met en file d'attente sans réseau (L4) : elle sera envoyée au retour de la connexion.
+ * @returns vrai si l'opération a été mise en file (le formulaire est alors fermé).
+ */
+async function createOrQueue(body: Schemas['TransactionRequest']): Promise<boolean> {
+  if (offline.online) {
+    try {
+      await unwrap(api.POST('/api/transactions', { body }))
+      return false
+    } catch (e) {
+      if (!isNetworkError(e)) throw e
+    }
+  }
+  await offline.enqueue(body)
+  rememberAccount(body.accountId)
+  editor.saved()
+  return true
 }
 
 /** Opération rapprochée : seuls les liens sont enregistrés. */

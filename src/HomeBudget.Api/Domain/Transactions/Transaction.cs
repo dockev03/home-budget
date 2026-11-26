@@ -34,6 +34,17 @@ public sealed class Transaction : AuditableEntity
     /// <summary>Empreinte de l'opération du relevé (FITID ou condensé), unique par compte : écarte les doublons (H3).</summary>
     public string? ImportHash { get; set; }
 
+    /// <summary>Rapprochement bancaire qui verrouille l'opération (A5, R7).</summary>
+    public Guid? ReconciliationId { get; set; }
+
+    /// <summary>Dépense que ce revenu rembourse (B11) : la dépense affiche son coût net.</summary>
+    public Guid? ReimbursesId { get; set; }
+
+    /// <summary>Avance à recevoir que ce revenu solde en tout ou partie (B12).</summary>
+    public Guid? AdvanceId { get; set; }
+
+    public bool IsReconciled => ReconciliationId is not null;
+
     public List<TransactionLine> Lines { get; private set; } = [];
 
     public void SetLines(IEnumerable<TransactionLine> lines)

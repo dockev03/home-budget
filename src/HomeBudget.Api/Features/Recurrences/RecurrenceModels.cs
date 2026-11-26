@@ -9,6 +9,7 @@ namespace HomeBudget.Api.Features.Recurrences;
 /// <param name="IsInstallment">Paiement en N fois : fin après <paramref name="Count"/> échéances, libellé numéroté.</param>
 /// <param name="Tolerance">Écart de montant admis pour rapprocher une opération importée (E7) ; 0 par défaut.</param>
 /// <param name="ToleranceUnit">Unité de la tolérance : euros (par défaut) ou pourcentage du montant.</param>
+/// <param name="IsSubscription">Abonnement (E10) : compté dans la vue « Abonnements ».</param>
 public sealed record RecurrenceRequest(
     [property: Required, StringLength(200, MinimumLength = 1)] string Label,
     Guid AccountId,
@@ -26,7 +27,8 @@ public sealed record RecurrenceRequest(
     int? Count,
     bool IsInstallment,
     [property: Range(0, 999_999_999)] decimal? Tolerance = null,
-    ToleranceUnit? ToleranceUnit = null);
+    ToleranceUnit? ToleranceUnit = null,
+    bool IsSubscription = false);
 
 /// <param name="NextDate">Prochaine échéance attendue (une échéance à valider en retard compte) ; null si terminée.</param>
 /// <param name="PendingCount">Échéances en attente de validation.</param>
@@ -52,7 +54,8 @@ public sealed record RecurrenceDto(
     ToleranceUnit ToleranceUnit,
     DateOnly? NextDate,
     int PendingCount,
-    int Version);
+    int Version,
+    bool IsSubscription);
 
 /// <param name="Label">Libellé de l'échéance, numéroté pour un paiement en N fois.</param>
 /// <param name="ScheduledDate">Date prévue par la récurrence.</param>

@@ -48,6 +48,9 @@ public static class DashboardEndpoints
     /// <param name="Amount">Dépense réalisée, sous-catégories comprises, en positif.</param>
     public sealed record CategoryAmountDto(Guid CategoryId, string Name, string? Color, CategoryKind Kind, decimal Amount);
 
+    /// <param name="Amount">Dépenses (fixes et variables) chez ce tiers sur la période, remboursements classés dans ces catégories déduits, en positif.</param>
+    public sealed record PayeeAmountDto(Guid PayeeId, string Name, decimal Amount, int Count);
+
     public sealed record BudgetComparisonDto(
         Guid CategoryId, string Name, string? Color, CategoryKind Kind, decimal Budgeted, decimal Actual, BudgetStatus Status);
 
@@ -60,7 +63,8 @@ public static class DashboardEndpoints
         KeyFiguresDto KeyFigures,
         List<CategoryAmountDto> ExpensesByCategory,
         List<BudgetComparisonDto> BudgetVsActual,
-        List<PeriodTotalsDto> History);
+        List<PeriodTotalsDto> History,
+        List<PayeeAmountDto> TopPayees);
 
     private static async Task<IResult> GetAsync(
         string periodKey, AppDbContext db, TimeProvider clock, IBudgetScheduleSource schedule, ForecastService forecasts, CancellationToken ct)
@@ -90,7 +94,32 @@ public static class DashboardEndpoints
                 .Where(e => e.Result.Budgeted != 0 || e.Result.Actual != 0)
                 .Select(e => new BudgetComparisonDto(
                     e.Category.Id, e.Category.Name, e.Category.Color, e.Category.Kind, e.Result.Budgeted, e.Result.Actual, e.Result.Status))],
-            await HistoryAsync(db, calculator, period, ct)));
+            await HistoryAsync(db, calculator, period, ct),
+            await TopPayeesAsync(db, period, ct)));
+    }
+
+    /// <summary>Nombre de tiers du classement (G7).</summary>
+    public const int TopPayeesCount = 10;
+
+    /// <summary>Top des tiers (G7) : dépenses fixes et variables de la période, regroupées par tiers.</summary>
+    private static async Task<List<PayeeAmountDto>> TopPayeesAsync(AppDbContext db, Period period, CancellationToken ct)
+    {
+        var rows = await db.TransactionLines.AsNoTracking()
+            .Join(db.Transactions, l => l.TransactionId, t => t.Id, (l, t) => new { l.CategoryId, l.Amount, t.Id, t.Date, t.PayeeId })
+            .Join(db.Categories, x => x.CategoryId, c => (Guid?)c.Id, (x, c) => new { x.Amount, x.Id, x.Date, x.PayeeId, c.Kind })
+            .Where(x => x.PayeeId != null && x.Date >= period.Start && x.Date <= period.End
+                && (x.Kind == CategoryKind.Fixed || x.Kind == CategoryKind.Variable))
+            .Select(x => new { PayeeId = x.PayeeId!.Value, x.Amount, x.Id })
+            .ToListAsync(ct);
+        var totals = rows.GroupBy(r => r.PayeeId)
+            .Select(g => (PayeeId: g.Key, Amount: -g.Sum(r => r.Amount), Count: g.Select(r => r.Id).Distinct().Count()))
+            .Where(p => p.Amount > 0)
+            .OrderByDescending(p => p.Amount)
+            .Take(TopPayeesCount)
+            .ToList();
+        var ids = totals.Select(t => t.PayeeId).ToList();
+        var names = await db.Payees.AsNoTracking().Where(p => ids.Contains(p.Id)).ToDictionaryAsync(p => p.Id, p => p.Name, ct);
+        return totals.ConvertAll(t => new PayeeAmountDto(t.PayeeId, names.GetValueOrDefault(t.PayeeId, "?"), t.Amount, t.Count));
     }
 
     private static async Task<KeyFiguresDto> KeyFiguresAsync(

@@ -50,6 +50,10 @@ public sealed class ApiClient(HttpClient http)
     public Task<HttpResponseMessage> PutAsync(string url, object body, int? version) =>
         SendAsync(HttpMethod.Put, url, body, version);
 
+    /// <summary>POST soumis à If-Match (action sur une ressource versionnée).</summary>
+    public Task<HttpResponseMessage> PostAsync(string url, object body, int? version) =>
+        SendAsync(HttpMethod.Post, url, body, version);
+
     public Task<HttpResponseMessage> DeleteAsync(string url, int? version) =>
         SendAsync(HttpMethod.Delete, url, null, version);
 

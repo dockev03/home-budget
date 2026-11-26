@@ -46,6 +46,7 @@ const count = ref('')
 const isInstallment = ref(false)
 const tolerance = ref('0')
 const toleranceUnit = ref<'Amount' | 'Percent'>('Amount')
+const isSubscription = ref(false)
 
 const valid = ref(false)
 const saving = ref(false)
@@ -122,6 +123,7 @@ async function reset() {
     isInstallment.value = false
     tolerance.value = '0'
     toleranceUnit.value = 'Amount'
+    isSubscription.value = false
     return
   }
   kind.value = r.toAccountId ? 'transfer' : r.amount > 0 ? 'income' : 'expense'
@@ -142,6 +144,7 @@ async function reset() {
   isInstallment.value = r.isInstallment
   tolerance.value = String(r.tolerance).replace('.', ',')
   toleranceUnit.value = r.toleranceUnit
+  isSubscription.value = r.isSubscription
 }
 
 watch(visible, (open) => {
@@ -182,6 +185,7 @@ async function save() {
     isInstallment: isInstallment.value,
     tolerance: roundCents(parseAmount(tolerance.value) ?? 0),
     toleranceUnit: toleranceUnit.value,
+    isSubscription: kind.value !== 'transfer' && isSubscription.value,
   }
   try {
     if (props.recurrence) {
@@ -324,6 +328,13 @@ async function remove() {
               />
             </v-col>
           </v-row>
+          <v-checkbox
+            v-if="kind !== 'transfer'"
+            v-model="isSubscription"
+            label="Abonnement (compté dans la vue « Abonnements »)"
+            hide-details
+            class="mb-2"
+          />
 
           <v-row dense align="center">
             <v-col cols="5" sm="3">

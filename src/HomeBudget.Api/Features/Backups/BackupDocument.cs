@@ -28,11 +28,13 @@ public sealed record BackupDocument(
     List<BackupImportProfile?>? ImportProfiles = null,
     List<BackupImportBatch?>? ImportBatches = null,
     List<BackupTag?>? Tags = null,
-    List<BackupLabelRule?>? LabelRules = null)
+    List<BackupLabelRule?>? LabelRules = null,
+    List<BackupReconciliation?>? Reconciliations = null,
+    List<BackupAdvance?>? Advances = null)
 {
     public const string FormatName = "home-budget-backup";
 
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     /// <summary>Version 1 : sans profils ni historique d'import (étapes 1 à 4), toujours restaurable.</summary>
     public const int MinVersion = 1;
@@ -42,6 +44,9 @@ public sealed record BackupDocument(
 
     /// <summary>Version 3 : tags des lignes et règles apprises (étape 6).</summary>
     public const int TagsVersion = 3;
+
+    /// <summary>Version 4 : rapprochements, avances, liens de remboursement et abonnements (étape 7).</summary>
+    public const int ReconciliationsVersion = 4;
 }
 
 /// <summary>Traçabilité (K2) et version de concurrence, conservées à la restauration.</summary>
@@ -88,6 +93,10 @@ public sealed record BackupTag(Guid Id, string? Name, BackupAudit? Audit);
 
 public sealed record BackupLabelRule(Guid Id, string? Key, Guid? PayeeId, Guid? CategoryId, BackupAudit? Audit);
 
+public sealed record BackupReconciliation(Guid Id, Guid AccountId, DateOnly Date, decimal StatementBalance, BackupAudit? Audit);
+
+public sealed record BackupAdvance(Guid Id, string? Label, decimal ExpectedAmount, DateOnly Date, string? Notes, bool IsClosed, BackupAudit? Audit);
+
 public sealed record BackupTransaction(
     Guid Id,
     Guid AccountId,
@@ -101,7 +110,10 @@ public sealed record BackupTransaction(
     BackupAudit? Audit,
     string? RawLabel = null,
     Guid? ImportBatchId = null,
-    string? ImportHash = null);
+    string? ImportHash = null,
+    Guid? ReconciliationId = null,
+    Guid? ReimbursesId = null,
+    Guid? AdvanceId = null);
 
 public sealed record BackupRecurrence(
     Guid Id,
@@ -123,7 +135,8 @@ public sealed record BackupRecurrence(
     DateOnly GenerateFrom,
     BackupAudit? Audit,
     decimal Tolerance = 0,
-    ToleranceUnit ToleranceUnit = ToleranceUnit.Amount);
+    ToleranceUnit ToleranceUnit = ToleranceUnit.Amount,
+    bool IsSubscription = false);
 
 public sealed record BackupOccurrence(
     Guid Id,

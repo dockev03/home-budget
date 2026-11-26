@@ -3,6 +3,7 @@ using System.Text;
 using HomeBudget.Api.Domain.Tags;
 using HomeBudget.Api.Domain.Transactions;
 using HomeBudget.Api.Features.Payees;
+using HomeBudget.Api.Features.Reconciliations;
 using HomeBudget.Api.Features.Rules;
 using HomeBudget.Api.Features.Tags;
 using HomeBudget.Api.Infrastructure;
@@ -37,9 +38,15 @@ public static class TransactionEndpoints
             .Produces(StatusCodes.Status204NoContent).WithConcurrencyProblems()
             .WithSummary("Supprime une opération (If-Match requis). Un virement se supprime via /api/transfers.");
         group.MapPost("/{id:guid}/clear", ClearAsync).RequireAuthorization(AuthorizationPolicies.Write)
-            .WithSummary("Pointe ou dépointe une opération.");
+            .Produces<TransactionDto>().ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict)
+            .WithSummary("Pointe ou dépointe une opération. Une opération rapprochée ne se dépointe pas.");
         group.MapGet("/{id:guid}/similar", SimilarAsync)
             .WithSummary("Opérations de même libellé bancaire dont le tiers ou la catégorie diffère : candidates à la même correction.");
+        group.MapPut("/{id:guid}/links", SetLinksAsync).RequireAuthorization(AuthorizationPolicies.Write)
+            .Produces<TransactionDto>().ProducesValidationProblem().ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Lie un revenu à la dépense qu'il rembourse (B11) et à l'avance qu'il solde (B12) ; null défait le lien.");
+        group.MapGet("/{id:guid}/reimbursable", ReimbursableAsync)
+            .WithSummary("Dépenses que ce revenu peut rembourser : celles de l'année précédente, filtrées par le texte recherché.");
         group.MapPost("/bulk", BulkAsync).RequireAuthorization(AuthorizationPolicies.Write)
             .WithSummary("Modifie plusieurs opérations en une fois (catégorie, tiers, compte, pointage, tags), dans une seule transaction.");
 
@@ -155,7 +162,8 @@ public static class TransactionEndpoints
         {
             // Une modification qui ne s'applique pas laisse l'opération intacte, plutôt qu'à moitié modifiée.
             var isTransfer = t.TransferId is not null;
-            if ((isTransfer && (request.Category is not null || payeeRequested || account is not null))
+            if (t.IsReconciled
+                || (isTransfer && (request.Category is not null || payeeRequested || account is not null))
                 || (request.Category is not null && t.Lines.Count != 1)
                 || (account is not null && account.Id != t.AccountId && (t.ImportHash is not null || t.Date < account.InitialDate)))
             {
@@ -231,6 +239,10 @@ public static class TransactionEndpoints
         {
             return TransferOnly();
         }
+        if (transaction.IsReconciled)
+        {
+            return ReconciliationLock.Problem();
+        }
         if (Concurrency.Check(http, transaction) is { } precondition)
         {
             return precondition;
@@ -260,6 +272,10 @@ public static class TransactionEndpoints
         {
             return TransferOnly();
         }
+        if (transaction.IsReconciled)
+        {
+            return ReconciliationLock.Problem();
+        }
         if (Concurrency.Check(http, transaction) is { } precondition)
         {
             return precondition;
@@ -268,12 +284,16 @@ public static class TransactionEndpoints
         return await db.TrySaveAsync() ? TypedResults.NoContent() : Concurrency.Conflict();
     }
 
-    private static async Task<Results<Ok<TransactionDto>, NotFound>> ClearAsync(Guid id, ClearRequest request, AppDbContext db)
+    private static async Task<IResult> ClearAsync(Guid id, ClearRequest request, AppDbContext db)
     {
         var transaction = await db.Transactions.Include(t => t.Lines).ThenInclude(l => l.Tags).FirstOrDefaultAsync(t => t.Id == id);
         if (transaction is null)
         {
             return TypedResults.NotFound();
+        }
+        if (transaction.IsReconciled && !request.IsCleared)
+        {
+            return ReconciliationLock.Problem();
         }
         if (transaction.IsCleared != request.IsCleared)
         {
@@ -345,6 +365,14 @@ public static class TransactionEndpoints
             .Select(t => new { t.Id, t.TransferId, t.AccountId })
             .ToListAsync();
 
+        var expenseIds = transactions.Where(t => t.Amount < 0).Select(t => t.Id).ToList();
+        var reimbursed = (await db.Transactions.AsNoTracking()
+                .Where(t => t.ReimbursesId != null && expenseIds.Contains(t.ReimbursesId.Value))
+                .Select(t => new { ExpenseId = t.ReimbursesId!.Value, t.Amount })
+                .ToListAsync())
+            .GroupBy(x => x.ExpenseId)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Amount));
+
         return [.. transactions.Select(t => new TransactionDto(
             t.Id,
             t.AccountId,
@@ -361,7 +389,70 @@ public static class TransactionEndpoints
                 l.Id, l.CategoryId, l.Amount, l.Memo, [.. l.Tags.Select(g => g.Name).Order(StringComparer.CurrentCultureIgnoreCase)]))],
             t.CreatedAt,
             t.UpdatedAt,
-            t.Version))];
+            t.Version,
+            t.IsReconciled,
+            t.ReimbursesId,
+            reimbursed.GetValueOrDefault(t.Id),
+            t.AdvanceId))];
+    }
+
+    private static async Task<IResult> SetLinksAsync(Guid id, TransactionLinksRequest request, AppDbContext db, CancellationToken ct)
+    {
+        var transaction = await db.Transactions.Include(t => t.Lines).ThenInclude(l => l.Tags).FirstOrDefaultAsync(t => t.Id == id, ct);
+        if (transaction is null)
+        {
+            return TypedResults.NotFound();
+        }
+        var errors = new Dictionary<string, string[]>();
+        var linking = request.ReimbursesId is not null || request.AdvanceId is not null;
+        if (linking && (transaction.Amount <= 0 || transaction.TransferId is not null))
+        {
+            errors["id"] = ["Seul un revenu (hors virement) peut rembourser une dépense ou solder une avance."];
+        }
+        if (request.ReimbursesId is { } expenseId)
+        {
+            var expense = await db.Transactions.AsNoTracking().FirstOrDefaultAsync(t => t.Id == expenseId, ct);
+            if (expense is null)
+            {
+                errors["reimbursesId"] = ["Dépense introuvable."];
+            }
+            else if (expense.Amount >= 0 || expense.TransferId is not null)
+            {
+                errors["reimbursesId"] = ["Choisissez une dépense (hors virement)."];
+            }
+        }
+        if (request.AdvanceId is { } advanceId && !await db.Advances.AnyAsync(a => a.Id == advanceId, ct))
+        {
+            errors["advanceId"] = ["Avance introuvable."];
+        }
+        if (errors.Count > 0)
+        {
+            return TypedResults.ValidationProblem(errors);
+        }
+        transaction.ReimbursesId = request.ReimbursesId;
+        transaction.AdvanceId = request.AdvanceId;
+        await db.SaveChangesAsync(ct);
+        return TypedResults.Ok((await ToDtosAsync(db, [transaction]))[0]);
+    }
+
+    /// <summary>Dépenses que ce revenu peut rembourser (B11) : celles de l'année qui précède, les plus récentes d'abord.</summary>
+    private static async Task<Results<Ok<List<TransactionDto>>, NotFound>> ReimbursableAsync(
+        Guid id, string? search, AppDbContext db, CancellationToken ct)
+    {
+        var income = await db.Transactions.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id, ct);
+        if (income is null)
+        {
+            return TypedResults.NotFound();
+        }
+        var query = await new TransactionFilter(null, null, null, income.Date.AddYears(-1), income.Date.AddDays(1), null, null, search, null)
+            .ApplyAsync(db, db.Transactions.AsNoTracking(), ct);
+        var expenses = await query
+            .Where(t => t.Amount < 0 && t.TransferId == null)
+            .OrderByDescending(t => t.Date).ThenByDescending(t => t.Id)
+            .Include(t => t.Lines).ThenInclude(l => l.Tags)
+            .Take(20)
+            .ToListAsync(ct);
+        return TypedResults.Ok(await ToDtosAsync(db, expenses));
     }
 
     private static IResult TransferOnly() => TypedResults.Problem(

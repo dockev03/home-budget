@@ -1,8 +1,10 @@
 using HomeBudget.Api.Domain;
+using HomeBudget.Api.Domain.Advances;
 using HomeBudget.Api.Domain.Budgets;
 using HomeBudget.Api.Domain.Categories;
 using HomeBudget.Api.Domain.Imports;
 using HomeBudget.Api.Domain.Payees;
+using HomeBudget.Api.Domain.Reconciliations;
 using HomeBudget.Api.Domain.Recurrences;
 using HomeBudget.Api.Domain.Rules;
 using HomeBudget.Api.Domain.Settings;
@@ -33,6 +35,8 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
         var batches = await db.ImportBatches.AsNoTracking().OrderBy(b => b.Id).ToListAsync(ct);
         var tags = await db.Tags.AsNoTracking().OrderBy(t => t.Id).ToListAsync(ct);
         var rules = await db.LabelRules.AsNoTracking().OrderBy(r => r.Id).ToListAsync(ct);
+        var reconciliations = await db.Reconciliations.AsNoTracking().OrderBy(r => r.Id).ToListAsync(ct);
+        var advances = await db.Advances.AsNoTracking().OrderBy(a => a.Id).ToListAsync(ct);
 
         return new BackupDocument(
             BackupDocument.FormatName,
@@ -52,10 +56,10 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 t.Id, t.AccountId, t.Date, t.PayeeId, t.Label, t.Notes, t.IsCleared, t.TransferId,
                 [.. t.Lines.OrderBy(l => l.SortOrder).Select(l => new BackupTransactionLine(
                     l.Id, l.CategoryId, l.Amount, l.Memo, [.. l.Tags.Select(g => g.Id).Order()]))],
-                AuditOf(t), t.RawLabel, t.ImportBatchId, t.ImportHash))],
+                AuditOf(t), t.RawLabel, t.ImportBatchId, t.ImportHash, t.ReconciliationId, t.ReimbursesId, t.AdvanceId))],
             [.. recurrences.Select(r => new BackupRecurrence(
                 r.Id, r.Label, r.AccountId, r.ToAccountId, r.PayeeId, r.CategoryId, r.Amount, r.Notes, r.Mode, r.StartDate,
-                r.Unit, r.Interval, r.End, r.EndDate, r.Count, r.IsInstallment, r.GenerateFrom, AuditOf(r), r.Tolerance, r.ToleranceUnit))],
+                r.Unit, r.Interval, r.End, r.EndDate, r.Count, r.IsInstallment, r.GenerateFrom, AuditOf(r), r.Tolerance, r.ToleranceUnit, r.IsSubscription))],
             [.. occurrences.Select(o => new BackupOccurrence(
                 o.Id, o.RecurrenceId, o.Index, o.ScheduledDate, o.DueDate, o.Status, o.TransactionId, AuditOf(o)))],
             [.. profiles.Select(p => new BackupImportProfile(
@@ -64,7 +68,9 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
             [.. batches.Select(b => new BackupImportBatch(
                 b.Id, b.AccountId, b.FileName, b.Format, b.Created, b.Matched, b.Duplicates, AuditOf(b)))],
             [.. tags.Select(t => new BackupTag(t.Id, t.Name, AuditOf(t)))],
-            [.. rules.Select(r => new BackupLabelRule(r.Id, r.Key, r.PayeeId, r.CategoryId, AuditOf(r)))]);
+            [.. rules.Select(r => new BackupLabelRule(r.Id, r.Key, r.PayeeId, r.CategoryId, AuditOf(r)))],
+            [.. reconciliations.Select(r => new BackupReconciliation(r.Id, r.AccountId, r.Date, r.StatementBalance, AuditOf(r)))],
+            [.. advances.Select(a => new BackupAdvance(a.Id, a.Label, a.ExpectedAmount, a.Date, a.Notes, a.IsClosed, AuditOf(a)))]);
     }
 
     /// <summary>
@@ -98,6 +104,9 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
         await db.TransactionLines.ExecuteDeleteAsync(ct);
         await db.Transactions.ExecuteDeleteAsync(ct);
         await db.Tags.ExecuteDeleteAsync(ct);
+        // Après les opérations, qui les référencent ; remplacés quelle que soit la version.
+        await db.Reconciliations.ExecuteDeleteAsync(ct);
+        await db.Advances.ExecuteDeleteAsync(ct);
         await db.ImportBatches.ExecuteDeleteAsync(ct);
         // Une sauvegarde de version 1 ne contient pas de profils : ceux de l'instance sont conservés.
         if (document.ImportProfiles is not null)
@@ -215,6 +224,24 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
             db.LabelRules.Add(Stamp(new LabelRule { Id = r.Id, Key = r.Key!, PayeeId = r.PayeeId, CategoryId = r.CategoryId }, r.Audit));
         }
 
+        foreach (var r in (document.Reconciliations ?? []).OfType<BackupReconciliation>())
+        {
+            db.Reconciliations.Add(Stamp(new Reconciliation { Id = r.Id, AccountId = r.AccountId, Date = r.Date, StatementBalance = r.StatementBalance }, r.Audit));
+        }
+
+        foreach (var a in (document.Advances ?? []).OfType<BackupAdvance>())
+        {
+            db.Advances.Add(Stamp(new Advance
+            {
+                Id = a.Id,
+                Label = a.Label!.Trim(),
+                ExpectedAmount = a.ExpectedAmount,
+                Date = a.Date,
+                Notes = a.Notes,
+                IsClosed = a.IsClosed,
+            }, a.Audit));
+        }
+
         foreach (var t in document.Transactions!.OfType<BackupTransaction>())
         {
             var entity = Stamp(new Transaction
@@ -230,6 +257,9 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 RawLabel = t.RawLabel,
                 ImportBatchId = t.ImportBatchId,
                 ImportHash = t.ImportHash,
+                ReconciliationId = t.ReconciliationId,
+                ReimbursesId = t.ReimbursesId,
+                AdvanceId = t.AdvanceId,
             }, t.Audit);
             entity.SetLines(t.Lines!.OfType<BackupTransactionLine>().Select(l => new TransactionLine
             {
@@ -265,6 +295,7 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 GenerateFrom = r.GenerateFrom,
                 Tolerance = r.Tolerance,
                 ToleranceUnit = r.ToleranceUnit,
+                IsSubscription = r.IsSubscription,
             }, r.Audit));
         }
 

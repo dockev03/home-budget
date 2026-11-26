@@ -906,6 +906,26 @@
         }
       }
     },
+    "/api/recurrences/subscriptions": {
+      "get": {
+        "tags": [
+          "Recurrences"
+        ],
+        "summary": "Abonnements en cours, avec leur co\u00FBt mensuel et annuel, et les totaux.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/transactions": {
       "get": {
         "tags": [
@@ -1259,7 +1279,7 @@
         "tags": [
           "Transactions"
         ],
-        "summary": "Pointe ou d\u00E9pointe une op\u00E9ration.",
+        "summary": "Pointe ou d\u00E9pointe une op\u00E9ration. Une op\u00E9ration rapproch\u00E9e ne se d\u00E9pointe pas.",
         "parameters": [
           {
             "name": "id",
@@ -1293,7 +1313,24 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -1312,6 +1349,111 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TransactionDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/transactions/{id}/links": {
+      "put": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Lie un revenu \u00E0 la d\u00E9pense qu\u0027il rembourse (B11) et \u00E0 l\u0027avance qu\u0027il solde (B12) ; null d\u00E9fait le lien.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionLinksRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transactions/{id}/reimbursable": {
+      "get": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "D\u00E9penses que ce revenu peut rembourser : celles de l\u0027ann\u00E9e pr\u00E9c\u00E9dente, filtr\u00E9es par le texte recherch\u00E9.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -3094,6 +3236,609 @@
           }
         }
       }
+    },
+    "/api/accounts/{accountId}/reconciliations": {
+      "get": {
+        "tags": [
+          "Reconciliations"
+        ],
+        "summary": "Rapprochements du compte, du plus r\u00E9cent au plus ancien.",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReconciliationDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Reconciliations"
+        ],
+        "summary": "Rapproche le compte : sans \u00E9cart, les op\u00E9rations point\u00E9es jusqu\u0027\u00E0 la date du relev\u00E9 sont verrouill\u00E9es.",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconciliationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{accountId}/reconciliations/preview": {
+      "get": {
+        "tags": [
+          "Reconciliations"
+        ],
+        "summary": "Solde point\u00E9 du compte \u00E0 la date du relev\u00E9, et \u00E9cart avec le solde du relev\u00E9. Rien n\u0027est enregistr\u00E9.",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "statementBalance",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationPreviewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{accountId}/reconciliations/{id}": {
+      "delete": {
+        "tags": [
+          "Reconciliations"
+        ],
+        "summary": "Annule le dernier rapprochement du compte (If-Match requis) : ses op\u00E9rations sont d\u00E9verrouill\u00E9es et restent point\u00E9es.",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/advances": {
+      "get": {
+        "tags": [
+          "Advances"
+        ],
+        "summary": "Avances, les ouvertes d\u0027abord, puis de la plus r\u00E9cente \u00E0 la plus ancienne.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdvanceDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Advances"
+        ],
+        "summary": "Cr\u00E9e une avance \u00E0 recevoir.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdvanceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdvanceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/advances/{id}": {
+      "put": {
+        "tags": [
+          "Advances"
+        ],
+        "summary": "Modifie une avance (If-Match requis), ou la solde \u00E0 la main.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdvanceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdvanceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Advances"
+        ],
+        "summary": "Supprime une avance (If-Match requis). Les revenus rattach\u00E9s sont conserv\u00E9s, sans lien.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/categories/{id}/merge-preview": {
+      "get": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Ce que la fusion de la cat\u00E9gorie dans la cible d\u00E9placerait. Rien n\u0027est modifi\u00E9.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "targetId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergeDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/categories/{id}/merge": {
+      "post": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Fusionne la cat\u00E9gorie dans la cible (If-Match requis : version de la cat\u00E9gorie source), puis la supprime.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MergeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergeDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3299,6 +4044,111 @@
           "Private"
         ]
       },
+      "AdvanceDto": {
+        "required": [
+          "id",
+          "label",
+          "expectedAmount",
+          "date",
+          "notes",
+          "isClosed",
+          "received",
+          "remaining",
+          "status",
+          "transactionCount",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "label": {
+            "type": "string"
+          },
+          "expectedAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isClosed": {
+            "type": "boolean"
+          },
+          "received": {
+            "type": "number",
+            "format": "double"
+          },
+          "remaining": {
+            "type": "number",
+            "format": "double"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AdvanceStatus"
+          },
+          "transactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdvanceRequest": {
+        "required": [
+          "label",
+          "expectedAmount",
+          "date",
+          "notes",
+          "isClosed"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "expectedAmount": {
+            "maximum": 999999999,
+            "minimum": 0.01,
+            "type": "number",
+            "format": "double"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "notes": {
+            "maxLength": 2000,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isClosed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AdvanceStatus": {
+        "enum": [
+          "Open",
+          "Settled"
+        ]
+      },
       "AuthenticatorSetup": {
         "required": [
           "sharedKey",
@@ -3393,6 +4243,57 @@
           "sortOrder": {
             "type": "integer",
             "format": "int32"
+          },
+          "audit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BackupAudit"
+              }
+            ]
+          }
+        }
+      },
+      "BackupAdvance": {
+        "required": [
+          "id",
+          "label",
+          "expectedAmount",
+          "date",
+          "notes",
+          "isClosed",
+          "audit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expectedAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isClosed": {
+            "type": "boolean"
           },
           "audit": {
             "oneOf": [
@@ -3684,6 +4585,24 @@
             "items": {
               "$ref": "#/components/schemas/BackupLabelRule"
             }
+          },
+          "reconciliations": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BackupReconciliation"
+            }
+          },
+          "advances": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BackupAdvance"
+            }
           }
         }
       },
@@ -3957,6 +4876,44 @@
           }
         }
       },
+      "BackupReconciliation": {
+        "required": [
+          "id",
+          "accountId",
+          "date",
+          "statementBalance",
+          "audit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "statementBalance": {
+            "type": "number",
+            "format": "double"
+          },
+          "audit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BackupAudit"
+              }
+            ]
+          }
+        }
+      },
       "BackupRecurrence": {
         "required": [
           "id",
@@ -4080,6 +5037,10 @@
           },
           "toleranceUnit": {
             "$ref": "#/components/schemas/ToleranceUnit"
+          },
+          "isSubscription": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -4261,6 +5222,27 @@
               "null",
               "string"
             ]
+          },
+          "reconciliationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "reimbursesId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "advanceId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -4933,7 +5915,8 @@
           "keyFigures",
           "expensesByCategory",
           "budgetVsActual",
-          "history"
+          "history",
+          "topPayees"
         ],
         "type": "object",
         "properties": {
@@ -4959,6 +5942,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PeriodTotalsDto"
+            }
+          },
+          "topPayees": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PayeeAmountDto"
             }
           }
         }
@@ -5713,6 +6702,71 @@
           "RequiresTwoFactor"
         ]
       },
+      "MergeDto": {
+        "required": [
+          "sourceId",
+          "sourceName",
+          "targetId",
+          "targetName",
+          "lines",
+          "recurrences",
+          "rules",
+          "subcategories",
+          "budgetMoved",
+          "budgetDropped"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceName": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "targetName": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "recurrences": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rules": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "subcategories": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "budgetMoved": {
+            "type": "boolean"
+          },
+          "budgetDropped": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MergeRequest": {
+        "required": [
+          "targetId"
+        ],
+        "type": "object",
+        "properties": {
+          "targetId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "OccurrenceResultDto": {
         "required": [
           "id",
@@ -5758,6 +6812,32 @@
         "properties": {
           "password": {
             "type": "string"
+          }
+        }
+      },
+      "PayeeAmountDto": {
+        "required": [
+          "payeeId",
+          "name",
+          "amount",
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "payeeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -5969,6 +7049,112 @@
           }
         }
       },
+      "ReconciliationDto": {
+        "required": [
+          "id",
+          "accountId",
+          "date",
+          "statementBalance",
+          "transactionCount",
+          "createdAt",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "statementBalance": {
+            "type": "number",
+            "format": "double"
+          },
+          "transactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ReconciliationPreviewDto": {
+        "required": [
+          "date",
+          "statementBalance",
+          "clearedBalance",
+          "difference",
+          "toReconcileCount",
+          "unclearedCount",
+          "lastDate"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "statementBalance": {
+            "type": "number",
+            "format": "double"
+          },
+          "clearedBalance": {
+            "type": "number",
+            "format": "double"
+          },
+          "difference": {
+            "type": "number",
+            "format": "double"
+          },
+          "toReconcileCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unclearedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          }
+        }
+      },
+      "ReconciliationRequest": {
+        "required": [
+          "date",
+          "statementBalance"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "statementBalance": {
+            "maximum": 999999999,
+            "minimum": -999999999,
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "RecoveryCodeLoginRequest": {
         "required": [
           "recoveryCode"
@@ -6017,7 +7203,8 @@
           "toleranceUnit",
           "nextDate",
           "pendingCount",
-          "version"
+          "version",
+          "isSubscription"
         ],
         "type": "object",
         "properties": {
@@ -6124,6 +7311,9 @@
           "version": {
             "type": "integer",
             "format": "int32"
+          },
+          "isSubscription": {
+            "type": "boolean"
           }
         }
       },
@@ -6257,6 +7447,10 @@
                 "$ref": "#/components/schemas/ToleranceUnit"
               }
             ]
+          },
+          "isSubscription": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -6487,6 +7681,98 @@
           }
         }
       },
+      "SubscriptionDto": {
+        "required": [
+          "recurrenceId",
+          "label",
+          "payeeName",
+          "categoryId",
+          "accountId",
+          "amount",
+          "unit",
+          "interval",
+          "nextDate",
+          "monthlyCost",
+          "annualCost"
+        ],
+        "type": "object",
+        "properties": {
+          "recurrenceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "label": {
+            "type": "string"
+          },
+          "payeeName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/FrequencyUnit"
+          },
+          "interval": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nextDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "monthlyCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "annualCost": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "SubscriptionsDto": {
+        "required": [
+          "monthlyTotal",
+          "annualTotal",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "monthlyTotal": {
+            "type": "number",
+            "format": "double"
+          },
+          "annualTotal": {
+            "type": "number",
+            "format": "double"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubscriptionDto"
+            }
+          }
+        }
+      },
       "SuggestionDto": {
         "required": [
           "payeeName",
@@ -6552,7 +7838,11 @@
           "lines",
           "createdAt",
           "updatedAt",
-          "version"
+          "version",
+          "isReconciled",
+          "reimbursesId",
+          "reimbursedAmount",
+          "advanceId"
         ],
         "type": "object",
         "properties": {
@@ -6631,6 +7921,27 @@
           "version": {
             "type": "integer",
             "format": "int32"
+          },
+          "isReconciled": {
+            "type": "boolean"
+          },
+          "reimbursesId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "reimbursedAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "advanceId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -6710,6 +8021,29 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "TransactionLinksRequest": {
+        "required": [
+          "reimbursesId",
+          "advanceId"
+        ],
+        "type": "object",
+        "properties": {
+          "reimbursesId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "advanceId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -6977,6 +8311,9 @@
       "name": "Rules"
     },
     {
+      "name": "Recurrences"
+    },
+    {
       "name": "Transactions"
     },
     {
@@ -6992,9 +8329,6 @@
       "name": "Budgets"
     },
     {
-      "name": "Recurrences"
-    },
-    {
       "name": "Forecast"
     },
     {
@@ -7008,6 +8342,12 @@
     },
     {
       "name": "Imports"
+    },
+    {
+      "name": "Reconciliations"
+    },
+    {
+      "name": "Advances"
     }
   ]
 }

@@ -1076,6 +1076,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/recurrences/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Abonnements en cours, avec leur coût mensuel et annuel, et les totaux. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SubscriptionsDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/transactions": {
         parameters: {
             query?: never;
@@ -1348,7 +1384,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Pointe ou dépointe une opération. */
+        /** Pointe ou dépointe une opération. Une opération rapprochée ne se dépointe pas. */
         post: {
             parameters: {
                 query?: never;
@@ -1378,7 +1414,18 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
                 };
             };
         };
@@ -1399,6 +1446,113 @@ export interface paths {
         get: {
             parameters: {
                 query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TransactionDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transactions/{id}/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Lie un revenu à la dépense qu'il rembourse (B11) et à l'avance qu'il solde (B12) ; null défait le lien. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TransactionLinksRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TransactionDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transactions/{id}/reimbursable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dépenses que ce revenu peut rembourser : celles de l'année précédente, filtrées par le texte recherché. */
+        get: {
+            parameters: {
+                query?: {
+                    search?: string;
+                };
                 header?: never;
                 path: {
                     id: string;
@@ -3258,6 +3412,584 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/accounts/{accountId}/reconciliations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rapprochements du compte, du plus récent au plus ancien. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    accountId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReconciliationDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        /** Rapproche le compte : sans écart, les opérations pointées jusqu'à la date du relevé sont verrouillées. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    accountId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ReconciliationRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReconciliationDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/{accountId}/reconciliations/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Solde pointé du compte à la date du relevé, et écart avec le solde du relevé. Rien n'est enregistré. */
+        get: {
+            parameters: {
+                query: {
+                    date: string;
+                    statementBalance: number;
+                };
+                header?: never;
+                path: {
+                    accountId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReconciliationPreviewDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/{accountId}/reconciliations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Annule le dernier rapprochement du compte (If-Match requis) : ses opérations sont déverrouillées et restent pointées. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    accountId: string;
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/advances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Avances, les ouvertes d'abord, puis de la plus récente à la plus ancienne. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdvanceDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Crée une avance à recevoir. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdvanceRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdvanceDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/advances/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Modifie une avance (If-Match requis), ou la solde à la main. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdvanceRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdvanceDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Supprime une avance (If-Match requis). Les revenus rattachés sont conservés, sans lien. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/categories/{id}/merge-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ce que la fusion de la catégorie dans la cible déplacerait. Rien n'est modifié. */
+        get: {
+            parameters: {
+                query: {
+                    targetId: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MergeDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/categories/{id}/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fusionne la catégorie dans la cible (If-Match requis : version de la catégorie source), puis la supprime. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MergeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MergeDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3313,6 +4045,37 @@ export interface components {
         AccountType: "Checking" | "Savings" | "Investment" | "Cash" | "Credit";
         /** @enum {unknown} */
         AccountVisibility: "Shared" | "Private";
+        AdvanceDto: {
+            /** Format: uuid */
+            id: string;
+            label: string;
+            /** Format: double */
+            expectedAmount: number;
+            /** Format: date */
+            date: string;
+            notes: null | string;
+            isClosed: boolean;
+            /** Format: double */
+            received: number;
+            /** Format: double */
+            remaining: number;
+            status: components["schemas"]["AdvanceStatus"];
+            /** Format: int32 */
+            transactionCount: number;
+            /** Format: int32 */
+            version: number;
+        };
+        AdvanceRequest: {
+            label: string;
+            /** Format: double */
+            expectedAmount: number;
+            /** Format: date */
+            date: string;
+            notes: null | string;
+            isClosed: boolean;
+        };
+        /** @enum {unknown} */
+        AdvanceStatus: "Open" | "Settled";
         AuthenticatorSetup: {
             sharedKey: string;
             authenticatorUri: string;
@@ -3338,6 +4101,18 @@ export interface components {
             isArchived: boolean;
             /** Format: int32 */
             sortOrder: number;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
+        BackupAdvance: {
+            /** Format: uuid */
+            id: string;
+            label: null | string;
+            /** Format: double */
+            expectedAmount: number;
+            /** Format: date */
+            date: string;
+            notes: null | string;
+            isClosed: boolean;
             audit: null | components["schemas"]["BackupAudit"];
         };
         BackupAudit: {
@@ -3394,6 +4169,8 @@ export interface components {
             importBatches?: null | components["schemas"]["BackupImportBatch"][];
             tags?: null | components["schemas"]["BackupTag"][];
             labelRules?: null | components["schemas"]["BackupLabelRule"][];
+            reconciliations?: null | components["schemas"]["BackupReconciliation"][];
+            advances?: null | components["schemas"]["BackupAdvance"][];
         };
         BackupImportBatch: {
             /** Format: uuid */
@@ -3463,6 +4240,17 @@ export interface components {
             name: null | string;
             audit: null | components["schemas"]["BackupAudit"];
         };
+        BackupReconciliation: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            accountId: string;
+            /** Format: date */
+            date: string;
+            /** Format: double */
+            statementBalance: number;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
         BackupRecurrence: {
             /** Format: uuid */
             id: string;
@@ -3499,6 +4287,8 @@ export interface components {
              */
             tolerance: number;
             toleranceUnit?: components["schemas"]["ToleranceUnit"];
+            /** @default false */
+            isSubscription: boolean;
         };
         BackupSettings: {
             /** Format: uuid */
@@ -3542,6 +4332,12 @@ export interface components {
             /** Format: uuid */
             importBatchId?: null | string;
             importHash?: null | string;
+            /** Format: uuid */
+            reconciliationId?: null | string;
+            /** Format: uuid */
+            reimbursesId?: null | string;
+            /** Format: uuid */
+            advanceId?: null | string;
         };
         BackupTransactionLine: {
             /** Format: uuid */
@@ -3714,6 +4510,7 @@ export interface components {
             expensesByCategory: components["schemas"]["CategoryAmountDto"][];
             budgetVsActual: components["schemas"]["BudgetComparisonDto"][];
             history: components["schemas"]["PeriodTotalsDto"][];
+            topPayees: components["schemas"]["PayeeAmountDto"][];
         };
         EnableTwoFactorRequest: {
             code: string;
@@ -3925,6 +4722,28 @@ export interface components {
         };
         /** @enum {unknown} */
         LoginStatus: "Succeeded" | "RequiresTwoFactor";
+        MergeDto: {
+            /** Format: uuid */
+            sourceId: string;
+            sourceName: string;
+            /** Format: uuid */
+            targetId: string;
+            targetName: string;
+            /** Format: int32 */
+            lines: number;
+            /** Format: int32 */
+            recurrences: number;
+            /** Format: int32 */
+            rules: number;
+            /** Format: int32 */
+            subcategories: number;
+            budgetMoved: boolean;
+            budgetDropped: boolean;
+        };
+        MergeRequest: {
+            /** Format: uuid */
+            targetId: string;
+        };
         OccurrenceResultDto: {
             /** Format: uuid */
             id: string;
@@ -3938,6 +4757,15 @@ export interface components {
         OccurrenceStatus: "Pending" | "Generated" | "Skipped" | "Matched";
         PasswordConfirmation: {
             password: string;
+        };
+        PayeeAmountDto: {
+            /** Format: uuid */
+            payeeId: string;
+            name: string;
+            /** Format: double */
+            amount: number;
+            /** Format: int32 */
+            count: number;
         };
         PayeeDto: {
             /** Format: uuid */
@@ -4003,6 +4831,44 @@ export interface components {
             detail?: null | string;
             instance?: null | string;
         };
+        ReconciliationDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            accountId: string;
+            /** Format: date */
+            date: string;
+            /** Format: double */
+            statementBalance: number;
+            /** Format: int32 */
+            transactionCount: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int32 */
+            version: number;
+        };
+        ReconciliationPreviewDto: {
+            /** Format: date */
+            date: string;
+            /** Format: double */
+            statementBalance: number;
+            /** Format: double */
+            clearedBalance: number;
+            /** Format: double */
+            difference: number;
+            /** Format: int32 */
+            toReconcileCount: number;
+            /** Format: int32 */
+            unclearedCount: number;
+            /** Format: date */
+            lastDate: null | string;
+        };
+        ReconciliationRequest: {
+            /** Format: date */
+            date: string;
+            /** Format: double */
+            statementBalance: number;
+        };
         RecoveryCodeLoginRequest: {
             recoveryCode: string;
         };
@@ -4046,6 +4912,7 @@ export interface components {
             pendingCount: number;
             /** Format: int32 */
             version: number;
+            isSubscription: boolean;
         };
         /** @enum {unknown} */
         RecurrenceEnd: "Never" | "OnDate" | "AfterCount";
@@ -4078,6 +4945,8 @@ export interface components {
             /** Format: double */
             tolerance?: null | number;
             toleranceUnit?: null | components["schemas"]["ToleranceUnit"];
+            /** @default false */
+            isSubscription: boolean;
         };
         RemainingToLiveDto: {
             /** Format: double */
@@ -4154,6 +5023,34 @@ export interface components {
             line: number;
             message: string;
         };
+        SubscriptionDto: {
+            /** Format: uuid */
+            recurrenceId: string;
+            label: string;
+            payeeName: null | string;
+            /** Format: uuid */
+            categoryId: null | string;
+            /** Format: uuid */
+            accountId: string;
+            /** Format: double */
+            amount: number;
+            unit: components["schemas"]["FrequencyUnit"];
+            /** Format: int32 */
+            interval: number;
+            /** Format: date */
+            nextDate: null | string;
+            /** Format: double */
+            monthlyCost: number;
+            /** Format: double */
+            annualCost: number;
+        };
+        SubscriptionsDto: {
+            /** Format: double */
+            monthlyTotal: number;
+            /** Format: double */
+            annualTotal: number;
+            items: components["schemas"]["SubscriptionDto"][];
+        };
         SuggestionDto: {
             payeeName: null | string;
             /** Format: uuid */
@@ -4194,6 +5091,13 @@ export interface components {
             updatedAt: string;
             /** Format: int32 */
             version: number;
+            isReconciled: boolean;
+            /** Format: uuid */
+            reimbursesId: null | string;
+            /** Format: double */
+            reimbursedAmount: number;
+            /** Format: uuid */
+            advanceId: null | string;
         };
         TransactionLineDto: {
             /** Format: uuid */
@@ -4212,6 +5116,12 @@ export interface components {
             amount: number;
             memo: null | string;
             tags?: null | string[];
+        };
+        TransactionLinksRequest: {
+            /** Format: uuid */
+            reimbursesId: null | string;
+            /** Format: uuid */
+            advanceId: null | string;
         };
         TransactionPage: {
             items: components["schemas"]["TransactionDto"][];

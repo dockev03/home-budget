@@ -1,9 +1,11 @@
 using HomeBudget.Api.Domain;
 using HomeBudget.Api.Domain.Accounts;
+using HomeBudget.Api.Domain.Advances;
 using HomeBudget.Api.Domain.Budgets;
 using HomeBudget.Api.Domain.Categories;
 using HomeBudget.Api.Domain.Imports;
 using HomeBudget.Api.Domain.Payees;
+using HomeBudget.Api.Domain.Reconciliations;
 using HomeBudget.Api.Domain.Recurrences;
 using HomeBudget.Api.Domain.Rules;
 using HomeBudget.Api.Domain.Settings;
@@ -50,6 +52,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Tag> Tags => Set<Tag>();
 
     public DbSet<LabelRule> LabelRules => Set<LabelRule>();
+
+    public DbSet<Reconciliation> Reconciliations => Set<Reconciliation>();
+
+    public DbSet<Advance> Advances => Set<Advance>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -121,6 +127,29 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             // Un relevé réimporté ne crée pas de doublon (H3), même lors de deux imports simultanés.
             e.HasIndex(t => new { t.AccountId, t.ImportHash }).IsUnique().HasFilter("\"ImportHash\" IS NOT NULL");
             e.HasOne<ImportBatch>().WithMany().HasForeignKey(t => t.ImportBatchId).OnDelete(DeleteBehavior.SetNull);
+            // Un rapprochement ne se supprime qu'en déverrouillant d'abord ses opérations.
+            e.HasOne<Reconciliation>().WithMany().HasForeignKey(t => t.ReconciliationId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(t => t.ReconciliationId);
+            // Supprimer la dépense ou l'avance défait le lien, sans toucher au revenu.
+            e.HasOne<Transaction>().WithMany().HasForeignKey(t => t.ReimbursesId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(t => t.ReimbursesId);
+            e.HasOne<Advance>().WithMany().HasForeignKey(t => t.AdvanceId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(t => t.AdvanceId);
+            e.Ignore(t => t.IsReconciled);
+        });
+
+        builder.Entity<Reconciliation>(e =>
+        {
+            ConfigureAudit(e);
+            e.HasOne<Account>().WithMany().HasForeignKey(r => r.AccountId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(r => new { r.AccountId, r.Date }).IsUnique();
+        });
+
+        builder.Entity<Advance>(e =>
+        {
+            ConfigureAudit(e);
+            e.Property(a => a.Label).HasMaxLength(Advance.MaxLabelLength);
+            e.Property(a => a.Notes).HasMaxLength(2000);
         });
 
         builder.Entity<TransactionLine>(e =>

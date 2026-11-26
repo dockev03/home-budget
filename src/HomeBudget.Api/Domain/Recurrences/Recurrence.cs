@@ -53,6 +53,9 @@ public sealed class Recurrence : AuditableEntity
 
     public ToleranceUnit ToleranceUnit { get; set; }
 
+    /// <summary>Abonnement (E10) : compté dans la vue « Abonnements ».</summary>
+    public bool IsSubscription { get; set; }
+
     public AmountTolerance AmountTolerance => new(Tolerance, ToleranceUnit);
 
     /// <summary>Date à partir de laquelle les échéances produisent des opérations (création ou changement de règle).</summary>

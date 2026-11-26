@@ -6,6 +6,10 @@
 #   HB_PUBLIC_URL          URL publique, ex. https://budget.mondomaine.fr
 #   HB_KNOWN_PROXY_NETWORK sous-réseau du réseau Docker du NPM, ex. 172.20.0.0/16
 #                          (docker network inspect <réseau> → IPAM.Config.Subnet)
+#   HB_VAPID_PUBLIC_KEY / HB_VAPID_PRIVATE_KEY  clés des notifications push (facultatif) :
+#                          docker run --rm ghcr.io/dockev03/home-budget:<version> --generate-vapid-keys
+#   HB_SMTP_HOST / HB_SMTP_PORT / HB_SMTP_USER / HB_SMTP_PASSWORD / HB_SMTP_FROM
+#                          résumé par e-mail (facultatif), ex. smtp.gmail.com, 587, mot de passe d'application
 #   NPM_NETWORK            nom du réseau Docker du Nginx Proxy Manager (défaut : npm_default)
 # Dans le NPM : Proxy Host → hôte « home-budget », port 8080, SSL forcé, HSTS activé.
 
@@ -18,6 +22,14 @@ services:
       TZ: Europe/Paris
       HB__PublicUrl: ${HB_PUBLIC_URL:-}
       HB__KnownProxyNetwork: ${HB_KNOWN_PROXY_NETWORK:-}
+      # Notifications (facultatif) : push si les deux clés VAPID sont renseignées, e-mail si l'hôte SMTP l'est.
+      HB__Push__VapidPublicKey: ${HB_VAPID_PUBLIC_KEY:-}
+      HB__Push__VapidPrivateKey: ${HB_VAPID_PRIVATE_KEY:-}
+      HB__Smtp__Host: ${HB_SMTP_HOST:-}
+      HB__Smtp__Port: ${HB_SMTP_PORT:-587}
+      HB__Smtp__User: ${HB_SMTP_USER:-}
+      HB__Smtp__Password: ${HB_SMTP_PASSWORD:-}
+      HB__Smtp__From: ${HB_SMTP_FROM:-}
     volumes:
       - home-budget-data:/data
     networks:

@@ -17,6 +17,7 @@ import { api, type Schemas } from '@/api/client'
 import type { paths } from '@/api/schema'
 import { ApiError, unwrap } from '@/api/errors'
 import BulkEditDialog from '@/components/BulkEditDialog.vue'
+import OfflineQueueCard from '@/components/OfflineQueueCard.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useReferenceStore } from '@/stores/reference'
 import { useTransactionEditor, type Transaction } from '@/stores/transactionEditor'
@@ -314,6 +315,8 @@ onMounted(async () => {
     closable
     @click:close="success = null"
   />
+
+  <OfflineQueueCard />
 
   <v-toolbar v-if="selecting" density="compact" color="primary" variant="tonal" rounded class="mb-3 px-2">
     <span class="text-body-2">{{ selected.length }} sélectionnée(s)</span>

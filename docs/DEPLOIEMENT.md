@@ -107,6 +107,33 @@ Le jeton change à chaque redémarrage tant qu'aucun utilisateur n'existe. Il es
 | `HB__Recurrences__Hour` | `0` | Heure locale du traitement quotidien des échéances (fuseau `TZ` du conteneur) |
 | `HB__SetupToken` | — | Impose le jeton de premier lancement (automatisation et tests uniquement) |
 | `HB__Security__AllowInsecureHttp` | `false` | Autorise les cookies en HTTP non chiffré. **Développement et tests uniquement, jamais en production** |
+| `HB__Push__VapidPublicKey` / `__VapidPrivateKey` | — (push désactivé) | Clés VAPID des notifications push (voir ci-dessous). La clé privée est un secret |
+| `HB__Push__Subject` | `HB__PublicUrl` | Contact transmis aux services push : `mailto:…` ou URL HTTPS |
+| `HB__Smtp__Host` / `__From` | — (e-mail désactivé) | Serveur SMTP et expéditeur (`Home Budget <budget@mondomaine.fr>`) du résumé par e-mail |
+| `HB__Smtp__Port` | `587` | Port SMTP |
+| `HB__Smtp__Security` | `Auto` | `Auto` (SSL sur 465, STARTTLS sinon), `SslOnConnect`, `StartTls` ou `None` (serveur local uniquement) |
+| `HB__Smtp__User` / `__Password` | — | Identifiants SMTP. Le mot de passe est un secret |
+| `HB__Notifications__Enabled` | `true` | Vérification des alertes et envoi des résumés (sans effet si ni push ni e-mail ne sont configurés) |
+| `HB__Notifications__IntervalMinutes` | `60` | Intervalle entre deux vérifications des alertes |
+| `HB__Notifications__Hour` | `8` | Heure locale à partir de laquelle partent les alertes ; aucune n'est envoyée de 22 h à cette heure |
+
+## Notifications push et résumé par e-mail
+
+Les deux sont facultatifs. Chaque utilisateur choisit ensuite, dans **Notifications** (menu du compte), les alertes qu'il reçoit et la fréquence de son résumé.
+
+**Push.** Générer une paire de clés VAPID une seule fois, puis la garder : la changer oblige chaque appareil à se réabonner.
+
+```bash
+docker run --rm ghcr.io/dockev03/home-budget:<version> --generate-vapid-keys
+```
+
+Reporter les deux lignes affichées dans `HB_VAPID_PUBLIC_KEY` et `HB_VAPID_PRIVATE_KEY` (variables de la stack), puis redéployer. Le conteneur doit pouvoir joindre en HTTPS les services push des navigateurs (`fcm.googleapis.com`, `*.push.services.mozilla.com`, `*.push.apple.com`, `*.notify.windows.com`) ; aucune autre adresse n'est acceptée. Sur iPhone, l'appli doit être ajoutée à l'écran d'accueil (Safari › Partager › Sur l'écran d'accueil) avant d'activer les notifications.
+
+**E-mail (Gmail).** Créer un [mot de passe d'application](https://myaccount.google.com/apppasswords) (double authentification Google requise), puis : `HB_SMTP_HOST=smtp.gmail.com`, `HB_SMTP_PORT=587`, `HB_SMTP_USER=adresse@gmail.com`, `HB_SMTP_PASSWORD=<mot de passe d'application>`, `HB_SMTP_FROM=Home Budget <adresse@gmail.com>`. Le bouton « Envoyer un e-mail d'essai » de la page **Notifications** vérifie la configuration ; en cas d'échec, le détail est dans les logs du conteneur.
+
+## Hors ligne
+
+L'appli est installable (PWA) : « Installer l'application » dans Chrome ou Edge, « Sur l'écran d'accueil » dans Safari. Sans réseau, les écrans déjà consultés restent lisibles et seules les opérations peuvent être saisies : elles sont mises en attente sur l'appareil, puis envoyées au retour du réseau. Les données gardées sur l'appareil sont effacées à la déconnexion (sauf les saisies encore en attente).
 
 ## Supervision
 

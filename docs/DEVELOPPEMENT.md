@@ -21,6 +21,8 @@ cd src/HomeBudget.Web && npm install && npm run dev
 
 Le jeton de premier lancement s'affiche dans la console de l'API.
 
+Le service worker (hors ligne, notifications push) n'est actif qu'avec la PWA compilée (`npm run build`, servie par l'API), pas avec `npm run dev`. Pour essayer le push en local : `dotnet run --project src/HomeBudget.Api -- --generate-vapid-keys`, puis renseigner les deux clés affichées dans `HB__Push__VapidPublicKey` et `HB__Push__VapidPrivateKey`.
+
 ## Vérifications (identiques à la CI)
 
 Back : format, build, puis tests unitaires et d'intégration (y compris le contrat OpenAPI) :

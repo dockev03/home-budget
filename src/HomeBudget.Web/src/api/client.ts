@@ -1,5 +1,6 @@
 import createClient from 'openapi-fetch'
 import { createCsrfMiddleware } from './csrf'
+import { offlineGuard } from './offline'
 import type { components, paths } from './schema'
 
 export type Schemas = components['schemas']
@@ -16,4 +17,5 @@ export const csrf = createCsrfMiddleware(fetchCsrfToken)
 
 /** Client typé de l'API, généré depuis openapi.json (« npm run gen:api »). */
 export const api = createClient<paths>({ baseUrl: '', credentials: 'same-origin' })
+api.use(offlineGuard) // avant le jeton anti-CSRF : hors ligne, rien n'est demandé au serveur
 api.use(csrf)

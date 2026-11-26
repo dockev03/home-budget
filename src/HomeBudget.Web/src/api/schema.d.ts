@@ -1723,6 +1723,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rejoue les opérations saisies hors ligne (identifiants fournis par l'appareil, envoi idempotent). */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SyncRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SyncResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/transactions": {
         parameters: {
             query?: never;
@@ -6802,6 +6851,329 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Préférences de notification, appareils abonnés et disponibilité du push et de l'e-mail. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NotificationSettingsDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Modifie les types d'alertes push reçus, le résumé par e-mail et l'adresse de réception. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PreferencesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NotificationSettingsDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Abonne cet appareil aux notifications push (abonnement fourni par le navigateur). */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SubscriptionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PushDeviceDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/subscriptions/unsubscribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Désabonne l'appareil d'adresse push donnée (celui-ci, depuis le navigateur). */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UnsubscribeRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/subscriptions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Retire un appareil de la liste. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Envoie une notification d'essai à tous les appareils de l'utilisateur. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TestResultDto"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/test-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Envoie un e-mail d'essai à l'adresse de l'utilisateur. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Bad Gateway */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -7699,6 +8071,8 @@ export interface components {
             /** Format: int32 */
             version: number;
         };
+        /** @enum {unknown} */
+        EmailSummaryFrequency: "None" | "Weekly" | "Monthly";
         EmergencyFundAccountDto: {
             /** Format: uuid */
             id: string;
@@ -8126,6 +8500,14 @@ export interface components {
             total: number;
             byType: components["schemas"]["NetWorthByTypeDto"][];
         };
+        NotificationSettingsDto: {
+            pushAvailable: boolean;
+            vapidPublicKey: null | string;
+            emailAvailable: boolean;
+            email: null | string;
+            preferences: components["schemas"]["PreferencesDto"];
+            devices: components["schemas"]["PushDeviceDto"][];
+        };
         OccurrenceResultDto: {
             /** Format: uuid */
             id: string;
@@ -8215,6 +8597,21 @@ export interface components {
             /** Format: date */
             date: string;
         };
+        PreferencesDto: {
+            budgetAlerts: boolean;
+            forecastAlerts: boolean;
+            dueTomorrowAlerts: boolean;
+            pendingAlerts: boolean;
+            emailSummary: components["schemas"]["EmailSummaryFrequency"];
+        };
+        PreferencesRequest: {
+            budgetAlerts: boolean;
+            forecastAlerts: boolean;
+            dueTomorrowAlerts: boolean;
+            pendingAlerts: boolean;
+            emailSummary: components["schemas"]["EmailSummaryFrequency"];
+            email: null | string;
+        };
         ProblemDetails: {
             type?: null | string;
             title?: null | string;
@@ -8257,6 +8654,16 @@ export interface components {
             isAnnual: boolean;
             /** Format: date */
             startDate: null | string;
+        };
+        PushDeviceDto: {
+            /** Format: uuid */
+            id: string;
+            endpoint: string;
+            device: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastSuccessAt: null | string;
         };
         ReconciliationDto: {
             /** Format: uuid */
@@ -8730,6 +9137,15 @@ export interface components {
             /** Format: double */
             annualCost: number;
         };
+        SubscriptionKeys: {
+            p256dh: string;
+            auth: string;
+        };
+        SubscriptionRequest: {
+            endpoint: string;
+            keys: components["schemas"]["SubscriptionKeys"];
+            device: null | string;
+        };
         SubscriptionsDto: {
             /** Format: double */
             monthlyTotal: number;
@@ -8742,12 +9158,40 @@ export interface components {
             /** Format: uuid */
             categoryId: null | string;
         };
+        SyncItem: {
+            /** Format: uuid */
+            id: string;
+            transaction: components["schemas"]["TransactionRequest"];
+        };
+        SyncItemResult: {
+            /** Format: uuid */
+            id: string;
+            status: components["schemas"]["SyncItemStatus"];
+            errors: null | {
+                [key: string]: string[];
+            };
+            transaction: null | components["schemas"]["TransactionDto"];
+        };
+        /** @enum {unknown} */
+        SyncItemStatus: "Created" | "AlreadyApplied" | "Rejected";
+        SyncRequest: {
+            items: components["schemas"]["SyncItem"][];
+        };
+        SyncResponse: {
+            items: components["schemas"]["SyncItemResult"][];
+        };
         TagDto: {
             /** Format: uuid */
             id: string;
             name: string;
             /** Format: int32 */
             usageCount: number;
+        };
+        TestResultDto: {
+            /** Format: int32 */
+            reached: number;
+            /** Format: int32 */
+            removed: number;
         };
         TokenRequest: {
             token: string;
@@ -8886,6 +9330,9 @@ export interface components {
             enabled: boolean;
             /** Format: int32 */
             recoveryCodesLeft: number;
+        };
+        UnsubscribeRequest: {
+            endpoint: string;
         };
         UserDto: {
             /** Format: uuid */

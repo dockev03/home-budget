@@ -123,6 +123,12 @@ export const router = createRouter({
       meta: { title: 'Sécurité' },
     },
     {
+      path: '/notifications',
+      name: 'notifications',
+      component: () => import('@/views/NotificationsView.vue'),
+      meta: { title: 'Notifications' },
+    },
+    {
       path: '/parametres',
       name: 'settings',
       component: () => import('@/views/SettingsView.vue'),

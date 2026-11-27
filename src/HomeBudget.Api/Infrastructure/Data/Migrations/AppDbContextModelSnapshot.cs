@@ -828,6 +828,12 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.Property<bool>("ForecastAlerts")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("LockoutEmailAlert")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("LoginEmailAlert")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("PendingAlerts")
                         .HasColumnType("INTEGER");
 
@@ -1895,6 +1901,47 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.ToTable("Invitations");
                 });
 
+            modelBuilder.Entity("HomeBudget.Api.Domain.Users.UserSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("LastSeenAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("RevokedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SecurityStamp")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "LastSeenAt");
+
+                    b.ToTable("UserSessions");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
                     b.Property<int>("Id")
@@ -2302,6 +2349,15 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.HasOne("HomeBudget.Api.Domain.Transactions.Transaction", null)
                         .WithMany("Lines")
                         .HasForeignKey("TransactionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("HomeBudget.Api.Domain.Users.UserSession", b =>
+                {
+                    b.HasOne("HomeBudget.Api.Domain.Users.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

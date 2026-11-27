@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 
 using HomeBudget.Api.Domain.Users;
+using HomeBudget.Api.Features.Account;
 using HomeBudget.Api.Features.Attachments;
 using HomeBudget.Api.Features.Backups;
 using HomeBudget.Api.Features.Budgets;
@@ -112,6 +113,7 @@ public static class HomeBudgetServices
         services.AddScoped<BackupRestorer>();
         services.AddScoped<ImportService>();
         services.AddScoped<AuditTrail>();
+        services.AddScoped<UserSessions>();
         services.AddHostedService<BackupWorker>();
         services.AddHostedService<RecurrenceWorker>();
 
@@ -121,6 +123,8 @@ public static class HomeBudgetServices
         services.AddSingleton<IEmailSender, SmtpEmailSender>();
         services.AddScoped<AlertService>();
         services.AddHostedService<AlertWorker>();
+        services.AddSingleton<SecurityAlertQueue>();
+        services.AddHostedService<SecurityAlertWorker>();
 
         // Pièces jointes (B7).
         services.AddSingleton<AttachmentStore>();
@@ -189,6 +193,8 @@ public static class HomeBudgetServices
             o.Events.OnRedirectToAccessDenied = ctx => WriteStatus(ctx, StatusCodes.Status403Forbidden);
             // Session revalidée à chaque requête : désactivation et changement de droits pris en compte aussitôt.
             o.Events.OnValidatePrincipal = SessionValidator.ValidateAsync;
+            // Sessions suivies côté serveur (N8) : chaque cookie désigne une ligne UserSession.
+            o.Events.OnSigningIn = UserSessions.OnSigningInAsync;
         });
 
         services.Configure<CookieAuthenticationOptions>(IdentityConstants.TwoFactorUserIdScheme, o =>

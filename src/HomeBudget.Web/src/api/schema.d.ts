@@ -6963,6 +6963,192 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sessions ouvertes (appareil, adresse IP, activité), la plus récente en premier. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SessionDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Ferme une session : l'appareil concerné devra se reconnecter. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/sessions/revoke-others": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ferme toutes les sessions sauf celle-ci. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RevokeResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/security-alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Alertes de sécurité par e-mail : connexion, verrouillage du compte. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SecurityAlertSettings"];
+                    };
+                };
+            };
+        };
+        /** Active ou désactive les alertes de sécurité par e-mail. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SecurityAlertRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SecurityAlertSettings"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/split/settings": {
         parameters: {
             query?: never;
@@ -8556,7 +8742,7 @@ export interface components {
             createdBy: null | string;
         };
         /** @enum {unknown} */
-        AuditAction: "LoginSucceeded" | "LoginFailed" | "LoginLockedOut" | "PasswordChanged" | "TwoFactorEnabled" | "TwoFactorDisabled" | "UserInvited" | "InvitationRevoked" | "InvitationAccepted" | "RoleChanged" | "UserDeactivated" | "UserReactivated" | "AccountVisibilityChanged" | "Exported" | "BackupExported" | "Restored" | "Deleted" | "ApiTokenCreated" | "ApiTokenRevoked" | "WebhookCreated" | "WebhookUpdated" | "WebhookDisabled" | "AttachmentsRestored";
+        AuditAction: "LoginSucceeded" | "LoginFailed" | "LoginLockedOut" | "PasswordChanged" | "TwoFactorEnabled" | "TwoFactorDisabled" | "UserInvited" | "InvitationRevoked" | "InvitationAccepted" | "RoleChanged" | "UserDeactivated" | "UserReactivated" | "AccountVisibilityChanged" | "Exported" | "BackupExported" | "Restored" | "Deleted" | "ApiTokenCreated" | "ApiTokenRevoked" | "WebhookCreated" | "WebhookUpdated" | "WebhookDisabled" | "AttachmentsRestored" | "SessionRevoked";
         AuditEntryDto: {
             /** Format: uuid */
             id: string;
@@ -9432,6 +9618,8 @@ export interface components {
             version: number;
         };
         /** @enum {unknown} */
+        DeviceKind: "Unknown" | "Desktop" | "Mobile" | "Tablet";
+        /** @enum {unknown} */
         EmailSummaryFrequency: "None" | "Weekly" | "Monthly";
         EmergencyFundAccountDto: {
             /** Format: uuid */
@@ -10279,6 +10467,10 @@ export interface components {
              */
             missingAttachmentFiles: number;
         };
+        RevokeResult: {
+            /** Format: int32 */
+            revoked: number;
+        };
         RoleRequest: {
             role: string;
         };
@@ -10440,6 +10632,32 @@ export interface components {
             name: string;
             isActive: boolean;
         };
+        SecurityAlertRequest: {
+            onLogin: boolean;
+            onLockout: boolean;
+        };
+        SecurityAlertSettings: {
+            emailAvailable: boolean;
+            email: null | string;
+            onLogin: boolean;
+            onLockout: boolean;
+        };
+        SessionDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastSeenAt: string;
+            ipAddress: null | string;
+            browser: string;
+            operatingSystem: string;
+            device: components["schemas"]["DeviceKind"];
+            origin: components["schemas"]["SessionOrigin"];
+            isCurrent: boolean;
+        };
+        /** @enum {unknown} */
+        SessionOrigin: "Password" | "Authenticator" | "RecoveryCode" | "Legacy";
         SettingsDto: {
             periodMode: components["schemas"]["PeriodMode"];
             /** Format: int32 */

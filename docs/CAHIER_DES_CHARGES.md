@@ -213,6 +213,8 @@ Légende des lots (détail en §6) : **L1** = MVP cœur · **L2** = import et au
 | N4 | Verrouillage progressif après plusieurs échecs, et limitation du débit des requêtes de connexion | L1 |
 | N5 | CSP stricte, cookies `HttpOnly`/`Secure`/`SameSite=Strict`, protection anti-CSRF, en-têtes de sécurité | L1 |
 | N6 | Journal d'audit : connexions, échecs, changements de droits, exports, restaurations, suppressions | L3 |
+| N8 | Sessions actives (appareil, navigateur, adresse IP, dernière activité), avec la fermeture d'une session ou de toutes les autres | L5 |
+| N9 | Alertes de sécurité par e-mail, activables par utilisateur : à chaque connexion (désactivée par défaut) et au verrouillage du compte (activée par défaut) | L5 |
 
 ### O. Exploitation
 

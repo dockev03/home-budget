@@ -13,8 +13,9 @@ public enum EmailSummaryFrequency
 }
 
 /// <summary>
-/// Choix de notifications d'un utilisateur (M1, M2) : les types d'alertes push reçus, et la fréquence du
-/// résumé par e-mail. Sans ligne, les valeurs par défaut s'appliquent : toutes les alertes, pas de résumé.
+/// Choix de notifications d'un utilisateur (M1, M2, N9) : les types d'alertes push reçus, la fréquence du résumé
+/// par e-mail et les alertes de sécurité par e-mail. Sans ligne, les valeurs par défaut s'appliquent : toutes les
+/// alertes push, pas de résumé, alerte de verrouillage mais pas d'alerte de connexion.
 /// </summary>
 public sealed class NotificationPreference : Entity
 {
@@ -29,6 +30,12 @@ public sealed class NotificationPreference : Entity
     public bool PendingAlerts { get; set; } = true;
 
     public EmailSummaryFrequency EmailSummary { get; set; } = EmailSummaryFrequency.None;
+
+    /// <summary>E-mail à chaque nouvelle connexion (N9), désactivé par défaut.</summary>
+    public bool LoginEmailAlert { get; set; }
+
+    /// <summary>E-mail quand le compte est verrouillé après trop d'échecs (N9), activé par défaut.</summary>
+    public bool LockoutEmailAlert { get; set; } = true;
 
     public bool Allows(AlertKind kind) => kind switch
     {

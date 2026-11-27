@@ -115,6 +115,7 @@ public static class HomeBudgetPipeline
         app.MapUserEndpoints();
         app.MapInvitationEndpoints();
         app.MapPasswordEndpoints();
+        app.MapSessionEndpoints();
         app.MapAuditEndpoints();
         app.MapSplitEndpoints();
         app.MapFamilyEndpoints();

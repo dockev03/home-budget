@@ -44,12 +44,29 @@ test.describe.serial('Report du reste et mode enveloppes', () => {
     await move.getByRole('button', { name: 'Déplacer' }).click()
     await expect(move).toBeHidden()
     await expect(page.getByRole('listitem', { name: 'Budget Essence' })).toContainText('cette période')
+    await expect(page.getByRole('listitem', { name: 'Budget Courses' })).toContainText('cette période')
 
-    // Désactivé pour ne pas changer le budget des tests suivants.
+    // Retour à l'état de départ, que les tests suivants (mobile compris) attendent : budgets par défaut,
+    // report désactivé, mode enveloppes désactivé.
+    for (const name of ['Essence', 'Courses']) {
+      await page.getByRole('listitem', { name: `Budget ${name}` }).click()
+      await dialog.getByRole('button', { name: 'Revenir au budget par défaut' }).click()
+      await expect(dialog).toBeHidden()
+      await expect(page.getByRole('listitem', { name: `Budget ${name}` })).not.toContainText('cette période')
+    }
+    await expect(page.getByRole('listitem', { name: 'Budget Courses' })).toContainText('300,00')
+
     await drawer.getByText('Paramètres', { exact: true }).click()
     await page.getByTestId('envelope-mode').getByLabel('Affecter chaque euro reçu à une catégorie').uncheck()
     await page.getByRole('button', { name: 'Enregistrer' }).first().click()
     await expect(page.getByText('Paramètres enregistrés.')).toBeVisible()
+
+    await drawer.getByText('Budget', { exact: true }).click()
+    await expect(page.getByTestId('envelope')).toBeHidden()
+    await page.getByRole('listitem', { name: 'Budget Courses' }).click()
+    await toggle.click()
+    await expect(toggle).not.toBeChecked()
+    await dialog.getByRole('button', { name: 'Annuler' }).click()
     expect(csp).toEqual([])
   })
 })

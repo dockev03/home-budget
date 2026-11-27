@@ -43,6 +43,12 @@ public sealed class Transaction : AuditableEntity
     /// <summary>Avance à recevoir que ce revenu solde en tout ou partie (B12).</summary>
     public Guid? AdvanceId { get; set; }
 
+    /// <summary>
+    /// Mois auquel l'opération se rapporte (1er du mois), s'il diffère de celui de sa date : le salaire de la garde
+    /// de novembre payé le 1er décembre, par exemple. Sert au récapitulatif des frais de garde (P2) ; null = mois de la date.
+    /// </summary>
+    public DateOnly? ReferenceMonth { get; set; }
+
     public bool IsReconciled => ReconciliationId is not null;
 
     public List<TransactionLine> Lines { get; private set; } = [];

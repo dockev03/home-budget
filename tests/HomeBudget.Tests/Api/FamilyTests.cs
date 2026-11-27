@@ -137,6 +137,53 @@ public sealed class FamilyTests
     }
 
     [Fact]
+    public async Task Childcare_summary_counts_each_transaction_in_its_reference_month()
+    {
+        await using var factory = new HomeBudgetFactory { Today = Today };
+        var admin = await factory.CreateAdminClientAsync();
+        var account = await admin.CreateAccountAsync("Courant", initialDate: new DateOnly(2025, 1, 1));
+        var nanny = await admin.CategoryIdAsync("Nounou Maël");
+        var cmg = await admin.CategoryIdAsync("CMG");
+
+        object Payment(decimal amount, Guid category, DateOnly date, string? referenceMonth) => new
+        {
+            accountId = account,
+            date = TestScenario.Iso(date),
+            referenceMonth,
+            lines = new[] { new { categoryId = category, amount, memo = (string?)null } },
+        };
+
+        // Garde de novembre : CMG versé le 28/11, salaire payé le 1er décembre.
+        await admin.CreateTransactionAsync(account, 400m, cmg, new DateOnly(2026, 11, 28));
+        var november = await admin.CreateAsync("/api/transactions", Payment(-600m, nanny, new DateOnly(2026, 12, 1), "2026-11-15"));
+        november.GetProperty("referenceMonth").GetString().ShouldBe("2026-11-01");
+        // Garde de décembre payée en janvier : elle reste dans l'année de la garde.
+        await admin.CreateAsync("/api/transactions", Payment(-650m, nanny, new DateOnly(2027, 1, 2), "2026-12-01"));
+        // Un mois concerné égal à celui de la date n'est pas conservé.
+        var same = await admin.CreateAsync("/api/transactions", Payment(-10m, nanny, new DateOnly(2026, 10, 5), "2026-10-01"));
+        same.GetProperty("referenceMonth").ValueKind.ShouldBe(JsonValueKind.Null);
+
+        var summary = await admin.GetJsonAsync("/api/family/childcare/2026");
+        var months = summary.GetProperty("months").EnumerateArray().ToList();
+        months[10].Decimal("paid").ShouldBe(600m);
+        months[10].Decimal("aid").ShouldBe(400m);
+        months[11].Decimal("paid").ShouldBe(650m);
+        summary.Decimal("paid").ShouldBe(1260m);
+        (await admin.GetJsonAsync("/api/family/childcare/2027")).Decimal("paid").ShouldBe(0m);
+
+        (await admin.PostAsync("/api/transactions", Payment(-1m, nanny, new DateOnly(2026, 12, 1), "2025-11-01")))
+            .StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+
+        // Sans mois concerné, l'opération revient au mois de sa date.
+        var cleared = await ApiClient.ReadJsonAsync(await admin.PutAsync($"/api/transactions/{Id(november)}",
+            Payment(-600m, nanny, new DateOnly(2026, 12, 1), null), november.Version()));
+        cleared.GetProperty("referenceMonth").ValueKind.ShouldBe(JsonValueKind.Null);
+        var after = (await admin.GetJsonAsync("/api/family/childcare/2026")).GetProperty("months").EnumerateArray().ToList();
+        after[10].Decimal("paid").ShouldBe(0m);
+        after[11].Decimal("paid").ShouldBe(1250m);
+    }
+
+    [Fact]
     public async Task Health_expenses_show_primary_and_mutual_reimbursements_and_what_remains()
     {
         await using var factory = new HomeBudgetFactory { Today = Today };

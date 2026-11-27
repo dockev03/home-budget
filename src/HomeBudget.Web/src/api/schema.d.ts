@@ -9007,6 +9007,8 @@ export interface components {
             reimbursesId?: null | string;
             /** Format: uuid */
             advanceId?: null | string;
+            /** Format: date */
+            referenceMonth?: null | string;
         };
         BackupTransactionChange: {
             /** Format: uuid */
@@ -10675,6 +10677,8 @@ export interface components {
             updatedBy: null | string;
             /** Format: int32 */
             attachmentCount: number;
+            /** Format: date */
+            referenceMonth: null | string;
         };
         TransactionLineDto: {
             /** Format: uuid */
@@ -10714,6 +10718,8 @@ export interface components {
             notes: null | string;
             isCleared: null | boolean;
             lines: components["schemas"]["TransactionLineRequest"][];
+            /** Format: date */
+            referenceMonth?: null | string;
         };
         TransferDto: {
             /** Format: uuid */

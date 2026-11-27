@@ -75,6 +75,7 @@ public sealed class BackupRestoreTests
             date = imported.GetProperty("date").GetString(),
             payeeName = "Boulangerie Paul",
             lines = new[] { new { categoryId = groceries, amount = -12.34m } },
+            referenceMonth = TestScenario.Iso(TestScenario.Today.AddMonths(-1)),
         }, imported.Version());
 
         // Compte rapproché, remboursement lié à une dépense et à une avance.
@@ -255,6 +256,7 @@ public sealed class BackupRestoreTests
         document["reconciliations"]!.AsArray().Count.ShouldBe(1);
         document["advances"]!.AsArray().Count.ShouldBe(1);
         document["transactions"]!.AsArray().Count(t => t!["reconciliationId"] is not null).ShouldBe(2);
+        document["transactions"]!.AsArray().Count(t => t!["referenceMonth"] is not null).ShouldBe(1);
         document["recurrences"]![0]!["isSubscription"]!.GetValue<bool>().ShouldBeTrue();
         document["tags"]!.AsArray().Count.ShouldBe(2);
         document["labelRules"]!.AsArray().ShouldHaveSingleItem()!["key"]!.GetValue<string>().ShouldBe("BOULANGERIE");

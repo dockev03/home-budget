@@ -175,6 +175,7 @@ public sealed class TransactionHistoryInterceptor(IHttpContextAccessor http, Tim
         Field("reconciled", Bool(old.IsReconciled), Bool(current.IsReconciled));
         Field("reimburses", old.ReimbursesId?.ToString(), current.ReimbursesId?.ToString());
         Field("advance", old.AdvanceId?.ToString(), current.AdvanceId?.ToString());
+        Field("referenceMonth", Month(old.ReferenceMonth), Month(current.ReferenceMonth));
         if (JsonSerializer.Serialize(oldLines, Json) != JsonSerializer.Serialize(newLines, Json))
         {
             changes.Add(new TransactionFieldChange("lines", BeforeLines: oldLines, AfterLines: newLines));
@@ -183,6 +184,8 @@ public sealed class TransactionHistoryInterceptor(IHttpContextAccessor http, Tim
     }
 
     private static string Iso(DateOnly date) => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    private static string? Month(DateOnly? month) => month?.ToString("yyyy-MM", CultureInfo.InvariantCulture);
 
     private static string Bool(bool value) => value ? "true" : "false";
 }

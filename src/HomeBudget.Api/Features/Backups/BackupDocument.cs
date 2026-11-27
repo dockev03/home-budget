@@ -235,7 +235,8 @@ public sealed record BackupTransaction(
     string? ImportHash = null,
     Guid? ReconciliationId = null,
     Guid? ReimbursesId = null,
-    Guid? AdvanceId = null);
+    Guid? AdvanceId = null,
+    DateOnly? ReferenceMonth = null);
 
 public sealed record BackupRecurrence(
     Guid Id,

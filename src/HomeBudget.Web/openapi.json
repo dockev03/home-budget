@@ -10782,6 +10782,13 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "referenceMonth": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
           }
         }
       },
@@ -16576,7 +16583,8 @@
           "advanceId",
           "createdBy",
           "updatedBy",
-          "attachmentCount"
+          "attachmentCount",
+          "referenceMonth"
         ],
         "type": "object",
         "properties": {
@@ -16694,6 +16702,13 @@
           "attachmentCount": {
             "type": "integer",
             "format": "int32"
+          },
+          "referenceMonth": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
           }
         }
       },
@@ -16877,6 +16892,13 @@
             "items": {
               "$ref": "#/components/schemas/TransactionLineRequest"
             }
+          },
+          "referenceMonth": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
           }
         }
       },

@@ -201,11 +201,16 @@ public sealed class BackupRestoreTests
         await using var factory = new HomeBudgetFactory();
         var admin = await factory.CreateAdminClientAsync();
         await SeedAsync(admin);
+        // Pièce jointe (B7) : sa description fait partie de la sauvegarde, le fichier de l'archive à part.
+        var withFile = (await admin.GetJsonAsync("/api/transactions")).GetProperty("items")[0].GetProperty("id").GetGuid();
+        (await admin.PostContentAsync($"/api/transactions/{withFile}/attachments?fileName=fiche.pdf",
+            new ByteArrayContent("%PDF-1.7 fiche"u8.ToArray()))).StatusCode.ShouldBe(HttpStatusCode.Created);
         var backup = await ExportAsync(admin);
 
         var document = JsonNode.Parse(backup)!;
         document["format"]!.GetValue<string>().ShouldBe("home-budget-backup");
-        document["formatVersion"]!.GetValue<int>().ShouldBe(8);
+        document["formatVersion"]!.GetValue<int>().ShouldBe(9);
+        document["attachments"]!.AsArray().ShouldHaveSingleItem()!["fileName"]!.GetValue<string>().ShouldBe("fiche.pdf");
         var loan = document["loans"]!.AsArray().ShouldHaveSingleItem()!;
         loan["annualRate"]!.GetValue<decimal>().ShouldBe(3.875m);
         loan["monthlyInsurance"]!.GetValue<decimal>().ShouldBe(6.5m);
@@ -255,6 +260,8 @@ public sealed class BackupRestoreTests
         var result = await ApiClient.ReadJsonAsync(response);
         result.GetProperty("accounts").GetInt32().ShouldBe(5);
         result.GetProperty("transactions").GetInt32().ShouldBe(6);
+        result.GetProperty("attachments").GetInt32().ShouldBe(1);
+        result.GetProperty("missingAttachmentFiles").GetInt32().ShouldBe(0);
         Comparable(await ExportAsync(admin)).ShouldBe(Comparable(backup));
         (await admin.GetJsonAsync("/api/settings")).GetProperty("periodMode").GetString().ShouldBe("Calendar");
 

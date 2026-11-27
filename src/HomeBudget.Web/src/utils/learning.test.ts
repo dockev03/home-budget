@@ -36,6 +36,7 @@ const transaction = (
   advanceId: null,
   createdBy: null,
   updatedBy: null,
+  attachmentCount: 0,
   ...overrides,
 })
 

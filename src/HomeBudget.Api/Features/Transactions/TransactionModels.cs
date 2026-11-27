@@ -24,6 +24,7 @@ public sealed record TransactionLineDto(Guid Id, Guid? CategoryId, decimal Amoun
 /// <param name="ReimbursedAmount">Pour une dépense, total des remboursements liés : coût net = montant + remboursé.</param>
 /// <param name="AdvanceId">Avance soldée en tout ou partie par ce revenu (B12).</param>
 /// <param name="CreatedBy">Auteur de l'opération (K2) ; null pour une opération générée ou importée sans session.</param>
+/// <param name="AttachmentCount">Nombre de pièces jointes (B7).</param>
 public sealed record TransactionDto(
     Guid Id,
     Guid AccountId,
@@ -45,7 +46,8 @@ public sealed record TransactionDto(
     decimal ReimbursedAmount,
     Guid? AdvanceId,
     Guid? CreatedBy,
-    Guid? UpdatedBy);
+    Guid? UpdatedBy,
+    int AttachmentCount);
 
 /// <summary>
 /// Liens d'un revenu (B11, B12) : la dépense qu'il rembourse et l'avance qu'il solde. Modifiables même sur une

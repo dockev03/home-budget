@@ -123,6 +123,12 @@ export const router = createRouter({
       meta: { title: 'Sécurité' },
     },
     {
+      path: '/acces-api',
+      name: 'api-access',
+      component: () => import('@/views/ApiAccessView.vue'),
+      meta: { title: 'Accès API' },
+    },
+    {
       path: '/notifications',
       name: 'notifications',
       component: () => import('@/views/NotificationsView.vue'),

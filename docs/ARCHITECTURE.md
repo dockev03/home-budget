@@ -44,7 +44,7 @@
 | API | ASP.NET Core Minimal APIs | Validation intégrée, `TypedResults`, `ProblemDetails` |
 | ORM | EF Core 10 + SQLite | Migrations versionnées, appliquées au démarrage |
 | Auth | ASP.NET Core Identity (cookies) | Hachage PBKDF2-SHA512, verrouillage, TOTP, rôles |
-| Documentation de l'API | OpenAPI intégré + Scalar | Accessible en `/api/docs` (administrateurs uniquement) |
+| Documentation de l'API | OpenAPI intégré + Scalar | Accessible en `/api/docs` à tout utilisateur connecté ; `/openapi/v1.json` aussi avec un jeton d'accès (I5) |
 | Observabilité | OpenTelemetry + export Prometheus, HealthChecks | `/metrics` restreint au réseau interne |
 | E-mail | MailKit | SMTP configuré par variables d'environnement |
 | Push | Web Push (VAPID) | Sans bibliothèque : chiffrement RFC 8291 et jeton VAPID RFC 8292 avec les primitives .NET (ECDH P-256, HKDF, AES-GCM, ES256) |
@@ -105,7 +105,7 @@ home-budget/
 | DM3 | **Opération = en-tête + lignes** | Ventilation, remboursements et virements traités sans cas particulier |
 | DM4 | **Période abstraite** (`Period` : début, fin, libellé) calculée selon le paramètre du foyer | Permet la période d'une paie à l'autre sans réécriture |
 | DM5 | **Propriétaire et visibilité sur chaque compte**, appliqués par un filtre de requête global EF Core | Impossible d'oublier un filtre (règle R8) |
-| DM6 | **Audit automatique** par des intercepteurs `SaveChanges` : auteur et dates (K2), suppressions (N6), historique des opérations (B13, `TransactionHistoryInterceptor`) | Aucune voie de modification (saisie, masse, pointage, import, rapprochement) ne peut l'oublier |
+| DM6 | **Audit automatique** par des intercepteurs `SaveChanges` : auteur et dates (K2), suppressions (N6), historique des opérations (B13, `TransactionHistoryInterceptor`), événements des webhooks (I5, `WebhookEventInterceptor`) | Aucune voie de modification (saisie, masse, pointage, import, rapprochement) ne peut l'oublier |
 
 Tous les montants sont signés (négatif = sortie). Chaque entité porte `CreatedAt`, `CreatedBy`, `UpdatedAt`, `UpdatedBy`, ainsi qu'un `Version` pour la concurrence optimiste.
 
@@ -143,7 +143,7 @@ TransactionLine            Id, TransactionId, CategoryId?, Amount, Memo
 TransactionLineTag         LineId, TagId
 TransactionChange          TransactionId, At, UserId, UserName, Changes(JSON avant/après)   (B13)
 TransactionLink            SourceId, TargetId, Type{Refund,Advance}, ExpectedAmount?   (B11, B12, P4)
-Attachment                 Id, TransactionId, FileName, ContentType, Size, Sha256
+Attachment                 Id, TransactionId, FileName, ContentType, Size, Sha256   (B7 ; visibilité de l'opération, R8)
 
 Recurrence                 Id, AccountId, Label, PayeeId?, Frequency{Day,Week,Month,Year}, Interval,
                            StartDate, EndDate?, MaxOccurrences?, Mode{Auto,Confirm}, Tolerance,
@@ -169,8 +169,11 @@ PushSubscription           Id, UserId, Endpoint (unique), P256dh, Auth, Device?,
 NotificationPreference     Id, UserId (unique), BudgetAlerts, ForecastAlerts, DueTomorrowAlerts, PendingAlerts,
                            EmailSummary{None,Weekly,Monthly}   (M1, M2 ; sans ligne : toutes les alertes, pas de résumé)
 SentAlert                  Id, UserId, Kind, ObjectKey, PeriodKey, SentAt   (unique (UserId, Kind, ObjectKey, PeriodKey) ; purgé après 400 jours)
-ApiToken                   Id, UserId, Name, Hash, Scopes, ExpiresAt, LastUsedAt   (I5)
-Webhook                    Id, Url, Secret, Events, IsActive                       (I5)
+ApiToken                   Id, UserId, Name, Hash (SHA-256), Prefix, Scope{Read,Write}, CreatedAt, ExpiresAt, LastUsedAt   (I5)
+Webhook                    Id, Name, Url, ProtectedSecret (Data Protection), Events (JSON), IsActive, OwnerId,
+                           ConsecutiveFailures   (I5)
+WebhookDelivery            Id, WebhookId, Event, Payload, Status{Pending,Succeeded,Failed}, Attempts, NextAttemptAt,
+                           CompletedAt, LastStatusCode, LastError   (I5 : file d'attente, dates en ticks UTC ; gardée 30 jours)
 ```
 
 ## 6. Composants clés
@@ -230,12 +233,13 @@ Il n'y a pas d'éditeur de règles. L'appli apprend des corrections :
   - `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `frame-ancestors 'none'` ;
   - HSTS fixé par le NPM.
 - **Derrière le reverse proxy** : `ForwardedHeaders` est activé, en faisant confiance uniquement au réseau Docker du NPM (`KnownNetworks`).
-- **Pièces jointes** :
-  - liste blanche de types de fichiers (JPEG, PNG, WebP, HEIC, PDF), vérifiée sur les premiers octets du fichier et pas seulement sur l'extension ;
-  - 10 Mo maximum ;
-  - servies en `Content-Disposition: attachment`, sauf les images ;
-  - jamais exécutées.
-- **API publique** : jetons personnels hachés en SHA-256, avec des droits (`read` ou `write`), une date d'expiration et une révocation possible. Les webhooks sont signés en HMAC-SHA256 (`X-HomeBudget-Signature`).
+- **Pièces jointes** (B7, `Features/Attachments`) :
+  - liste blanche de types de fichiers (JPEG, PNG, WebP, HEIC, PDF), reconnue sur les premiers octets du fichier, jamais sur l'extension ni le type annoncé ;
+  - 10 Mo maximum, 20 par opération ; le fichier est envoyé tel quel dans le corps (pas de multipart) et écrit en flux, avec calcul de l'empreinte ;
+  - servies en `Content-Disposition: attachment`, sauf les images JPEG, PNG et WebP, avec `nosniff` et une CSP `default-src 'none'; sandbox` ;
+  - jamais exécutées, jamais gardées par le service worker ;
+  - un fichier partagé par deux opérations n'est stocké qu'une fois ; il est effacé quand plus aucune pièce jointe ne l'utilise (aussitôt, ou par le nettoyage quotidien après suppression de l'opération).
+- **API publique** (I5) : voir §6.10.
 - **Secrets** (clés VAPID, SMTP) : uniquement en variables d'environnement. Les clés de protection des données ASP.NET sont stockées dans `/data/keys`.
 
 ### 6.6 Sauvegardes (O3, H6)
@@ -243,7 +247,7 @@ Il n'y a pas d'éditeur de règles. L'appli apprend des corrections :
 - **Tâche `BackupWorker`**, chaque nuit :
   1. un instantané cohérent de la base avec `VACUUM INTO '/data/backups/homebudget-AAAAMMJJ.db'` ;
   2. une rotation selon `BACKUP_KEEP_DAILY`, `_WEEKLY` et `_MONTHLY`.
-- **Pièces jointes** : elles ne sont jamais modifiées (nommées par empreinte), donc le dossier `attachments/` peut être copié tel quel.
+- **Pièces jointes** : elles ne sont jamais modifiées (nommées par empreinte), donc le dossier `attachments/` peut être copié tel quel. La sauvegarde JSON (format 9) en contient la liste ; les fichiers sont exportés à part dans une archive ZIP (`GET /api/backups/attachments`), réimportable (`POST`), qui n'ajoute que les fichiers manquants dont l'empreinte correspond au nom.
 - **Recommandation** : synchroniser `/data/backups` et `/data/attachments` vers un NAS ou un stockage hors de la machine (en dehors de l'appli).
 - **Export et restauration JSON** depuis l'interface (administrateurs), avec un audit et une confirmation.
 
@@ -281,6 +285,14 @@ Il n'y a pas d'éditeur de règles. L'appli apprend des corrections :
   - Un virement vers un compte joint (sans titulaire) est un apport du membre à qui appartient le compte d'origine (son titulaire, ou le propriétaire s'il est privé). Seul ce lien est lu, jamais les opérations du compte privé ; un retrait du compte joint réduit l'apport.
   - Le total apporté est réparti entre les membres actifs : à parts égales, au prorata des revenus de la période sur les comptes partagés dont chacun est titulaire (parts égales sans revenu), ou selon des parts fixes. Solde = apporté − part ; les soldes s'annulent, et des remboursements conseillés les équilibrent.
 
+### 6.10 API publique (I5)
+
+- **Authentification** : un schéma de sélection (`HomeBudget`) envoie une requête portant `Authorization: Bearer` vers `ApiTokenAuthenticationHandler`, les autres vers le cookie de session. Un jeton invalide n'est jamais complété par le cookie.
+- **Jetons** : `hb_` + 32 octets aléatoires (base64url), montrés une fois, stockés en SHA-256. Le principal du jeton porte l'identifiant de l'utilisateur (R8, auteur K2 et audit inchangés) et un rôle réduit : `Member` pour un jeton en écriture d'un utilisateur qui peut écrire, `ReadOnly` sinon. Jamais `Admin`.
+- **Limites** (`ApiTokenRestrictionMiddleware`) : un jeton est refusé (403) sur `/api/auth`, `/api/account`, `/api/setup`, `/api/users`, `/api/invitations`, `/api/backups`, `/api/audit`, `/api/tokens`, `/api/webhooks`, `/api/notifications` et `/api/docs` ; un jeton en lecture n'envoie que des GET. Pas de contrôle anti-CSRF ni d'obligation de 2FA : pas de cookie, et un site tiers ne peut pas ajouter l'en-tête `Authorization`. Débit limité par jeton (limiteur global, partitionné par l'empreinte de l'en-tête).
+- **Webhooks** : `WebhookEventInterceptor` met en file (`WebhookDelivery`) les opérations créées, modifiées ou supprimées et les imports terminés, dans la transaction de la modification, pour chaque webhook actif abonné, filtrés selon ce que voit son propriétaire (R8). `WebhookWorker` les envoie (`WebhookDispatcher`), signés `sha256=HMAC(secret, "{timestamp}.{corps}")`. Nouvelles tentatives à 1 min, 5 min, 30 min, 2 h et 12 h ; désactivation après 5 envois abandonnés à la suite.
+- **Appels sortants** : client HTTP sans proxy ni redirection, délai de 10 s, et `ConnectCallback` qui vérifie chaque adresse **après la résolution DNS** (`WebhookAddressPolicy`) : boucle locale, link-local (métadonnées cloud), adresses non spécifiées et multicast toujours refusés ; réseaux privés selon `HB__Webhooks__AllowPrivateNetworks`.
+
 ## 7. Conventions d'API
 
 - Une période est désignée par la clé `AAAA-MM` du mois dont elle porte le nom (en mode jour fixe N : le mois de début si N ≤ 15, le mois de fin sinon).
@@ -288,6 +300,8 @@ Il n'y a pas d'éditeur de règles. L'appli apprend des corrections :
 - Pagination par curseur pour les opérations (`?cursor=&limit=`).
 - Erreurs au format `application/problem+json` (RFC 9457).
 - Concurrence optimiste : l'en-tête `If-Match: <version>` est exigé pour un `PUT` ou un `DELETE`, et l'API répond `412` en cas de conflit.
+- Authentification : cookie de session et en-tête `X-CSRF-TOKEN` depuis l'application ; `Authorization: Bearer hb_…` (jeton d'accès personnel, I5) depuis un script.
+- Fichiers (pièces jointes, archive ZIP) : envoyés tels quels dans le corps de la requête, décrits en `format: binary` dans l'OpenAPI.
 - Endpoints prévus pour le MVP : `/accounts`, `/categories`, `/payees`, `/transactions`, `/transfers`, `/recurrences`, `/recurrences/pending`, `/periods/current`, `/periods/{key}`, `/budgets/{period}`, `/budgets/categories/{id}`, `/dashboard/{period}`, `/forecast`, `/exports`, `/backups`, `/auth/*`, `/settings`.
 
 ## 8. Déploiement
@@ -340,6 +354,8 @@ networks:
 | `HB__Smtp__Host` / `__Port` / `__Security` / `__User` / `__Password` / `__From` | Envoi d'e-mails (résumé) | désactivé |
 | `HB__Push__VapidPublicKey` / `__VapidPrivateKey` / `__Subject` | Notifications push | désactivé |
 | `HB__Notifications__Enabled` / `__IntervalMinutes` / `__Hour` | Vérification des alertes | `true` / 60 / 8 |
+| `HB__Security__ApiRequestsPerMinute` | Débit autorisé par jeton d'accès personnel | 120 |
+| `HB__Webhooks__Enabled` / `__AllowPrivateNetworks` / `__IntervalSeconds` | Envoi des webhooks, réseaux privés autorisés, passage de la file | `true` / `true` / 15 |
 | `HB__Metrics__AllowedNetwork` | Réseau autorisé à interroger `/metrics` | réseau Docker |
 
 ## 9. CI/CD (GitHub Actions)

@@ -100,6 +100,7 @@ Le jeton change à chaque redémarrage tant qu'aucun utilisateur n'existe. Il es
 | `HB__KnownProxyNetwork` | — | Réseaux (CIDR, séparés par des virgules) autorisés à transmettre les en-têtes `X-Forwarded-For` et `X-Forwarded-Proto` |
 | `HB__Metrics__AllowedNetwork` | — (boucle locale uniquement) | Réseaux autorisés à interroger `/metrics` (Prometheus). Une requête passée par le proxy est toujours refusée |
 | `HB__Security__AuthRequestsPerMinute` | `10` | Requêtes d'authentification autorisées par minute et par adresse IP |
+| `HB__Security__ApiRequestsPerMinute` | `120` | Requêtes autorisées par minute et par jeton d'accès personnel (API publique) |
 | `HB__Backup__Enabled` | `true` | Sauvegarde automatique quotidienne de la base |
 | `HB__Backup__Hour` | `3` | Heure locale de la sauvegarde (fuseau `TZ` du conteneur) |
 | `HB__Backup__KeepDaily` / `__KeepWeekly` / `__KeepMonthly` | `7` / `4` / `12` | Rotation : derniers jours, dernière sauvegarde de chaque semaine, de chaque mois |
@@ -116,6 +117,9 @@ Le jeton change à chaque redémarrage tant qu'aucun utilisateur n'existe. Il es
 | `HB__Notifications__Enabled` | `true` | Vérification des alertes et envoi des résumés (sans effet si ni push ni e-mail ne sont configurés) |
 | `HB__Notifications__IntervalMinutes` | `60` | Intervalle entre deux vérifications des alertes |
 | `HB__Notifications__Hour` | `8` | Heure locale à partir de laquelle partent les alertes ; aucune n'est envoyée de 22 h à cette heure |
+| `HB__Webhooks__Enabled` | `true` | Envoi des webhooks en file d'attente |
+| `HB__Webhooks__AllowPrivateNetworks` | `true` | Autorise les webhooks vers les réseaux privés (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10`, `fc00::/7`). Mettre `false` pour n'autoriser que les adresses publiques. La boucle locale, le link-local et les métadonnées cloud sont toujours refusés |
+| `HB__Webhooks__IntervalSeconds` | `15` | Intervalle entre deux passages de la file d'attente des webhooks |
 
 ## Notifications push et résumé par e-mail
 
@@ -130,6 +134,40 @@ docker run --rm ghcr.io/dockev03/home-budget:<version> --generate-vapid-keys
 Reporter les deux lignes affichées dans `HB_VAPID_PUBLIC_KEY` et `HB_VAPID_PRIVATE_KEY` (variables de la stack), puis redéployer. Le conteneur doit pouvoir joindre en HTTPS les services push des navigateurs (`fcm.googleapis.com`, `*.push.services.mozilla.com`, `*.push.apple.com`, `*.notify.windows.com`) ; aucune autre adresse n'est acceptée. Sur iPhone, l'appli doit être ajoutée à l'écran d'accueil (Safari › Partager › Sur l'écran d'accueil) avant d'activer les notifications.
 
 **E-mail (Gmail).** Créer un [mot de passe d'application](https://myaccount.google.com/apppasswords) (double authentification Google requise), puis : `HB_SMTP_HOST=smtp.gmail.com`, `HB_SMTP_PORT=587`, `HB_SMTP_USER=adresse@gmail.com`, `HB_SMTP_PASSWORD=<mot de passe d'application>`, `HB_SMTP_FROM=Home Budget <adresse@gmail.com>`. Le bouton « Envoyer un e-mail d'essai » de la page **Notifications** vérifie la configuration ; en cas d'échec, le détail est dans les logs du conteneur.
+
+## API publique et webhooks
+
+**Jetons d'accès.** Chaque utilisateur crée ses jetons dans **Accès API** (menu du compte) : un nom, un droit (lecture seule, ou lecture et écriture) et une durée (30 jours, 90 jours ou 1 an). Le jeton n'est affiché qu'une fois ; seule son empreinte SHA-256 est stockée. La documentation interactive de l'API est à `/api/docs/` (session ouverte requise).
+
+```bash
+curl -H "Authorization: Bearer hb_…" https://budget.mondomaine.fr/api/accounts
+```
+
+- Un jeton agit au nom de son utilisateur, avec ses seuls comptes visibles. Il n'a **jamais** les droits d'administration, même créé par un administrateur : un jeton en écriture agit comme un membre, un jeton en lecture seule n'envoie que des GET.
+- Un jeton ne donne accès ni à la connexion, ni au compte de l'utilisateur, ni aux utilisateurs, sauvegardes, journal d'audit, jetons, webhooks et notifications : ces pages exigent une session ouverte dans l'application.
+- Une requête avec un jeton n'a pas besoin du jeton anti-CSRF. Le débit est limité par jeton (`HB__Security__ApiRequestsPerMinute`). Un utilisateur désactivé perd aussitôt l'usage de ses jetons ; la création et la révocation sont inscrites au journal d'audit.
+
+**Webhooks.** Un administrateur abonne une adresse aux événements `transaction.created`, `transaction.updated`, `transaction.deleted` et `import.completed` (**Accès API** › Webhooks). Chaque événement part en `POST` JSON :
+
+```json
+{ "id": "…", "event": "transaction.created", "occurredAt": "2026-11-27T08:00:00+00:00",
+  "data": { "transactions": [ { "id": "…", "accountId": "…", "date": "2026-11-27", "amount": -42.5,
+    "label": "Boulangerie", "payeeId": null, "isCleared": false, "transferId": null } ] } }
+```
+
+- En-têtes : `X-HomeBudget-Event`, `X-HomeBudget-Delivery` (identifiant de l'envoi, identique à `id` : il permet d'ignorer un doublon), `X-HomeBudget-Timestamp` (secondes Unix) et `X-HomeBudget-Signature: sha256=<hex>`.
+- La signature est le HMAC-SHA256, avec le secret (`whsec_…`, affiché une seule fois), de `"{timestamp}.{corps}"`. Vérification en Python :
+
+  ```python
+  import hashlib, hmac, time
+  def verifier(secret: str, timestamp: str, corps: bytes, signature: str) -> bool:
+      attendu = "sha256=" + hmac.new(secret.encode(), timestamp.encode() + b"." + corps, hashlib.sha256).hexdigest()
+      return hmac.compare_digest(attendu, signature) and abs(time.time() - int(timestamp)) < 300
+  ```
+
+- Un webhook ne reçoit que les comptes que voit l'administrateur qui l'a créé : les opérations des comptes privés des autres membres n'y figurent jamais. Un import important est découpé en messages de 200 opérations.
+- Réponse attendue : un code 2xx en moins de 10 s. Les redirections ne sont pas suivies. Après un échec, l'envoi est retenté au bout de 1 min, 5 min, 30 min, 2 h puis 12 h ; après 5 envois abandonnés à la suite, le webhook est désactivé (et le journal d'audit le signale). Après un échec, l'ordre des messages n'est plus garanti : se fier à `occurredAt`.
+- Adresses : HTTP ou HTTPS, réseau local autorisé par défaut (Home Assistant, n8n…), vérifiées après la résolution DNS. La boucle locale, le link-local et `169.254.169.254` sont toujours refusés.
 
 ## Hors ligne
 
@@ -146,14 +184,15 @@ L'appli est installable (PWA) : « Installer l'application » dans Chrome ou Edg
 Toutes les données sont dans le volume `home-budget-data`, monté sur `/data` :
 
 - `homebudget.db` : la base, en mode WAL ;
-- `keys/` : les clés de chiffrement des cookies. Si elles sont perdues, il faut se reconnecter, mais aucune donnée n'est perdue ;
+- `keys/` : les clés de chiffrement des cookies et des secrets des webhooks. Si elles sont perdues, il faut se reconnecter et régénérer le secret de chaque webhook, mais aucune donnée n'est perdue ;
+- `attachments/` : les pièces jointes des opérations, une par empreinte SHA-256, jamais modifiées. Un fichier dont l'opération a été supprimée est effacé lors du nettoyage quotidien ;
 - `backups/` : les sauvegardes automatiques `homebudget-AAAAMMJJ.db`, et les instantanés `avant-restauration-AAAAMMJJ-HHmmss.db` pris avant chaque restauration JSON.
 
 ### Sauvegardes automatiques
 
 Chaque nuit (3 h par défaut), l'application écrit un instantané cohérent de la base (`VACUUM INTO`, sans interruption du service) dans `/data/backups`, puis applique la rotation : 7 quotidiennes, 4 hebdomadaires et 12 mensuelles par défaut. Au démarrage, la sauvegarde du jour est faite si elle manque.
 
-Ces copies restent sur le même volume que la base : **elles ne protègent pas d'une panne du disque**. Synchroniser `/data/backups` vers un NAS ou un autre stockage, depuis l'hôte.
+Ces copies restent sur le même volume que la base : **elles ne protègent pas d'une panne du disque**. Synchroniser `/data/backups` et `/data/attachments` vers un NAS ou un autre stockage, depuis l'hôte. Les pièces jointes ne sont pas dans la base : le dossier `attachments/` se copie tel quel.
 
 ### Restaurer une sauvegarde
 
@@ -168,4 +207,5 @@ Dans **Paramètres**, un administrateur peut télécharger une sauvegarde JSON d
 - Le fichier ne contient ni les comptes utilisateurs, ni les mots de passe, ni les secrets de double authentification. Il contient en revanche toutes les données financières : le conserver en lieu sûr.
 - La restauration **remplace toutes les données du foyer**. Le fichier (64 Mio au plus) est validé en entier avant de toucher à la base, puis tout est restauré dans une seule transaction. Les utilisateurs existants sont conservés ; une référence à un utilisateur inconnu (auteur, propriétaire) est vidée.
 - Juste avant, un instantané de la base est écrit dans `/data/backups/avant-restauration-AAAAMMJJ-HHmmss.db`. Ces instantanés échappent à la rotation : les supprimer à la main quand ils ne servent plus. Pour annuler une restauration, restaurer cet instantané comme ci-dessus.
-- Exports et restaurations sont tracés dans les logs du conteneur ; le journal d'audit arrivera avec le lot L3.
+- Exports et restaurations sont tracés dans les logs du conteneur et dans le journal d'audit.
+- **Pièces jointes** : la sauvegarde JSON n'en contient que la liste. Les fichiers sont dans une archive ZIP à part (« Télécharger l'archive des pièces jointes »), un fichier par empreinte. Après une restauration sur une autre instance, l'écran indique combien de fichiers manquent : importer l'archive (2 Gio au plus). Seuls les fichiers manquants et intacts (empreinte, taille, type vérifiés) sont ajoutés.

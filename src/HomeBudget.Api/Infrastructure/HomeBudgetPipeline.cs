@@ -1,6 +1,7 @@
 using HomeBudget.Api.Features.Account;
 using HomeBudget.Api.Features.Accounts;
 using HomeBudget.Api.Features.Advances;
+using HomeBudget.Api.Features.Attachments;
 using HomeBudget.Api.Features.Audit;
 using HomeBudget.Api.Features.Auth;
 using HomeBudget.Api.Features.Backups;
@@ -11,6 +12,7 @@ using HomeBudget.Api.Features.Dashboard;
 using HomeBudget.Api.Features.Exports;
 using HomeBudget.Api.Features.Forecasts;
 using HomeBudget.Api.Features.Imports;
+using HomeBudget.Api.Features.Integrations;
 using HomeBudget.Api.Features.Notifications;
 using HomeBudget.Api.Features.Payees;
 using HomeBudget.Api.Features.Periods;
@@ -63,6 +65,7 @@ public static class HomeBudgetPipeline
         app.UseRouting();
         app.UseRateLimiter();
         app.UseAuthentication();
+        app.UseMiddleware<ApiTokenRestrictionMiddleware>();
         app.UseMiddleware<TwoFactorEnforcementMiddleware>();
         app.UseAuthorization();
         app.UseMiddleware<BodySizeLimitMiddleware>();
@@ -115,12 +118,16 @@ public static class HomeBudgetPipeline
         app.MapSplitEndpoints();
         app.MapNotificationEndpoints();
         app.MapSyncEndpoints();
+        app.MapAttachmentEndpoints();
+        app.MapApiTokenEndpoints();
+        app.MapWebhookEndpoints();
 
         app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
         app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") }).AllowAnonymous();
         app.MapPrometheusScrapingEndpoint("/metrics").AllowAnonymous(); // restreint par MetricsAccessMiddleware
 
-        app.MapOpenApi().RequireAuthorization(AuthorizationPolicies.Admin);
+        // Documentation de l'API publique (I5) : ouverte à tout utilisateur connecté, la description aussi aux jetons.
+        app.MapOpenApi().RequireAuthorization();
         app.MapScalarApiReference("/api/docs", o => o
                 .WithTitle("Home Budget API")
                 .WithOpenApiRoutePattern("/openapi/{documentName}.json")
@@ -129,7 +136,7 @@ public static class HomeBudgetPipeline
                 .DisableAgent()
                 .DisableTelemetry()
                 .HideDeveloperTools())
-            .RequireAuthorization(AuthorizationPolicies.Admin);
+            .RequireAuthorization();
 
         app.MapFallback("/api/{**path}", () => Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Ressource introuvable."))
             .AllowAnonymous().ExcludeFromDescription();

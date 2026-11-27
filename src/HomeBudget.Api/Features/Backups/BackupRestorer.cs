@@ -51,6 +51,7 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
         var loans = await db.Loans.AsNoTracking().OrderBy(l => l.Id).ToListAsync(ct);
         var shares = await db.MemberShares.AsNoTracking().OrderBy(m => m.Id).ToListAsync(ct);
         var reports = await db.SavedReports.AsNoTracking().OrderBy(r => r.Id).ToListAsync(ct);
+        var attachments = await db.Attachments.AsNoTracking().OrderBy(a => a.Id).ToListAsync(ct);
 
         return new BackupDocument(
             BackupDocument.FormatName,
@@ -99,7 +100,8 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 l.Id, l.AccountId, l.Principal, l.AnnualRate, l.DurationMonths, l.FirstPaymentDate, l.MonthlyInsurance, AuditOf(l)))],
             [.. shares.Select(m => new BackupMemberShare(m.Id, m.UserId, m.Percent, AuditOf(m)))],
             [.. reports.Select(r => new BackupSavedReport(
-                r.Id, r.Name, r.GroupBy, r.Range, r.From, r.To, r.AccountIds, r.CategoryIds, r.PayeeIds, r.TagIds, r.Kinds, r.IncludeTransfers, AuditOf(r)))]);
+                r.Id, r.Name, r.GroupBy, r.Range, r.From, r.To, r.AccountIds, r.CategoryIds, r.PayeeIds, r.TagIds, r.Kinds, r.IncludeTransfers, AuditOf(r)))],
+            [.. attachments.Select(a => new BackupAttachment(a.Id, a.TransactionId, a.FileName, a.ContentType, a.Size, a.Sha256, AuditOf(a)))]);
     }
 
     /// <summary>
@@ -129,6 +131,8 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
 
         // Ordre imposé par les clés étrangères : des dépendants vers les éléments référencés.
         await db.RecurrenceOccurrences.ExecuteDeleteAsync(ct);
+        // Remplacées quelle que soit la version ; les fichiers restent sur le disque (nettoyés s'ils ne servent plus).
+        await db.Attachments.ExecuteDeleteAsync(ct);
         // Remplacés quelle que soit la version : une sauvegarde antérieure à la v8 n'en contient pas.
         await db.Loans.ExecuteDeleteAsync(ct);
         await db.MemberShares.ExecuteDeleteAsync(ct);
@@ -486,6 +490,19 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 Kinds = [.. (r.Kinds ?? []).Distinct()],
                 IncludeTransfers = r.IncludeTransfers,
             }, r.Audit));
+        }
+
+        foreach (var a in (document.Attachments ?? []).OfType<BackupAttachment>())
+        {
+            db.Attachments.Add(Stamp(new Domain.Attachments.Attachment
+            {
+                Id = a.Id,
+                TransactionId = a.TransactionId,
+                FileName = a.FileName!,
+                ContentType = a.ContentType!,
+                Size = a.Size,
+                Sha256 = a.Sha256!,
+            }, a.Audit));
         }
 
         db.PreserveAuditFields = true;

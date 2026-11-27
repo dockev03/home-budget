@@ -43,13 +43,13 @@ export default defineConfig({
         runtimeCaching: [
           {
             // Lecture hors ligne : réseau d'abord, la dernière réponse reçue sinon. Jamais gardés : fichiers
-            // exportés, sauvegardes, jeton anti-CSRF. La fonction est copiée telle quelle dans sw.js : elle ne
-            // doit dépendre d'aucune variable de ce fichier.
+            // exportés, sauvegardes, pièces jointes (jusqu'à 10 Mo), jetons et webhooks, jeton anti-CSRF.
+            // La fonction est copiée telle quelle dans sw.js : elle ne doit dépendre d'aucune variable de ce fichier.
             urlPattern: ({ url, request, sameOrigin }) =>
               sameOrigin &&
               request.method === 'GET' &&
               url.pathname.startsWith('/api/') &&
-              !/^\/api\/(exports|backups|auth\/csrf|docs)(\/|$)/.test(url.pathname),
+              !/^\/api\/(exports|backups|attachments|tokens|webhooks|auth\/csrf|docs)(\/|$)/.test(url.pathname),
             handler: 'NetworkFirst',
             options: {
               cacheName: 'hb-api',

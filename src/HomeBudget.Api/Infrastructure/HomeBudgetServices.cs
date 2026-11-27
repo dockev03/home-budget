@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 
 using HomeBudget.Api.Domain.Users;
+using HomeBudget.Api.Features.Attachments;
 using HomeBudget.Api.Features.Backups;
 using HomeBudget.Api.Features.Budgets;
 using HomeBudget.Api.Features.Forecasts;
@@ -13,6 +14,7 @@ using HomeBudget.Api.Infrastructure.Configuration;
 using HomeBudget.Api.Infrastructure.Data;
 using HomeBudget.Api.Infrastructure.Notifications;
 using HomeBudget.Api.Infrastructure.Security;
+using HomeBudget.Api.Infrastructure.Webhooks;
 
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
@@ -47,9 +49,13 @@ public static class HomeBudgetServices
         services.AddHttpContextAccessor();
         services.AddSingleton<AuditInterceptor>();
         services.AddSingleton<TransactionHistoryInterceptor>();
+        services.AddSingleton<WebhookEventInterceptor>();
         services.AddDbContext<AppDbContext>((sp, db) => db
             .UseSqlite($"Data Source={options.DatabasePath}")
-            .AddInterceptors(sp.GetRequiredService<AuditInterceptor>(), sp.GetRequiredService<TransactionHistoryInterceptor>()));
+            .AddInterceptors(
+                sp.GetRequiredService<AuditInterceptor>(),
+                sp.GetRequiredService<TransactionHistoryInterceptor>(),
+                sp.GetRequiredService<WebhookEventInterceptor>()));
 
         // Clés de chiffrement des cookies persistées : les sessions survivent aux redémarrages.
         services.AddDataProtection()
@@ -87,12 +93,7 @@ public static class HomeBudgetServices
             // Nombres stricts : un montant envoyé en texte est refusé, et l'OpenAPI type les nombres sans « | string ».
             o.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
         });
-        services.AddOpenApi(o => o.AddDocumentTransformer((doc, _, _) =>
-        {
-            doc.Info.Title = "Home Budget API";
-            doc.Info.Description = "API REST de Home Budget. Les requêtes POST/PUT/PATCH/DELETE exigent l'en-tête X-CSRF-TOKEN.";
-            return Task.CompletedTask;
-        }));
+        services.AddOpenApi(o => o.AddDocumentTransformer<OpenApiSecurityTransformer>());
 
         services.AddHealthChecks().AddDbContextCheck<AppDbContext>("database", tags: ["ready"]);
 
@@ -120,12 +121,40 @@ public static class HomeBudgetServices
         services.AddSingleton<IEmailSender, SmtpEmailSender>();
         services.AddScoped<AlertService>();
         services.AddHostedService<AlertWorker>();
+
+        // Pièces jointes (B7).
+        services.AddSingleton<AttachmentStore>();
+        services.AddHostedService<AttachmentCleanupWorker>();
+
+        // Webhooks (I5) : connexion limitée aux adresses autorisées, sans proxy ni redirection.
+        services.AddHttpClient(WebhookSender.HttpClientName, c => c.Timeout = TimeSpan.FromSeconds(10))
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                AllowAutoRedirect = false,
+                UseProxy = false,
+                UseCookies = false,
+                ConnectCallback = (context, ct) => WebhookAddressPolicy.ConnectAsync(context, options.Webhooks.AllowPrivateNetworks, ct),
+            });
+        services.AddSingleton<WebhookSecrets>();
+        services.AddSingleton<WebhookSender>();
+        services.AddScoped<WebhookDispatcher>();
+        services.AddHostedService<WebhookWorker>();
         return builder;
     }
 
     private static void AddIdentity(IServiceCollection services, CookieSecurePolicy secure)
     {
-        services.AddAuthentication(IdentityConstants.ApplicationScheme).AddIdentityCookies();
+        // Session par cookie, ou jeton d'accès personnel (I5) quand la requête porte l'en-tête Authorization: Bearer.
+        services.AddAuthentication(o =>
+            {
+                o.DefaultScheme = ApiTokens.SelectorScheme;
+                o.DefaultChallengeScheme = ApiTokens.SelectorScheme;
+                o.DefaultForbidScheme = ApiTokens.SelectorScheme;
+            })
+            .AddPolicyScheme(ApiTokens.SelectorScheme, null, o => o.ForwardDefaultSelector = ctx =>
+                ApiTokens.HasBearer(ctx.Request) ? ApiTokens.Scheme : IdentityConstants.ApplicationScheme)
+            .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, ApiTokenAuthenticationHandler>(ApiTokens.Scheme, null);
+        services.AddAuthentication().AddIdentityCookies();
 
         services.AddIdentityCore<AppUser>(o =>
             {
@@ -191,6 +220,17 @@ public static class HomeBudgetServices
                     title: "Trop de tentatives.",
                     detail: "Patientez une minute avant de réessayer.").ExecuteAsync(ctx.HttpContext));
             };
+            // Jetons d'accès personnels (I5) : débit limité par jeton (empreinte de l'en-tête), avant même l'authentification.
+            o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(http => ApiTokens.HasBearer(http.Request)
+                ? RateLimitPartition.GetFixedWindowLimiter(
+                    ApiTokens.Hash(http.Request.Headers.Authorization.ToString()),
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = options.Security.ApiRequestsPerMinute,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                    })
+                : RateLimitPartition.GetNoLimiter(string.Empty));
             o.AddPolicy(RateLimitPolicies.Auth, http => RateLimitPartition.GetFixedWindowLimiter(
                 http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                 _ => new FixedWindowRateLimiterOptions

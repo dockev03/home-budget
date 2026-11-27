@@ -83,7 +83,7 @@ test.describe.serial('tableau de bord et export', () => {
     expect(content.transactions.length).toBeGreaterThan(0)
 
     // Le bouton ne s'active qu'avec un fichier et le mot RESTAURER (la restauration elle-même est testée par l'API).
-    await backup.locator('input[type=file]').setInputFiles(await file.path())
+    await backup.locator('input[type=file][accept*=json]').setInputFiles(await file.path())
     const restore = backup.getByRole('button', { name: 'Restaurer' })
     await expect(restore).toBeDisabled()
     await backup.getByLabel('Saisissez RESTAURER pour confirmer').fill('restaurer')

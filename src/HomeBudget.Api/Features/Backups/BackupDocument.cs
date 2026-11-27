@@ -44,11 +44,12 @@ public sealed record BackupDocument(
     List<BackupSavingsGoal?>? SavingsGoals = null,
     List<BackupLoan?>? Loans = null,
     List<BackupMemberShare?>? MemberShares = null,
-    List<BackupSavedReport?>? SavedReports = null)
+    List<BackupSavedReport?>? SavedReports = null,
+    List<BackupAttachment?>? Attachments = null)
 {
     public const string FormatName = "home-budget-backup";
 
-    public const int CurrentVersion = 8;
+    public const int CurrentVersion = 9;
 
     /// <summary>Version 1 : sans profils ni historique d'import (étapes 1 à 4), toujours restaurable.</summary>
     public const int MinVersion = 1;
@@ -73,6 +74,12 @@ public sealed record BackupDocument(
 
     /// <summary>Version 8 : crédits, répartition des dépenses communes et rapports enregistrés (étape 12).</summary>
     public const int SplitVersion = 8;
+
+    /// <summary>
+    /// Version 9 : description des pièces jointes (étape 14). Les fichiers eux-mêmes sont dans une archive ZIP à part
+    /// (<c>GET /api/backups/attachments</c>), nommés par leur empreinte.
+    /// </summary>
+    public const int AttachmentsVersion = 9;
 }
 
 /// <summary>Traçabilité (K2) et version de concurrence, conservées à la restauration.</summary>
@@ -169,6 +176,10 @@ public sealed record BackupProvision(
 /// <param name="Changes">Champs modifiés, au format JSON de l'historique (B13).</param>
 public sealed record BackupTransactionChange(Guid Id, Guid TransactionId, DateTimeOffset At, Guid? UserId, string? Changes);
 
+/// <summary>Pièce jointe d'une opération (B7) : description seule, le fichier est dans l'archive des pièces jointes.</summary>
+public sealed record BackupAttachment(
+    Guid Id, Guid TransactionId, string? FileName, string? ContentType, long Size, string? Sha256, BackupAudit? Audit);
+
 /// <summary>Scénario « et si… » (F5).</summary>
 public sealed record BackupScenario(Guid Id, string? Name, bool IsActive, BackupAudit? Audit);
 
@@ -264,5 +275,7 @@ public sealed record BackupImportBatch(
     Guid Id, Guid AccountId, string? FileName, ImportFormat Format, int Created, int Matched, int Duplicates, BackupAudit? Audit);
 
 /// <summary>Nombre d'éléments restaurés, et nom de l'instantané fait juste avant.</summary>
+/// <param name="MissingAttachmentFiles">Pièces jointes dont le fichier manque : importer ensuite l'archive des pièces jointes.</param>
 public sealed record RestoreResultDto(
-    int Accounts, int Categories, int Payees, int Budgets, int Transactions, int Recurrences, int Occurrences, string Snapshot);
+    int Accounts, int Categories, int Payees, int Budgets, int Transactions, int Recurrences, int Occurrences, string Snapshot,
+    int Attachments = 0, int MissingAttachmentFiles = 0);

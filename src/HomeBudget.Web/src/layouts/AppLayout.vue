@@ -27,6 +27,7 @@ import {
   mdiShapeOutline,
   mdiLogout,
   mdiPiggyBankOutline,
+  mdiKeyChainVariant,
   mdiShieldLockOutline,
   mdiTimelineQuestionOutline,
   mdiThemeLightDark,
@@ -145,6 +146,7 @@ const navigation = computed(() =>
       bottom: false,
     },
     { title: 'Sécurité', icon: mdiShieldLockOutline, to: { name: 'security' }, exact: true, bottom: false },
+    { title: 'Accès API', icon: mdiKeyChainVariant, to: { name: 'api-access' }, exact: true, bottom: false },
     {
       title: 'Paramètres',
       icon: mdiCogOutline,
@@ -246,7 +248,6 @@ async function logout() {
           </v-list-item>
         </template>
         <v-list-item
-          v-if="auth.isAdmin"
           href="/api/docs/"
           target="_blank"
           rel="noopener"

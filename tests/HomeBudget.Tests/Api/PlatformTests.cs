@@ -60,12 +60,16 @@ public sealed class PlatformTests
     [Theory]
     [InlineData("/openapi/v1.json")]
     [InlineData("/api/docs/")]
-    public async Task Api_documentation_requires_admin(string url)
+    public async Task Api_documentation_requires_a_session(string url)
     {
         await using var factory = new HomeBudgetFactory();
         (await factory.CreateApiClient().GetAsync(url)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
 
         var admin = await factory.CreateAdminClientAsync();
         (await admin.GetAsync(url)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        // API publique (I5) : la documentation est ouverte à tout utilisateur connecté.
+        var reader = await factory.CreateUserClientAsync("lecteur", "ReadOnly");
+        (await reader.GetAsync(url)).StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 }

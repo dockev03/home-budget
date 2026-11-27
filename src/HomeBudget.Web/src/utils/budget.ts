@@ -1,5 +1,5 @@
 import type { Schemas } from '@/api/client'
-import { formatAmount, formatDate } from './format'
+import { formatAmount, formatDate, formatSignedAmount } from './format'
 
 export type BudgetMode = Exclude<Schemas['BudgetMode'], null>
 export type BudgetStatus = Schemas['BudgetStatus']
@@ -30,11 +30,32 @@ export const budgetModes: { value: BudgetMode; title: string }[] = [
   { value: 'Auto', title: 'Automatique' },
 ]
 
-/** Description courte du budget d'une ligne, sous son nom ; précise un budget propre à la période (D4). */
+/**
+ * Description courte du budget d'une ligne, sous son nom ; précise un budget propre à la période (D4), les
+ * provisions (D11) et le reste reporté (D6).
+ */
 export function budgetModeLabel(line: BudgetLine): string {
   const base = baseModeLabel(line)
   const provision = line.provisioned > 0 ? ` + ${formatAmount(line.provisioned)} de provisions` : ''
-  return `${base}${line.periodBudget ? ' · cette période' : ''}${provision}`
+  const carried = line.carriedOver !== 0 ? ` · report ${formatSignedAmount(line.carriedOver)}` : ''
+  return `${base}${line.periodBudget ? ' · cette période' : ''}${provision}${carried}`
+}
+
+/** Seules les dépenses (fixes et variables) actives reportent leur reste (D6). */
+export function canCarryOver(line: BudgetLine): boolean {
+  return (line.kind === 'Fixed' || line.kind === 'Variable') && !line.isArchived
+}
+
+/** Budget propre d'une ligne qui peut être déplacé (D7) : sans les provisions ni le reste reporté. */
+export function movableAmount(line: BudgetLine): number {
+  return Math.round((line.ownBudgeted - line.provisioned - line.carriedOver) * 100) / 100
+}
+
+/** « À affecter » (D7) : « 120,00 € à affecter », ou « 30,00 € affectés en trop ». */
+export function toAssignLabel(toAssign: number): string {
+  return toAssign >= 0
+    ? `${formatAmount(toAssign)} à affecter`
+    : `${formatAmount(-toAssign)} affectés en trop`
 }
 
 function baseModeLabel(line: BudgetLine): string {

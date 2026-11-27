@@ -200,4 +200,30 @@ public sealed class BudgetCalculatorTests
         due.Categories[Rent].CashBudgeted.ShouldBe(1700m);
         due.Budgeted.Fixed.ShouldBe(600m);
     }
+
+    [Fact]
+    public void Carried_over_remainder_widens_the_gauge_and_the_cash_but_not_the_summary()
+    {
+        var result = BudgetCalculator.Compute(new BudgetInput(
+            [new(Groceries, null, CategoryKind.Variable, BudgetMode.Amount, 400m), new(Fuel, null, CategoryKind.Variable, BudgetMode.Amount, 100m)],
+            new Dictionary<Guid, decimal> { [Groceries] = -450m, [Fuel] = -20m },
+            new Dictionary<Guid, decimal>(),
+            Thresholds,
+            CarriedOver: new Dictionary<Guid, decimal> { [Groceries] = 100m, [Fuel] = -50m }));
+
+        var groceries = result.Categories[Groceries];
+        groceries.OwnCarriedOver.ShouldBe(100m);
+        groceries.Budgeted.ShouldBe(500m);
+        groceries.CashBudgeted.ShouldBe(500m);
+        groceries.Remaining.ShouldBe(50m);
+        groceries.OwnActual.ShouldBe(450m);
+        groceries.Status.ShouldBe(BudgetStatus.Warning);
+
+        // Un dépassement reporté réduit le budget de la période suivante.
+        result.Categories[Fuel].Budgeted.ShouldBe(50m);
+        result.Categories[Fuel].Remaining.ShouldBe(30m);
+
+        // Le récapitulatif ne retient que ce que les revenus de la période financent.
+        result.Budgeted.Variable.ShouldBe(500m);
+    }
 }

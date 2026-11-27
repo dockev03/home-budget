@@ -11,7 +11,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HomeBudget.Api.Features.Settings;
 
-/// <summary>Paramètres du foyer : période budgétaire (R1, D10), seuils des jauges (D9), stratégie de prévision (F7) et épargne de précaution (J3).</summary>
+/// <summary>
+/// Paramètres du foyer : période budgétaire (R1, D10), seuils des jauges (D9), mode enveloppes (D7), stratégie de
+/// prévision (F7) et épargne de précaution (J3).
+/// </summary>
 public static class SettingsEndpoints
 {
     public static IEndpointRouteBuilder MapSettingsEndpoints(this IEndpointRouteBuilder app)
@@ -27,6 +30,7 @@ public static class SettingsEndpoints
         return app;
     }
 
+    /// <param name="EnvelopeMode">Mode enveloppes (D7) : activé à partir de la période en cours ; absent, inchangé.</param>
     public sealed record SettingsRequest(
         PeriodMode PeriodMode,
         [property: Range(1, PeriodCalculator.MaxStartDay)] int PeriodStartDay,
@@ -34,19 +38,22 @@ public static class SettingsEndpoints
         [property: Range(1, 200)] int BudgetAlertPercent,
         ForecastStrategy ForecastStrategy = ForecastStrategy.Budget,
         [property: Range(1, HouseholdSettings.MaxForecastAverageMonths)] int ForecastAverageMonths = HouseholdSettings.DefaultForecastAverageMonths,
-        [property: Range(1, HouseholdSettings.MaxForecastAverageMonths)] int EmergencyFundAverageMonths = HouseholdSettings.DefaultForecastAverageMonths);
+        [property: Range(1, HouseholdSettings.MaxForecastAverageMonths)] int EmergencyFundAverageMonths = HouseholdSettings.DefaultForecastAverageMonths,
+        bool? EnvelopeMode = null);
 
     /// <param name="ForecastStrategy">Prévision par le budget, ou par la moyenne des dernières périodes (F7).</param>
     /// <param name="ForecastAverageMonths">Nombre de périodes clôturées de la moyenne.</param>
     /// <param name="EmergencyFundAverageMonths">Nombre de périodes clôturées de la dépense moyenne de l'épargne de précaution (J3).</param>
+    /// <param name="EnvelopeSince">Mode enveloppes actif depuis cette période (AAAA-MM), null s'il est désactivé (D7).</param>
     public sealed record SettingsDto(
         PeriodMode PeriodMode, int PeriodStartDay, int BudgetWarningPercent, int BudgetAlertPercent,
-        ForecastStrategy ForecastStrategy, int ForecastAverageMonths, int EmergencyFundAverageMonths, int Version);
+        ForecastStrategy ForecastStrategy, int ForecastAverageMonths, int EmergencyFundAverageMonths, int Version,
+        string? EnvelopeSince);
 
     private static async Task<Ok<SettingsDto>> GetAsync(AppDbContext db) =>
         TypedResults.Ok(ToDto(await db.HouseholdSettings.AsNoTracking().SingleAsync()));
 
-    private static async Task<IResult> UpdateAsync(SettingsRequest request, HttpRequest http, AppDbContext db)
+    private static async Task<IResult> UpdateAsync(SettingsRequest request, HttpRequest http, AppDbContext db, TimeProvider clock)
     {
         var settings = await db.HouseholdSettings.SingleAsync();
         if (Concurrency.Check(http, settings) is { } precondition)
@@ -75,9 +82,17 @@ public static class SettingsEndpoints
         settings.ForecastStrategy = request.ForecastStrategy;
         settings.ForecastAverageMonths = request.ForecastAverageMonths;
         settings.EmergencyFundAverageMonths = request.EmergencyFundAverageMonths;
+        // Activé, le mode garde sa période d'origine : « à affecter » se cumule depuis celle-ci.
+        settings.EnvelopeSince = request.EnvelopeMode switch
+        {
+            true => settings.EnvelopeSince ?? PeriodCalculator.From(settings).For(Accounts.Balances.Today(clock)).Key,
+            false => null,
+            null => settings.EnvelopeSince,
+        };
         return await db.TrySaveAsync() ? TypedResults.Ok(ToDto(settings)) : Concurrency.Conflict();
     }
 
     private static SettingsDto ToDto(HouseholdSettings s) =>
-        new(s.PeriodMode, s.PeriodStartDay, s.BudgetWarningPercent, s.BudgetAlertPercent, s.ForecastStrategy, s.ForecastAverageMonths, s.EmergencyFundAverageMonths, s.Version);
+        new(s.PeriodMode, s.PeriodStartDay, s.BudgetWarningPercent, s.BudgetAlertPercent, s.ForecastStrategy, s.ForecastAverageMonths,
+            s.EmergencyFundAverageMonths, s.Version, s.EnvelopeSince);
 }

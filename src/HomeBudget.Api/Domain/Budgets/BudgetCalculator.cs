@@ -30,22 +30,26 @@ public readonly record struct ProvisionAmounts(decimal Shares, decimal DueShares
 /// <param name="ActualSums">Somme signée des lignes d'opérations de la période, par catégorie.</param>
 /// <param name="ScheduledSums">Somme signée des échéances de récurrence de la période, par catégorie.</param>
 /// <param name="Provisions">Provisions de la période, par catégorie (D11).</param>
+/// <param name="CarriedOver">Reste reporté des périodes précédentes, par catégorie (D6), positif ou négatif.</param>
 public sealed record BudgetInput(
     IReadOnlyList<BudgetCategory> Categories,
     IReadOnlyDictionary<Guid, decimal> ActualSums,
     IReadOnlyDictionary<Guid, decimal> ScheduledSums,
     BudgetThresholds Thresholds,
-    IReadOnlyDictionary<Guid, ProvisionAmounts>? Provisions = null);
+    IReadOnlyDictionary<Guid, ProvisionAmounts>? Provisions = null,
+    IReadOnlyDictionary<Guid, decimal>? CarriedOver = null);
 
 /// <param name="Mode">Mode effectif : celui défini, ou Auto par défaut pour une dépense fixe (D3).</param>
-/// <param name="OwnBudgeted">Budget propre, provisions comprises (ce dont la catégorie dispose).</param>
+/// <param name="OwnBudgeted">Budget propre, provisions et reste reporté compris (ce dont la catégorie dispose).</param>
 /// <param name="Budgeted">Budget, cumulé avec celui des sous-catégories pour une catégorie parente.</param>
 /// <param name="Actual">Réalisé (positif pour une dépense ou un revenu), cumulé de la même façon.</param>
 /// <param name="OwnProvisioned">Part du budget propre qui vient des provisions (D11).</param>
 /// <param name="CashBudgeted">
 /// Budget qui sortira réellement des comptes, cumulé : sans les parts réservées des provisions, mais avec le
-/// montant entier d'une provision à échéance. C'est lui que la prévision utilise (R3).
+/// montant entier d'une provision à échéance et le reste reporté. C'est lui que la prévision utilise (R3).
 /// </param>
+/// <param name="OwnActual">Réalisé propre, hors sous-catégories.</param>
+/// <param name="OwnCarriedOver">Part du budget propre qui vient du reste reporté (D6).</param>
 public sealed record CategoryBudgetResult(
     Guid CategoryId,
     BudgetMode? Mode,
@@ -57,7 +61,9 @@ public sealed record CategoryBudgetResult(
     decimal? PercentUsed,
     BudgetStatus Status,
     decimal OwnProvisioned = 0,
-    decimal CashBudgeted = 0);
+    decimal CashBudgeted = 0,
+    decimal OwnActual = 0,
+    decimal OwnCarriedOver = 0);
 
 public sealed record KindTotals(decimal Income, decimal Fixed, decimal Variable, decimal Savings)
 {
@@ -80,6 +86,8 @@ public sealed record BudgetResult(
 /// Provisions (D11) : chaque période réserve sa part dans le récapitulatif (D8) ; la période de l'échéance
 /// dispose en plus du montant déjà réservé, ce qui élargit la jauge de la catégorie sans peser une seconde
 /// fois sur le récapitulatif.
+/// Reste reporté (D6) : il élargit (ou réduit) la jauge de la catégorie, mais pas le récapitulatif, qui ne
+/// retient que ce que les revenus de la période financent.
 /// </remarks>
 public static class BudgetCalculator
 {
@@ -112,8 +120,10 @@ public static class BudgetCalculator
 
         var provisions = input.Provisions ?? new Dictionary<Guid, ProvisionAmounts>();
         ProvisionAmounts ProvisionOf(Guid id) => provisions.GetValueOrDefault(id);
-        decimal Available(Guid id) => own[id].Budgeted + ProvisionOf(id).Available;
-        decimal Cash(Guid id) => own[id].Budgeted + ProvisionOf(id).DueAmounts;
+        var carried = input.CarriedOver ?? new Dictionary<Guid, decimal>();
+        decimal CarryOf(Guid id) => carried.GetValueOrDefault(id);
+        decimal Available(Guid id) => own[id].Budgeted + ProvisionOf(id).Available + CarryOf(id);
+        decimal Cash(Guid id) => own[id].Budgeted + ProvisionOf(id).DueAmounts + CarryOf(id);
 
         var results = new Dictionary<Guid, CategoryBudgetResult>();
         foreach (var category in input.Categories)
@@ -130,7 +140,9 @@ public static class BudgetCalculator
                 percent is { } p ? Math.Round(p, 1, MidpointRounding.AwayFromZero) : null,
                 Status(category.Kind, actual, percent, input.Thresholds),
                 ProvisionOf(category.Id).Available,
-                Cash(category.Id) + childIds.Sum(Cash));
+                Cash(category.Id) + childIds.Sum(Cash),
+                mine.Actual,
+                CarryOf(category.Id));
         }
 
         return new BudgetResult(

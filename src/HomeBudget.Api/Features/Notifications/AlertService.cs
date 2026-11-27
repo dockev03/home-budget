@@ -103,7 +103,7 @@ public sealed partial class AlertService(
         var alerts = new List<Alert>();
 
         // Jauges D9 : seulement les catégories qui ont un budget, pour ne pas signaler chaque dépense non budgétée.
-        var (categories, _, _, budget, _) = await BudgetEndpoints.ComputeAsync(db, settings, period, schedule, ct);
+        var (categories, _, _, budget, _, _) = await BudgetEndpoints.ComputeAsync(db, settings, period, schedule, clock, ct);
         foreach (var c in categories.OrderBy(c => c.SortOrder).ThenBy(c => c.Name))
         {
             var r = budget.Categories[c.Id];

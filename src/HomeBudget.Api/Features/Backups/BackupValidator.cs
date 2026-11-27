@@ -226,6 +226,11 @@ public static class BackupValidator
                     errors.Add($"{where} : une sous-catégorie a le type de sa catégorie parente.");
                 }
             }
+            if (c.CarryOverSince is not null
+                && (c.Kind is not (Domain.Categories.CategoryKind.Fixed or Domain.Categories.CategoryKind.Variable) || !ValidPeriodKey(c.CarryOverSince)))
+            {
+                errors.Add($"{where} : report du reste invalide.");
+            }
             Audit(where, c.Audit, errors);
         }
 
@@ -609,6 +614,10 @@ public static class BackupValidator
         }
     }
 
+    /// <summary>Clé de période AAAA-MM, valable quel que soit le mode de période.</summary>
+    private static bool ValidPeriodKey(string key) =>
+        new PeriodCalculator(Domain.Settings.PeriodMode.Calendar, 1).TryParse(key, out _);
+
     private static void ValidateSettings(BackupSettings s, Errors errors)
     {
         const string where = "Paramètres";
@@ -624,6 +633,10 @@ public static class BackupValidator
         Amount(where, s.SafetyThreshold, errors);
         Defined(where, s.ForecastStrategy, errors);
         Defined(where, s.SplitMode, errors);
+        if (s.EnvelopeSince is not null && !ValidPeriodKey(s.EnvelopeSince))
+        {
+            errors.Add($"{where} : période d'activation du mode enveloppes invalide.");
+        }
         if (s.EmergencyFundAverageMonths is < 1 or > Domain.Settings.HouseholdSettings.MaxForecastAverageMonths)
         {
             errors.Add($"{where} : nombre de périodes de l'épargne de précaution invalide.");

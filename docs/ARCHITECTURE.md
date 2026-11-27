@@ -115,7 +115,8 @@ Tous les montants sont signés (négatif = sortie). Chaque entité porte `Create
 User (Identity)            Id, UserName, Email, Role
 HouseholdSettings          PeriodMode, PeriodStartDay, SafetyThreshold, ForecastIncludesIncome, AlertThresholds,
                            ForecastStrategy{Budget,Average}, ForecastAverageMonths   (F7),
-                           EmergencyFundAverageMonths   (J3), SplitMode{Equal,IncomeProRata,FixedShares}   (K4)
+                           EmergencyFundAverageMonths   (J3), SplitMode{Equal,IncomeProRata,FixedShares}   (K4),
+                           EnvelopeSince? (D7 : période d'activation du mode enveloppes, null = désactivé)
 
 Account                    Id, Name, Type{Checking,Savings,Investment,Cash,Credit}, InitialBalance, InitialDate,
                            OwnerId?, Visibility{Shared,Private}, Color, Icon, IncludeInForecast, IncludeInNetWorth,
@@ -127,8 +128,9 @@ Reconciliation             AccountId, Date, StatementBalance, Difference, Closed
 
 CategoryGroup ─┐
 Category       Id, ParentId?, Name, Kind{Income,Fixed,Variable,Savings}, Color, Icon, SortOrder, IsArchived,
-               ExcludeFromSplit (K4 : dépenses personnelles, sous-catégories comprises)
-CategoryBudget             CategoryId, Mode{Amount,PercentOfIncome,Auto}, Value, Rollover   (défaut)
+               ExcludeFromSplit (K4 : dépenses personnelles, sous-catégories comprises),
+               CarryOverSince? (D6 : première période reportée, null = report désactivé ; dépenses seulement)
+CategoryBudget             CategoryId, Mode{Amount,PercentOfIncome,Auto}, Value             (défaut)
 PeriodBudget               CategoryId, PeriodKey, Mode, Value                               (D4 : remplace le défaut)
 Provision                  Label, CategoryId, Amount, DueDate, IsAnnual, StartDate          (D11 : parts par période)
 
@@ -247,7 +249,7 @@ Il n'y a pas d'éditeur de règles. L'appli apprend des corrections :
 - **Tâche `BackupWorker`**, chaque nuit :
   1. un instantané cohérent de la base avec `VACUUM INTO '/data/backups/homebudget-AAAAMMJJ.db'` ;
   2. une rotation selon `BACKUP_KEEP_DAILY`, `_WEEKLY` et `_MONTHLY`.
-- **Pièces jointes** : elles ne sont jamais modifiées (nommées par empreinte), donc le dossier `attachments/` peut être copié tel quel. La sauvegarde JSON (format 9) en contient la liste ; les fichiers sont exportés à part dans une archive ZIP (`GET /api/backups/attachments`), réimportable (`POST`), qui n'ajoute que les fichiers manquants dont l'empreinte correspond au nom.
+- **Pièces jointes** : elles ne sont jamais modifiées (nommées par empreinte), donc le dossier `attachments/` peut être copié tel quel. La sauvegarde JSON (format 10) en contient la liste ; les fichiers sont exportés à part dans une archive ZIP (`GET /api/backups/attachments`), réimportable (`POST`), qui n'ajoute que les fichiers manquants dont l'empreinte correspond au nom.
 - **Recommandation** : synchroniser `/data/backups` et `/data/attachments` vers un NAS ou un stockage hors de la machine (en dehors de l'appli).
 - **Export et restauration JSON** depuis l'interface (administrateurs), avec un audit et une confirmation.
 
@@ -292,6 +294,15 @@ Il n'y a pas d'éditeur de règles. L'appli apprend des corrections :
 - **Limites** (`ApiTokenRestrictionMiddleware`) : un jeton est refusé (403) sur `/api/auth`, `/api/account`, `/api/setup`, `/api/users`, `/api/invitations`, `/api/backups`, `/api/audit`, `/api/tokens`, `/api/webhooks`, `/api/notifications` et `/api/docs` ; un jeton en lecture n'envoie que des GET. Pas de contrôle anti-CSRF ni d'obligation de 2FA : pas de cookie, et un site tiers ne peut pas ajouter l'en-tête `Authorization`. Débit limité par jeton (limiteur global, partitionné par l'empreinte de l'en-tête).
 - **Webhooks** : `WebhookEventInterceptor` met en file (`WebhookDelivery`) les opérations créées, modifiées ou supprimées et les imports terminés, dans la transaction de la modification, pour chaque webhook actif abonné, filtrés selon ce que voit son propriétaire (R8). `WebhookWorker` les envoie (`WebhookDispatcher`), signés `sha256=HMAC(secret, "{timestamp}.{corps}")`. Nouvelles tentatives à 1 min, 5 min, 30 min, 2 h et 12 h ; désactivation après 5 envois abandonnés à la suite.
 - **Appels sortants** : client HTTP sans proxy ni redirection, délai de 10 s, et `ConnectCallback` qui vérifie chaque adresse **après la résolution DNS** (`WebhookAddressPolicy`) : boucle locale, link-local (métadonnées cloud), adresses non spécifiées et multicast toujours refusés ; réseaux privés selon `HB__Webhooks__AllowPrivateNetworks`.
+
+### 6.11 Report du reste et mode enveloppes (D6, D7)
+
+- **Calcul** : `BudgetBook` charge une fois catégories, budgets et provisions, puis calcule chaque période avec `BudgetCalculator`. Le report d'une catégorie dans la période P vaut la somme des restes « de base » (budget propre, provisions comprises − réalisé propre, sans report) des périodes depuis son activation jusqu'à P − 1 : reporter de proche en proche revient à cette somme, positive ou négative.
+- **Périodes à venir** : elles ne reçoivent pas de report. La prévision (R3) suppose déjà que le reste de la période en cours sera dépensé ; le reporter sur la suivante le compterait deux fois.
+- **Effets** : le report élargit (ou réduit) la jauge de la catégorie et le budget qui sortira des comptes (`CashBudgeted`, utilisé par la prévision), mais pas le récapitulatif D8, qui ne retient que ce que financent les revenus de la période.
+- **Mode enveloppes** : option du foyer (`EnvelopeSince`). Toute dépense active reporte son reste depuis l'activation ; « à affecter » = Σ (revenus reçus − dépenses et épargne budgétées) de l'activation à la période affichée. Négatif, il signale qu'on a affecté plus que ce qu'on a reçu.
+- **Déplacer** (`POST /api/budgets/{période}/moves`) : retire un montant du budget propre d'une catégorie (hors provisions et report) pour l'ajouter à une autre ; les deux deviennent des budgets propres à la période (D4), en montant.
+- Une catégorie archivée ne reporte plus ; désactiver puis réactiver le report le fait repartir de la période en cours.
 
 ## 7. Conventions d'API
 

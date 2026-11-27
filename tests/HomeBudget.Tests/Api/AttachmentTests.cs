@@ -159,7 +159,7 @@ public sealed class AttachmentTests
         var backup = await (await admin.GetAsync("/api/backups/export")).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         using (var json = JsonDocument.Parse(backup))
         {
-            json.RootElement.GetProperty("formatVersion").GetInt32().ShouldBe(9);
+            json.RootElement.GetProperty("formatVersion").GetInt32().ShouldBe(10);
             json.RootElement.GetProperty("attachments").GetArrayLength().ShouldBe(1);
         }
 

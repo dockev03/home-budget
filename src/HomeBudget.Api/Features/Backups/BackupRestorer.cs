@@ -60,12 +60,13 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
             new BackupSettings(
                 settings.Id, settings.PeriodMode, settings.PeriodStartDay, settings.SafetyThreshold, settings.ForecastIncludesIncome,
                 settings.BudgetWarningPercent, settings.BudgetAlertPercent, settings.DefaultCategoriesCreated, AuditOf(settings),
-                settings.ForecastStrategy, settings.ForecastAverageMonths, settings.EmergencyFundAverageMonths, settings.SplitMode),
+                settings.ForecastStrategy, settings.ForecastAverageMonths, settings.EmergencyFundAverageMonths, settings.SplitMode,
+                settings.EnvelopeSince),
             [.. accounts.Select(a => new BackupAccount(
                 a.Id, a.Name, a.Type, a.InitialBalance, a.InitialDate, a.OwnerId, a.Visibility, a.Color, a.Icon,
                 a.IncludeInForecast, a.IncludeInNetWorth, a.OverdraftThreshold, a.IsArchived, a.SortOrder, AuditOf(a), a.IsEmergencyFund, a.HolderId))],
             [.. categories.Select(c => new BackupCategory(
-                c.Id, c.ParentId, c.Name, c.Kind, c.Color, c.Icon, c.SortOrder, c.IsArchived, AuditOf(c), c.ExcludeFromSplit))],
+                c.Id, c.ParentId, c.Name, c.Kind, c.Color, c.Icon, c.SortOrder, c.IsArchived, AuditOf(c), c.ExcludeFromSplit, c.CarryOverSince))],
             [.. payees.Select(p => new BackupPayee(p.Id, p.Name, AuditOf(p)))],
             [.. budgets.Select(b => new BackupBudget(b.Id, b.CategoryId, b.Mode, b.Value, AuditOf(b)))],
             [.. transactions.Select(t => new BackupTransaction(
@@ -184,6 +185,7 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
             ForecastAverageMonths = s.ForecastAverageMonths,
             EmergencyFundAverageMonths = s.EmergencyFundAverageMonths,
             SplitMode = s.SplitMode,
+            EnvelopeSince = s.EnvelopeSince,
         }, s.Audit));
 
         foreach (var a in document.Accounts!.OfType<BackupAccount>())
@@ -224,6 +226,7 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 SortOrder = c.SortOrder,
                 IsArchived = c.IsArchived,
                 ExcludeFromSplit = c.ExcludeFromSplit,
+                CarryOverSince = c.CarryOverSince,
             }, c.Audit));
         }
 

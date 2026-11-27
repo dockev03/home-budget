@@ -3205,6 +3205,144 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/budgets/categories/{categoryId}/carry-over": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Active ou désactive le report du reste d'une dépense sur la période suivante (D6). */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    categoryId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CarryOverRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CarryOverDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/budgets/{periodKey}/moves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Déplace un montant du budget d'une catégorie vers une autre, pour cette période (D7). */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    periodKey: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["BudgetMoveRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BudgetMoveDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/provisions": {
         parameters: {
             query?: never;
@@ -8288,6 +8426,7 @@ export interface components {
             audit: null | components["schemas"]["BackupAudit"];
             /** @default false */
             excludeFromSplit: boolean;
+            carryOverSince?: null | string;
         };
         BackupDocument: {
             format: null | string;
@@ -8582,6 +8721,7 @@ export interface components {
              */
             emergencyFundAverageMonths: number;
             splitMode?: components["schemas"]["SplitMode"];
+            envelopeSince?: null | string;
         };
         BackupTag: {
             /** Format: uuid */
@@ -8702,6 +8842,7 @@ export interface components {
             /** Format: int32 */
             alertPercent: number;
             categories: components["schemas"]["BudgetLineDto"][];
+            envelope: null | components["schemas"]["EnvelopeSummary"];
         };
         BudgetLineDto: {
             /** Format: uuid */
@@ -8734,9 +8875,24 @@ export interface components {
             /** Format: double */
             provisioned: number;
             defaultMode: null | components["schemas"]["BudgetMode"];
+            /** Format: double */
+            carriedOver: number;
+            carryOverSince: null | string;
         };
         /** @enum {unknown} */
         BudgetMode: "Amount" | "PercentOfIncome" | "Auto" | null;
+        BudgetMoveDto: {
+            from: components["schemas"]["PeriodBudgetDto"];
+            to: components["schemas"]["PeriodBudgetDto"];
+        };
+        BudgetMoveRequest: {
+            /** Format: uuid */
+            fromCategoryId: string;
+            /** Format: uuid */
+            toCategoryId: string;
+            /** Format: double */
+            amount: number;
+        };
         /** @enum {unknown} */
         BudgetStatus: "None" | "Ok" | "Warning" | "Exceeded";
         BulkCategory: {
@@ -8795,6 +8951,15 @@ export interface components {
         };
         /** @enum {unknown} */
         CalendarEntryStatus: "Upcoming" | "Pending" | "Generated" | "Matched" | "Skipped";
+        CarryOverDto: {
+            /** Format: uuid */
+            categoryId: string;
+            since: null | string;
+        };
+        CarryOverRequest: {
+            enabled: boolean;
+            since: null | string;
+        };
         CategoryAmountDto: {
             /** Format: uuid */
             categoryId: string;
@@ -8960,6 +9125,15 @@ export interface components {
         };
         EnableTwoFactorRequest: {
             code: string;
+        };
+        EnvelopeSummary: {
+            since: string;
+            /** Format: double */
+            income: number;
+            /** Format: double */
+            assigned: number;
+            /** Format: double */
+            toAssign: number;
         };
         FieldChangeDto: {
             field: string;
@@ -9904,6 +10078,7 @@ export interface components {
             emergencyFundAverageMonths: number;
             /** Format: int32 */
             version: number;
+            envelopeSince: null | string;
         };
         SettingsRequest: {
             periodMode: components["schemas"]["PeriodMode"];
@@ -9924,6 +10099,7 @@ export interface components {
              * @default 6
              */
             emergencyFundAverageMonths: number;
+            envelopeMode?: null | boolean;
         };
         SettlementDto: {
             /** Format: uuid */

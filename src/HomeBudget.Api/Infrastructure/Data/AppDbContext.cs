@@ -147,7 +147,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
             builder.Entity(entity.ClrType).Property(nameof(Entity.Id)).ValueGeneratedNever();
         }
 
-        builder.Entity<HouseholdSettings>(ConfigureAudit);
+        builder.Entity<HouseholdSettings>(e =>
+        {
+            ConfigureAudit(e);
+            e.Property(s => s.EnvelopeSince).HasMaxLength(7);
+        });
 
         builder.Entity<CategoryBudget>(e =>
         {
@@ -365,6 +369,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
             e.Property(c => c.Name).HasMaxLength(60);
             e.Property(c => c.Color).HasMaxLength(16);
             e.Property(c => c.Icon).HasMaxLength(40);
+            e.Property(c => c.CarryOverSince).HasMaxLength(7);
             e.HasOne<Category>().WithMany().HasForeignKey(c => c.ParentId).OnDelete(DeleteBehavior.Restrict);
         });
 

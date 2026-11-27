@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HomeBudget.Api.Features.Budgets;
 
-/// <summary>Budget par catégorie et par période, comparé au réel (D1, D2, D3, D4, D5, D8, D9, D11).</summary>
+/// <summary>Budget par catégorie et par période, comparé au réel (D1 à D9, D11), report du reste (D6) et enveloppes (D7).</summary>
 public static class BudgetEndpoints
 {
     private const decimal MaxAmount = 10_000_000m;
@@ -42,6 +42,12 @@ public static class BudgetEndpoints
         group.MapPost("/{periodKey}/copy", CopyAsync).RequireAuthorization(AuthorizationPolicies.Write)
             .Produces<BudgetCopyResultDto>().ProducesValidationProblem().ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("Applique la copie du budget aux catégories choisies, en budgets propres à la période (D4, D5).");
+        group.MapPut("/categories/{categoryId:guid}/carry-over", SetCarryOverAsync).RequireAuthorization(AuthorizationPolicies.Write)
+            .Produces<CarryOverDto>().ProducesValidationProblem().ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict)
+            .WithSummary("Active ou désactive le report du reste d'une dépense sur la période suivante (D6).");
+        group.MapPost("/{periodKey}/moves", MoveAsync).RequireAuthorization(AuthorizationPolicies.Write)
+            .Produces<BudgetMoveDto>().ProducesValidationProblem().ProducesProblem(StatusCodes.Status404NotFound).ProducesProblem(StatusCodes.Status409Conflict)
+            .WithSummary("Déplace un montant du budget d'une catégorie vers une autre, pour cette période (D7).");
 
         return app;
     }
@@ -85,6 +91,18 @@ public static class BudgetEndpoints
 
     public sealed record CategoryBudgetDto(Guid CategoryId, BudgetMode Mode, decimal Value, int Version);
 
+    /// <param name="Enabled">Report activé.</param>
+    /// <param name="Since">Première période reportée (AAAA-MM) ; la période en cours si absente.</param>
+    public sealed record CarryOverRequest(bool Enabled, string? Since);
+
+    /// <param name="Since">Première période dont le reste est reporté (null : report désactivé).</param>
+    public sealed record CarryOverDto(Guid CategoryId, string? Since);
+
+    public sealed record BudgetMoveRequest(Guid FromCategoryId, Guid ToCategoryId, decimal Amount);
+
+    /// <summary>Budgets propres à la période des deux catégories, après le déplacement.</summary>
+    public sealed record BudgetMoveDto(PeriodBudgetDto From, PeriodBudgetDto To);
+
     public sealed record KindTotalsDto(decimal Income, decimal Fixed, decimal Variable, decimal Savings, decimal Remaining);
 
     /// <param name="Mode">Mode effectif (null : pas de budget).</param>
@@ -96,6 +114,8 @@ public static class BudgetEndpoints
     /// <param name="Budgeted">Budget, y compris celui des sous-catégories.</param>
     /// <param name="Actual">Réalisé, y compris les sous-catégories : positif pour une dépense comme pour un revenu.</param>
     /// <param name="PercentUsed">Part du budget consommée, en % (null sans budget).</param>
+    /// <param name="CarriedOver">Reste reporté des périodes précédentes, compris dans le budget propre (D6).</param>
+    /// <param name="CarryOverSince">Report activé depuis cette période (AAAA-MM), null sinon (D6).</param>
     public sealed record BudgetLineDto(
         Guid CategoryId,
         Guid? ParentId,
@@ -116,10 +136,13 @@ public static class BudgetEndpoints
         BudgetStatus Status,
         DefinedBudgetDto? PeriodBudget,
         decimal Provisioned,
-        BudgetMode? DefaultMode);
+        BudgetMode? DefaultMode,
+        decimal CarriedOver,
+        string? CarryOverSince);
 
     /// <param name="IncomeBase">Revenus budgétés : la base des budgets en pourcentage.</param>
     /// <param name="Uncategorized">Somme signée des opérations sans catégorie (hors virements), hors récapitulatif.</param>
+    /// <param name="Envelope">« À affecter » du mode enveloppes (D7) ; null s'il n'est pas actif sur la période.</param>
     public sealed record BudgetDto(
         PeriodEndpoints.PeriodDto Period,
         KindTotalsDto Budgeted,
@@ -128,7 +151,8 @@ public static class BudgetEndpoints
         decimal Uncategorized,
         int WarningPercent,
         int AlertPercent,
-        List<BudgetLineDto> Categories);
+        List<BudgetLineDto> Categories,
+        EnvelopeSummary? Envelope);
 
     private static async Task<IResult> GetAsync(
         string periodKey, AppDbContext db, TimeProvider clock, IBudgetScheduleSource schedule, CancellationToken ct)
@@ -140,7 +164,7 @@ public static class BudgetEndpoints
             return PeriodEndpoints.UnknownPeriod();
         }
 
-        var (categories, budgets, overrides, result, uncategorized) = await ComputeAsync(db, settings, period, schedule, ct);
+        var (categories, budgets, overrides, result, uncategorized, envelope) = await ComputeAsync(db, settings, period, schedule, clock, ct);
 
         // Une catégorie archivée n'apparaît que si elle a encore un budget ou du réalisé sur la période.
         bool Visible(Category c) =>
@@ -164,30 +188,20 @@ public static class BudgetEndpoints
             uncategorized,
             settings.BudgetWarningPercent,
             settings.BudgetAlertPercent,
-            lines));
+            lines,
+            envelope));
     }
 
-    /// <summary>Calcul du budget d'une période, partagé avec la prévision et le tableau de bord.</summary>
-    /// <returns>
-    /// Les catégories, les budgets par défaut, les budgets propres à la période (D4), le résultat, et la somme
-    /// des opérations sans catégorie.
-    /// </returns>
-    internal static async Task<(List<Category> Categories, Dictionary<Guid, CategoryBudget> Budgets, Dictionary<Guid, PeriodBudget> Overrides, BudgetResult Result, decimal Uncategorized)>
-        ComputeAsync(AppDbContext db, Domain.Settings.HouseholdSettings settings, Domain.Periods.Period period, IBudgetScheduleSource schedule, CancellationToken ct)
+    /// <summary>
+    /// Calcul du budget d'une période, partagé avec la prévision, le tableau de bord et les alertes : reste reporté
+    /// (D6) et « à affecter » (D7) compris.
+    /// </summary>
+    internal static async Task<BudgetComputation> ComputeAsync(
+        AppDbContext db, Domain.Settings.HouseholdSettings settings, Domain.Periods.Period period, IBudgetScheduleSource schedule,
+        TimeProvider clock, CancellationToken ct)
     {
-        var categories = await db.Categories.AsNoTracking().ToListAsync(ct);
-        var budgets = await db.CategoryBudgets.AsNoTracking().ToDictionaryAsync(b => b.CategoryId, ct);
-        var overrides = await db.PeriodBudgets.AsNoTracking().Where(b => b.PeriodKey == period.Key).ToDictionaryAsync(b => b.CategoryId, ct);
-        var (actualSums, uncategorized) = await ActualSumsAsync(db, period.Start, period.End, ct);
-        var calculator = Domain.Periods.PeriodCalculator.From(settings);
-
-        var result = BudgetCalculator.Compute(new BudgetInput(
-            [.. categories.Select(c => Definition(c, budgets.GetValueOrDefault(c.Id), overrides.GetValueOrDefault(c.Id)))],
-            actualSums,
-            await schedule.GetScheduledSumsAsync(period, ct),
-            new BudgetThresholds(settings.BudgetWarningPercent, settings.BudgetAlertPercent),
-            await ProvisionsAsync(db, calculator, period, ct)));
-        return (categories, budgets, overrides, result, uncategorized);
+        var book = await BudgetBook.LoadAsync(db, settings, schedule, ct);
+        return await book.ComputeAsync(period, Accounts.Balances.Today(clock), ct);
     }
 
     /// <summary>
@@ -209,11 +223,11 @@ public static class BudgetEndpoints
     }
 
     /// <summary>Provisions de la période, par catégorie (D11).</summary>
-    internal static async Task<Dictionary<Guid, ProvisionAmounts>> ProvisionsAsync(
-        AppDbContext db, Domain.Periods.PeriodCalculator calculator, Domain.Periods.Period period, CancellationToken ct)
+    internal static Dictionary<Guid, ProvisionAmounts> Provisions(
+        IEnumerable<Provision> provisions, Domain.Periods.PeriodCalculator calculator, Domain.Periods.Period period)
     {
         var result = new Dictionary<Guid, ProvisionAmounts>();
-        foreach (var p in await db.Provisions.AsNoTracking().ToListAsync(ct))
+        foreach (var p in provisions)
         {
             if (ProvisionPlan.For(p.Amount, calculator.For(p.StartDate), calculator.For(p.DueDate), p.IsAnnual, period) is not { } share)
             {
@@ -229,7 +243,7 @@ public static class BudgetEndpoints
     }
 
     /// <summary>Budget appliqué : celui propre à la période, sinon celui par défaut.</summary>
-    private static BudgetCategory Definition(Category c, CategoryBudget? budget, PeriodBudget? period) =>
+    internal static BudgetCategory Definition(Category c, CategoryBudget? budget, PeriodBudget? period) =>
         period is not null ? new BudgetCategory(c.Id, c.ParentId, c.Kind, period.Mode, period.Value)
         : new BudgetCategory(c.Id, c.ParentId, c.Kind, budget?.Mode, budget?.Value ?? 0m);
 
@@ -489,6 +503,127 @@ public static class BudgetEndpoints
         return (proposals, null);
     }
 
+    private static async Task<IResult> SetCarryOverAsync(
+        Guid categoryId, CarryOverRequest request, AppDbContext db, TimeProvider clock, CancellationToken ct)
+    {
+        var category = await db.Categories.FirstOrDefaultAsync(c => c.Id == categoryId, ct);
+        if (category is null)
+        {
+            return TypedResults.NotFound();
+        }
+        if (!request.Enabled)
+        {
+            category.CarryOverSince = null;
+            return await db.TrySaveAsync() ? TypedResults.Ok(new CarryOverDto(category.Id, null)) : Concurrency.Conflict();
+        }
+
+        var calculator = await PeriodEndpoints.CalculatorAsync(db);
+        var current = calculator.For(Accounts.Balances.Today(clock));
+        string? error = null;
+        var since = current;
+        if (!BudgetBook.CanCarryOver(category))
+        {
+            error = "Seules les dépenses (fixes et variables) reportent leur reste.";
+        }
+        else if (category.IsArchived)
+        {
+            error = "Une catégorie archivée ne reporte pas son reste.";
+        }
+        else if (request.Since is not null && !calculator.TryParse(request.Since, out since))
+        {
+            error = "Période inconnue.";
+        }
+        else if (string.CompareOrdinal(since.Key, current.Key) > 0)
+        {
+            error = "Le report ne peut pas commencer après la période en cours.";
+        }
+        if (error is not null)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["since"] = [error] });
+        }
+        // Réactiver garde la période d'origine, sauf si une autre est demandée.
+        category.CarryOverSince = request.Since is null ? category.CarryOverSince ?? since.Key : since.Key;
+        return await db.TrySaveAsync() ? TypedResults.Ok(new CarryOverDto(category.Id, category.CarryOverSince)) : Concurrency.Conflict();
+    }
+
+    /// <summary>
+    /// Déplace un montant d'une enveloppe à l'autre (D7) : les deux budgets deviennent des montants propres à la
+    /// période (D4), calculés depuis leur budget actuel (hors provisions et reste reporté).
+    /// </summary>
+    private static async Task<IResult> MoveAsync(
+        string periodKey, BudgetMoveRequest request, AppDbContext db, IBudgetScheduleSource schedule, TimeProvider clock, CancellationToken ct)
+    {
+        var settings = await db.HouseholdSettings.AsNoTracking().SingleAsync(ct);
+        var book = await BudgetBook.LoadAsync(db, settings, schedule, ct);
+        if (!book.Calculator.TryParse(periodKey, out var period))
+        {
+            return PeriodEndpoints.UnknownPeriod();
+        }
+        var (categories, _, _, result, _, _) = await book.ComputeAsync(period, Accounts.Balances.Today(clock), ct);
+        var from = categories.FirstOrDefault(c => c.Id == request.FromCategoryId);
+        var to = categories.FirstOrDefault(c => c.Id == request.ToCategoryId);
+        if (from is null || to is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        // Budget propre de la période, sans les provisions ni le reste reporté, qui ne se déplacent pas.
+        decimal Own(Category c)
+        {
+            var r = result.Categories[c.Id];
+            return r.OwnBudgeted - r.OwnProvisioned - r.OwnCarriedOver;
+        }
+        var (field, error) = request switch
+        {
+            _ when from.Id == to.Id => ("toCategoryId", "Choisir deux catégories différentes."),
+            _ when !Assignable(from) || !Assignable(to) =>
+                ("toCategoryId", "Seules les dépenses et l'épargne d'une catégorie active reçoivent un budget à déplacer."),
+            { Amount: <= 0 or > MaxAmount } => ("amount", "Le montant doit être positif."),
+            _ when request.Amount != Math.Round(request.Amount, 2) => ("amount", "Deux décimales au maximum."),
+            _ when request.Amount > Own(from) => ("amount", $"Le budget de « {from.Name} » sur la période ne suffit pas."),
+            _ => (null, null),
+        };
+        if (error is not null)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { [field!] = [error] });
+        }
+
+        var source = await SetAmountAsync(db, from.Id, period.Key, Own(from) - request.Amount, ct);
+        var target = await SetAmountAsync(db, to.Id, period.Key, Own(to) + request.Amount, ct);
+        if (target.Value > MaxAmount)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["amount"] = ["Le montant doit être positif."] });
+        }
+        try
+        {
+            if (!await db.TrySaveAsync())
+            {
+                return Concurrency.Conflict();
+            }
+        }
+        catch (DbUpdateException)
+        {
+            return Concurrency.Conflict();
+        }
+        return TypedResults.Ok(new BudgetMoveDto(ToDto(source), ToDto(target)));
+
+        static bool Assignable(Category c) => !c.IsArchived && c.Kind != CategoryKind.Income;
+        static PeriodBudgetDto ToDto(PeriodBudget b) => new(b.CategoryId, b.PeriodKey, b.Mode, b.Value, b.Version);
+    }
+
+    private static async Task<PeriodBudget> SetAmountAsync(AppDbContext db, Guid categoryId, string periodKey, decimal amount, CancellationToken ct)
+    {
+        var budget = await db.PeriodBudgets.FirstOrDefaultAsync(b => b.CategoryId == categoryId && b.PeriodKey == periodKey, ct);
+        if (budget is null)
+        {
+            budget = new PeriodBudget { CategoryId = categoryId, PeriodKey = periodKey };
+            db.PeriodBudgets.Add(budget);
+        }
+        budget.Mode = BudgetMode.Amount;
+        budget.Value = amount;
+        return budget;
+    }
+
     private static IResult? Validate(Category category, CategoryBudgetRequest request)
     {
         string? error = request.Mode switch
@@ -514,7 +649,9 @@ public static class BudgetEndpoints
             r.OwnBudgeted, r.Budgeted, r.Actual, r.Remaining, r.PercentUsed, r.Status,
             period is null ? null : new DefinedBudgetDto(period.Mode, period.Value, period.Version),
             r.OwnProvisioned,
-            budget?.Mode);
+            budget?.Mode,
+            r.OwnCarriedOver,
+            c.CarryOverSince);
 
     private static KindTotalsDto ToDto(KindTotals t) => new(t.Income, t.Fixed, t.Variable, t.Savings, t.Remaining);
 }

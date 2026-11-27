@@ -100,6 +100,7 @@ public static class HomeBudgetPipeline
         app.MapScenarioEndpoints();
         app.MapSavingsGoalEndpoints();
         app.MapWealthEndpoints();
+        app.MapDashboardLayoutEndpoints();
         app.MapDashboardEndpoints();
         app.MapExportEndpoints();
         app.MapBackupEndpoints();

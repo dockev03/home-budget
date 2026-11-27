@@ -5244,6 +5244,95 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dashboard/layout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Disposition de l'accueil : blocs dans l'ordre d'affichage et blocs masqués. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LayoutDto"];
+                    };
+                };
+            };
+        };
+        /** Enregistre l'ordre des blocs de l'accueil et les blocs masqués ; les blocs inconnus sont ignorés, les blocs absents ajoutés à la fin. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LayoutRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LayoutDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Rétablit la disposition par défaut de l'accueil. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LayoutDto"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dashboard/{periodKey}": {
         parameters: {
             query?: never;
@@ -9770,6 +9859,15 @@ export interface components {
             savings: number;
             /** Format: double */
             remaining: number;
+        };
+        LayoutDto: {
+            order: string[];
+            hidden: string[];
+            isDefault: boolean;
+        };
+        LayoutRequest: {
+            order: string[];
+            hidden: null | string[];
         };
         LineChangeDto: {
             category: null | string;

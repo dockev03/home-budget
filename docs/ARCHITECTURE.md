@@ -172,6 +172,7 @@ AuditLog                   Id, At, UserId, Action, Entity, EntityId, Changes(JSO
 PushSubscription           Id, UserId, Endpoint (unique), P256dh, Auth, Device?, CreatedAt, LastSuccessAt?   (M1, un par appareil)
 NotificationPreference     Id, UserId (unique), BudgetAlerts, ForecastAlerts, DueTomorrowAlerts, PendingAlerts,
                            EmailSummary{None,Weekly,Monthly}   (M1, M2 ; sans ligne : toutes les alertes, pas de résumé)
+DashboardLayout            Id, UserId (unique), Order (JSON), Hidden (JSON)   (accueil : ordre des blocs et blocs masqués ; sans ligne : disposition par défaut)
 SentAlert                  Id, UserId, Kind, ObjectKey, PeriodKey, SentAt   (unique (UserId, Kind, ObjectKey, PeriodKey) ; purgé après 400 jours)
 ApiToken                   Id, UserId, Name, Hash (SHA-256), Prefix, Scope{Read,Write}, CreatedAt, ExpiresAt, LastUsedAt   (I5)
 Webhook                    Id, Name, Url, ProtectedSecret (Data Protection), Events (JSON), IsActive, OwnerId,

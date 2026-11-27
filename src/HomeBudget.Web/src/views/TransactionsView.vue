@@ -24,7 +24,7 @@ import { useReferenceStore } from '@/stores/reference'
 import { useTransactionEditor, type Transaction } from '@/stores/transactionEditor'
 import { attachmentCountLabel } from '@/utils/attachments'
 import { transactionsExportUrl, type TransactionFilters } from '@/utils/exports'
-import { formatDayHeading, formatSignedAmount, parseAmount } from '@/utils/format'
+import { formatAmount, formatDayHeading, formatSignedAmount, parseAmount } from '@/utils/format'
 import { netCostText } from '@/utils/reconciliation'
 import { iconPath } from '@/utils/icons'
 
@@ -62,6 +62,16 @@ const filters = ref<TransactionFilters>({
 })
 
 const accountItems = computed(() => reference.accounts.map((a) => ({ value: a.id, title: a.name })))
+// Solde du compte filtré (déjà rafraîchi par le store après chaque saisie).
+const selectedAccount = computed(() =>
+  filters.value.accountId ? reference.accountById.get(filters.value.accountId) : undefined,
+)
+const selectedBalanceClass = computed(() => {
+  const a = selectedAccount.value
+  if (!a) return ''
+  if (a.balance < 0) return 'text-error'
+  return a.balance < a.overdraftThreshold ? 'text-warning' : ''
+})
 const categoryItems = computed(() =>
   reference.categories.map((c) => ({ value: c.id, title: reference.categoryLabel(c.id) })),
 )
@@ -370,6 +380,21 @@ onMounted(async () => {
       </v-btn>
     </v-col>
   </v-row>
+
+  <v-card v-if="selectedAccount" variant="tonal" class="mb-3 px-4 py-2" data-testid="account-balance">
+    <div class="d-flex flex-wrap align-baseline ga-2">
+      <span class="text-medium-emphasis">Solde actuel</span>
+      <span class="text-h6 font-weight-bold" :class="selectedBalanceClass">
+        {{ formatAmount(selectedAccount.balance) }}
+      </span>
+    </div>
+    <div
+      v-if="selectedAccount.futureBalance !== selectedAccount.balance"
+      class="text-caption text-medium-emphasis"
+    >
+      Avec les opérations à venir : {{ formatAmount(selectedAccount.futureBalance) }}
+    </div>
+  </v-card>
 
   <v-card v-if="items.length === 0 && !loading" class="pa-6 text-center text-medium-emphasis">
     Aucune opération.

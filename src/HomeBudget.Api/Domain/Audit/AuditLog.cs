@@ -26,6 +26,7 @@ public enum AuditAction
     WebhookUpdated,
     WebhookDisabled,
     AttachmentsRestored,
+    SessionRevoked,
 }
 
 /// <summary>

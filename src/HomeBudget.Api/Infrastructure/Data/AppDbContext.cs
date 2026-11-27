@@ -130,6 +130,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
 
     public DbSet<ApiToken> ApiTokens => Set<ApiToken>();
 
+    public DbSet<UserSession> UserSessions => Set<UserSession>();
+
     public DbSet<Webhook> Webhooks => Set<Webhook>();
 
     public DbSet<UserAvatar> UserAvatars => Set<UserAvatar>();
@@ -358,6 +360,20 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
             e.HasOne<AppUser>().WithMany().HasForeignKey(t => t.UserId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(t => t.Hash).IsUnique();
             e.HasIndex(t => t.UserId);
+        });
+
+        // Sessions de connexion (N8), supprimées avec leur utilisateur. Dates en ticks UTC : SQLite ne compare ni ne
+        // trie les DateTimeOffset.
+        builder.Entity<UserSession>(e =>
+        {
+            e.Property(s => s.IpAddress).HasMaxLength(UserSession.MaxIpLength);
+            e.Property(s => s.UserAgent).HasMaxLength(UserSession.MaxUserAgentLength);
+            e.Property(s => s.SecurityStamp).HasMaxLength(256);
+            e.Property(s => s.CreatedAt).HasConversion(UtcTicks);
+            e.Property(s => s.LastSeenAt).HasConversion(UtcTicks);
+            e.Property(s => s.RevokedAt).HasConversion(UtcTicks);
+            e.HasOne<AppUser>().WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(s => new { s.UserId, s.LastSeenAt });
         });
 
         builder.Entity<Webhook>(e =>

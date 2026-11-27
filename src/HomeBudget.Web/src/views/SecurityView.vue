@@ -5,6 +5,8 @@ import { mdiContentCopy, mdiDownload, mdiShieldCheck, mdiShieldOffOutline } from
 import { api, type Schemas } from '@/api/client'
 import { ApiError, unwrap } from '@/api/errors'
 import { useAuthStore } from '@/stores/auth'
+import SecurityAlertsCard from '@/components/SecurityAlertsCard.vue'
+import SessionsCard from '@/components/SessionsCard.vue'
 import { passwordRules, required, totpCode } from '@/utils/rules'
 
 const auth = useAuthStore()
@@ -252,6 +254,10 @@ onMounted(loadStatus)
       </v-form>
     </v-card-text>
   </v-card>
+
+  <SessionsCard class="mt-4" />
+
+  <SecurityAlertsCard class="mt-4" />
 
   <v-dialog
     :model-value="passwordDialog !== null"

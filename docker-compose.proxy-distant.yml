@@ -15,6 +15,8 @@
 #                          docker run --rm ghcr.io/dockev03/home-budget:<version> --generate-vapid-keys
 #   HB_SMTP_HOST / HB_SMTP_PORT / HB_SMTP_USER / HB_SMTP_PASSWORD / HB_SMTP_FROM
 #                          résumé par e-mail (facultatif), ex. smtp.gmail.com, 587, mot de passe d'application
+#   HB_LOGIN_HISTORY_RETENTION_DAYS  conservation de l'historique des connexions, en jours
+#                          (facultatif ; défaut 0 : illimitée), ex. 365
 # Dans le NPM : Proxy Host → schéma http, hôte = HB_BIND_ADDRESS, port = HB_PORT,
 # SSL forcé, HSTS activé. Le lien NPM → stack est en HTTP : il doit passer par le réseau privé.
 
@@ -35,6 +37,8 @@ services:
       HB__Smtp__User: ${HB_SMTP_USER:-}
       HB__Smtp__Password: ${HB_SMTP_PASSWORD:-}
       HB__Smtp__From: ${HB_SMTP_FROM:-}
+      # Historique des connexions au journal d'audit : 0 = conservation illimitée.
+      HB__Security__LoginHistoryRetentionDays: ${HB_LOGIN_HISTORY_RETENTION_DAYS:-0}
     ports:
       # Publié uniquement sur l'adresse privée : la variable est obligatoire.
       - "${HB_BIND_ADDRESS:?IP privée du serveur requise, ex. 10.0.0.2}:${HB_PORT:-8080}:8080"

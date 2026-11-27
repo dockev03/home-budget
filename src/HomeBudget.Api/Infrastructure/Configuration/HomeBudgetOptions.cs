@@ -166,4 +166,10 @@ public sealed class SecurityOptions
     /// Ne jamais activer en production : derrière le NPM, la requête arrive en HTTPS.
     /// </summary>
     public bool AllowInsecureHttp { get; set; }
+
+    /// <summary>
+    /// Durée de conservation de l'historique des connexions (réussies, échouées, verrouillages) au journal d'audit,
+    /// en jours. 0 (par défaut) : conservation illimitée. Les autres entrées du journal ne sont jamais purgées.
+    /// </summary>
+    public int LoginHistoryRetentionDays { get; set; }
 }

@@ -7,6 +7,7 @@ import { ApiError, unwrap } from '@/api/errors'
 import { useAuthStore } from '@/stores/auth'
 import SecurityAlertsCard from '@/components/SecurityAlertsCard.vue'
 import SessionsCard from '@/components/SessionsCard.vue'
+import LoginHistoryCard from '@/components/LoginHistoryCard.vue'
 import { passwordRules, required, totpCode } from '@/utils/rules'
 
 const auth = useAuthStore()
@@ -256,6 +257,8 @@ onMounted(loadStatus)
   </v-card>
 
   <SessionsCard class="mt-4" />
+
+  <LoginHistoryCard class="mt-4" />
 
   <SecurityAlertsCard class="mt-4" />
 

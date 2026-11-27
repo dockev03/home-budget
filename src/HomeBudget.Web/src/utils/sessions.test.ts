@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { mdiCellphone, mdiHelpCircleOutline, mdiMonitor } from '@mdi/js'
-import { deviceIcon, lastSeenLabel, originLabel, sessionTitle } from './sessions'
+import { agentLabel, deviceIcon, lastSeenLabel, originLabel, sessionTitle } from './sessions'
 
 describe('sessions', () => {
   it('décrit l’appareil', () => {
@@ -26,5 +26,13 @@ describe('sessions', () => {
     expect(lastSeenLabel('2026-11-27T11:48:00Z', now)).toBe('actif il y a 12 min')
     expect(lastSeenLabel('2026-11-27T09:00:00Z', now)).toBe('actif il y a 3 h')
     expect(lastSeenLabel('2026-11-25T11:00:00Z', now)).toBe('actif il y a 2 j')
+  })
+
+  it('décrit l’appareil d’une entrée du journal, s’il a été enregistré', () => {
+    expect(agentLabel({ browser: 'Edge 131', operatingSystem: 'Windows', device: 'Desktop' })).toBe(
+      'Edge 131 · Windows (ordinateur)',
+    )
+    expect(agentLabel({ browser: null, operatingSystem: null, device: null })).toBeNull()
+    expect(agentLabel({})).toBeNull()
   })
 })

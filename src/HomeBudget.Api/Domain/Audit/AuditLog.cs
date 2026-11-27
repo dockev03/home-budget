@@ -30,14 +30,19 @@ public enum AuditAction
 }
 
 /// <summary>
-/// Entrée du journal d'audit : jamais modifiée ni supprimée par l'application, ni remplacée par une
-/// restauration. Le nom de l'utilisateur est copié, pour rester lisible s'il est renommé.
+/// Entrée du journal d'audit : jamais modifiée par l'application, ni remplacée par une restauration. Seules les
+/// connexions (<see cref="LoginActions"/>) peuvent être purgées, si une durée de conservation est configurée.
+/// Le nom de l'utilisateur est copié, pour rester lisible s'il est renommé.
 /// </summary>
 public sealed class AuditLog : Entity
 {
     public const int MaxUserNameLength = 64;
     public const int MaxTargetLength = 100;
     public const int MaxDetailsLength = 500;
+    public const int MaxUserAgentLength = 512;
+
+    /// <summary>Tentatives de connexion : l'historique des connexions de chaque utilisateur.</summary>
+    public static readonly AuditAction[] LoginActions = [AuditAction.LoginSucceeded, AuditAction.LoginFailed, AuditAction.LoginLockedOut];
 
     public DateTimeOffset At { get; set; }
 
@@ -55,6 +60,9 @@ public sealed class AuditLog : Entity
     public string? Details { get; set; }
 
     public string? IpAddress { get; set; }
+
+    /// <summary>En-tête User-Agent de la requête (navigateur, système), déclaré par le client.</summary>
+    public string? UserAgent { get; set; }
 
     public static string? Truncate(string? value, int max) =>
         value is null ? null : value.Length <= max ? value : value[..max];

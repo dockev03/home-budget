@@ -10,6 +10,8 @@
 #                          docker run --rm ghcr.io/dockev03/home-budget:<version> --generate-vapid-keys
 #   HB_SMTP_HOST / HB_SMTP_PORT / HB_SMTP_USER / HB_SMTP_PASSWORD / HB_SMTP_FROM
 #                          résumé par e-mail (facultatif), ex. smtp.gmail.com, 587, mot de passe d'application
+#   HB_LOGIN_HISTORY_RETENTION_DAYS  conservation de l'historique des connexions, en jours
+#                          (facultatif ; défaut 0 : illimitée), ex. 365
 #   NPM_NETWORK            nom du réseau Docker du Nginx Proxy Manager (défaut : npm_default)
 # Dans le NPM : Proxy Host → hôte « home-budget », port 8080, SSL forcé, HSTS activé.
 
@@ -30,6 +32,8 @@ services:
       HB__Smtp__User: ${HB_SMTP_USER:-}
       HB__Smtp__Password: ${HB_SMTP_PASSWORD:-}
       HB__Smtp__From: ${HB_SMTP_FROM:-}
+      # Historique des connexions au journal d'audit : 0 = conservation illimitée.
+      HB__Security__LoginHistoryRetentionDays: ${HB_LOGIN_HISTORY_RETENTION_DAYS:-0}
     volumes:
       - home-budget-data:/data
     networks:

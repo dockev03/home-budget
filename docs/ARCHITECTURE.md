@@ -168,7 +168,7 @@ SavedReport                Id, Name, GroupBy{Category,Subcategory,Payee,Tag,Peri
 ImportProfile              Id, Name, Delimiter, DateFormat, DecimalSeparator, DateColumn, LabelColumn, AmountColumn?, DebitColumn?, CreditColumn?   (CSV/TSV ; encodage détecté)
 ImportBatch                Id, AccountId, FileName, Format{Csv,Ofx,Qif}, Created, Matched, Duplicates   (date et auteur : CreatedAt, CreatedBy)
 
-AuditLog                   Id, At, UserId, Action, Entity, EntityId, Changes(JSON), Ip
+AuditLog                   Id, At, UserId, Action, Entity, EntityId, Changes(JSON), Ip, UserAgent
 PushSubscription           Id, UserId, Endpoint (unique), P256dh, Auth, Device?, CreatedAt, LastSuccessAt?   (M1, un par appareil)
 NotificationPreference     Id, UserId (unique), BudgetAlerts, ForecastAlerts, DueTomorrowAlerts, PendingAlerts,
                            EmailSummary{None,Weekly,Monthly}, LoginEmailAlert, LockoutEmailAlert
@@ -247,6 +247,7 @@ Il n'y a pas d'éditeur de règles. L'appli apprend des corrections :
   - un cookie émis avant le suivi est repris à sa première requête (session `Legacy`, cookie réémis) : personne n'est déconnecté par la mise à jour. Son identifiant de session est déduit du cookie (utilisateur, date d'émission) : les requêtes parallèles reprennent la même session, et une copie du cookie d'une session révoquée reste refusée ;
   - navigateur, système et type d'appareil sont lus dans le User-Agent (`UserAgentInfo`, sans bibliothèque) : à titre indicatif, l'en-tête étant fourni par le client ;
   - `GET /api/account/sessions`, `DELETE /api/account/sessions/{id}`, `POST /api/account/sessions/revoke-others` ; chaque fermeture est tracée (`SessionRevoked`).
+- **Historique des connexions** (N6) : chaque entrée du journal d'audit enregistre le User-Agent de la requête. Connexions réussies, échecs et verrouillages de l'utilisateur connecté via `GET /api/account/logins` (carte de la page **Sécurité**) ; l'administrateur les voit tous dans le journal d'audit, avec le navigateur. Conservation illimitée par défaut ; avec `HB__Security__LoginHistoryRetentionDays`, `LoginHistoryCleanupWorker` efface chaque jour ces trois types d'entrées au-delà de la durée, et seulement eux.
 - **Alertes de sécurité par e-mail** (N9) : à chaque connexion (si activée) et quand une tentative verrouille le compte (une seule alerte par verrouillage). Date, IP, navigateur, système, méthode de connexion et lien vers **Sécurité**. Mises en file (`SecurityAlertQueue`, bornée) et envoyées par `SecurityAlertWorker` : la connexion n'attend pas le serveur SMTP. Préférences dans **Sécurité** (`/api/account/security-alerts`).
 - **Derrière le reverse proxy** : `ForwardedHeaders` est activé, en faisant confiance uniquement au réseau Docker du NPM (`KnownNetworks`).
 - **Pièces jointes** (B7, `Features/Attachments`) :

@@ -1,6 +1,7 @@
 using HomeBudget.Api.Domain.Audit;
 using HomeBudget.Api.Infrastructure;
 using HomeBudget.Api.Infrastructure.Data;
+using HomeBudget.Api.Infrastructure.Security;
 
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,9 @@ public static class AuditEndpoints
         return app;
     }
 
+    /// <param name="Browser">Navigateur lu dans l'en-tête User-Agent ; absent pour les entrées qui ne l'ont pas enregistré.</param>
+    /// <param name="OperatingSystem">Système d'exploitation lu dans l'en-tête User-Agent.</param>
+    /// <param name="Device">Type d'appareil lu dans l'en-tête User-Agent.</param>
     public sealed record AuditEntryDto(
         Guid Id,
         DateTimeOffset At,
@@ -28,7 +32,10 @@ public static class AuditEndpoints
         string? Target,
         Guid? TargetId,
         string? Details,
-        string? IpAddress);
+        string? IpAddress,
+        string? Browser,
+        string? OperatingSystem,
+        DeviceKind Device);
 
     public sealed record AuditPage(IReadOnlyList<AuditEntryDto> Items, int Total, int Page, int PageSize);
 
@@ -56,9 +63,14 @@ public static class AuditEndpoints
         }
         var total = await query.CountAsync(ct);
         // Identifiants UUID v7 : l'ordre des identifiants est l'ordre chronologique.
-        var items = await query.OrderByDescending(l => l.Id).Skip((number - 1) * size).Take(size)
-            .Select(l => new AuditEntryDto(l.Id, l.At, l.UserId, l.UserName, l.Action, l.Target, l.TargetId, l.Details, l.IpAddress))
-            .ToListAsync(ct);
-        return TypedResults.Ok(new AuditPage(items, total, number, size));
+        var items = await query.OrderByDescending(l => l.Id).Skip((number - 1) * size).Take(size).ToListAsync(ct);
+        return TypedResults.Ok(new AuditPage(items.ConvertAll(ToDto), total, number, size));
+    }
+
+    private static AuditEntryDto ToDto(AuditLog l)
+    {
+        var agent = l.UserAgent is null ? null : UserAgentInfo.Parse(l.UserAgent);
+        return new AuditEntryDto(
+            l.Id, l.At, l.UserId, l.UserName, l.Action, l.Target, l.TargetId, l.Details, l.IpAddress, agent?.Browser, agent?.OperatingSystem, agent?.Device ?? DeviceKind.Unknown);
     }
 }

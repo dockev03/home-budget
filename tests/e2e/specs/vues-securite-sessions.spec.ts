@@ -34,6 +34,12 @@ test.describe.serial('Sécurité : sessions et alertes', () => {
     const alerts = page.getByTestId('security-alerts')
     await expect(alerts).toContainText('n’est pas configuré')
     await expect(alerts.getByTestId('alert-login').locator('input')).toBeDisabled()
+
+    // L'historique garde les connexions précédentes, avec le navigateur.
+    const history = page.getByTestId('login-history').getByTestId('login-entry')
+    await expect(history.first()).toContainText('Connexion réussie')
+    await expect(history.first()).toContainText('Chrome')
+    expect(await history.count()).toBeGreaterThan(1)
     expect(csp).toEqual([])
   })
 })

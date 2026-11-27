@@ -107,6 +107,7 @@ Le jeton change à chaque redémarrage tant qu'aucun utilisateur n'existe. Il es
 | `HB__Recurrences__Enabled` | `true` | Traitement automatique des échéances de récurrence (au démarrage, puis chaque jour) |
 | `HB__Recurrences__Hour` | `0` | Heure locale du traitement quotidien des échéances (fuseau `TZ` du conteneur) |
 | `HB__SetupToken` | — | Impose le jeton de premier lancement (automatisation et tests uniquement) |
+| `HB__Security__LoginHistoryRetentionDays` (`HB_LOGIN_HISTORY_RETENTION_DAYS` dans les fichiers Compose) | `0` (illimitée) | Durée de conservation, en jours, de l'historique des connexions (réussies, échouées, verrouillages) au journal d'audit. Purge quotidienne ; les autres entrées du journal ne sont jamais effacées |
 | `HB__Security__AllowInsecureHttp` | `false` | Autorise les cookies en HTTP non chiffré. **Développement et tests uniquement, jamais en production** |
 | `HB__Push__VapidPublicKey` / `__VapidPrivateKey` | — (push désactivé) | Clés VAPID des notifications push (voir ci-dessous). La clé privée est un secret |
 | `HB__Push__Subject` | `HB__PublicUrl` | Contact transmis aux services push : `mailto:…` ou URL HTTPS |

@@ -138,7 +138,7 @@ async function save() {
       <v-card-text>
         <v-alert v-if="error" type="error" variant="tonal" class="mb-4" :text="error" />
         <v-form v-model="valid" @submit.prevent="save">
-          <v-text-field v-model="form.name" label="Nom" :rules="[required]" maxlength="100" autofocus />
+          <v-text-field v-model="form.name" label="Nom" :rules="[required]" maxlength="100" v-autofocus />
           <v-select v-model="form.type" :items="accountTypes" label="Type" />
           <v-row dense>
             <v-col cols="12" sm="6">

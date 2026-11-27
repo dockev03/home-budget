@@ -266,7 +266,7 @@ onMounted(loadStatus)
           label="Mot de passe"
           type="password"
           autocomplete="current-password"
-          autofocus
+          v-autofocus
           @keyup.enter="confirmPassword"
         />
       </v-card-text>

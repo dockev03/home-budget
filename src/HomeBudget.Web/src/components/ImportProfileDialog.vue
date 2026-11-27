@@ -121,7 +121,7 @@ async function remove() {
       <v-card-text>
         <v-alert v-if="error" type="error" variant="tonal" class="mb-4" :text="error" />
         <v-form v-model="valid" @submit.prevent="save">
-          <v-text-field v-model="name" label="Nom du profil" maxlength="60" :rules="[required]" autofocus />
+          <v-text-field v-model="name" label="Nom du profil" maxlength="60" :rules="[required]" v-autofocus />
           <v-row dense>
             <v-col cols="12" sm="6">
               <v-select v-model="delimiter" :items="delimiters" label="Séparateur de colonnes" />

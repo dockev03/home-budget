@@ -281,6 +281,10 @@ public static class BackupValidator
             OptionalReference(where, "import", t.ImportBatchId, batchIds, errors);
             OptionalReference(where, "opération remboursée", t.ReimbursesId, transactionIds, errors);
             OptionalReference(where, "avance", t.AdvanceId, advanceIds, errors);
+            if (t.ReferenceMonth is { } month && (month.Day != 1 || !Transactions.TransactionValidation.IsReferenceMonthValid(t.Date, month)))
+            {
+                errors.Add($"{where} : mois concerné invalide.");
+            }
             if (t.ReconciliationId is { } reconciliationId
                 && (!reconciliationAccounts.TryGetValue(reconciliationId, out var reconciledAccount) || reconciledAccount != t.AccountId))
             {

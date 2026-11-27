@@ -102,6 +102,18 @@ const linksChanged = computed(
     (reimbursesId.value !== (source.value.reimbursesId ?? null) ||
       advanceId.value !== (source.value.advanceId ?? null)),
 )
+/** Mois concerné (P2), au format « AAAA-MM » ; vide = mois de la date. */
+const referenceMonth = ref('')
+/** Le mois concerné ne sert qu'aux frais de garde : proposé pour leurs catégories, ou s'il est déjà renseigné. */
+const showReferenceMonth = computed(
+  () =>
+    kind.value !== 'transfer' &&
+    (!!referenceMonth.value ||
+      lines.value.some((l) => {
+        const role = reference.categories.find((c) => c.id === l.categoryId)?.familyRole
+        return role === 'Childcare' || role === 'ChildcareAid'
+      })),
+)
 const netCost = computed(() => (isEdit.value && source.value ? netCostText(source.value) : null))
 const title = computed(() => {
   if (isEdit.value) return kind.value === 'transfer' ? 'Modifier le virement' : "Modifier l'opération"
@@ -175,6 +187,7 @@ async function reset() {
   suggestedCategoryId.value = null
   reimbursesId.value = null
   advanceId.value = null
+  referenceMonth.value = ''
   expenseItems.value = []
   advanceItems.value = []
   await reference.load()
@@ -231,6 +244,7 @@ async function reset() {
     tags: [...l.tags],
   }))
   split.value = t.lines.length > 1
+  referenceMonth.value = duplicate ? '' : (t.referenceMonth?.slice(0, 7) ?? '')
   reimbursesId.value = duplicate ? null : (t.reimbursesId ?? null)
   advanceId.value = duplicate ? null : (t.advanceId ?? null)
   if (!duplicate && t.amount > 0) void loadLinkItems(t)
@@ -396,6 +410,8 @@ async function save() {
         label: label.value || null,
         notes: notes.value || null,
         isCleared: isCleared.value,
+        referenceMonth:
+          showReferenceMonth.value && referenceMonth.value ? `${referenceMonth.value}-01` : null,
         lines: lines.value.map((l) => ({
           categoryId: l.categoryId,
           amount: roundCents(sign.value * parseAmount(l.amount)!),
@@ -642,6 +658,18 @@ async function remove() {
                 <v-text-field v-model="date" label="Date" type="date" :rules="[required]" />
               </v-col>
             </v-row>
+
+            <v-text-field
+              v-if="showReferenceMonth"
+              v-model="referenceMonth"
+              label="Mois concerné"
+              type="month"
+              hint="Mois de garde auquel se rapporte ce paiement ou cette aide, s’il diffère de celui de la date"
+              persistent-hint
+              clearable
+              class="mb-4"
+              data-testid="reference-month"
+            />
 
             <v-select
               v-model="accountId"

@@ -13,6 +13,16 @@ internal static class TransactionValidation
 
     public static bool HasCents(decimal amount) => decimal.Round(amount, 2) == amount;
 
+    /// <summary>Écart maximal, en mois, entre la date d'une opération et son mois concerné.</summary>
+    public const int ReferenceMonthRange = 12;
+
+    public static bool IsReferenceMonthValid(DateOnly date, DateOnly month) =>
+        Math.Abs((month.Year - date.Year) * 12 + month.Month - date.Month) <= ReferenceMonthRange;
+
+    /// <summary>Mois concerné ramené au 1er du mois ; null s'il est absent ou égal au mois de la date.</summary>
+    public static DateOnly? NormalizeReferenceMonth(DateOnly date, DateOnly? month) =>
+        month is { } m && (m.Year != date.Year || m.Month != date.Month) ? new DateOnly(m.Year, m.Month, 1) : null;
+
     /// <summary>
     /// Vérifie qu'un compte existe, accepte la date, et n'est pas archivé (sauf s'il est déjà celui de l'opération).
     /// </summary>

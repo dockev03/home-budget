@@ -257,8 +257,9 @@ watch([year, tab], load, { immediate: true })
           <span>Montant déclarable</span><span>{{ formatAmount(childcare.declarable) }}</span>
         </div>
         <div class="text-caption text-medium-emphasis mt-2">
-          Frais de l'année civile, moins les aides reçues pour la garde (CMG). Vérifiez le montant avec votre
-          attestation avant de le reporter.
+          Frais de l'année civile, moins les aides reçues pour la garde (CMG). Chaque opération compte dans
+          son « mois concerné » s'il est renseigné (salaire de novembre payé en décembre), sinon dans le mois
+          de sa date. Vérifiez le montant avec votre attestation avant de le reporter.
         </div>
       </v-card-text>
     </v-card>

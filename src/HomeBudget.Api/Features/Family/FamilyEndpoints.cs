@@ -8,6 +8,7 @@ using HomeBudget.Api.Domain.Payees;
 using HomeBudget.Api.Domain.Recurrences;
 using HomeBudget.Api.Features.Accounts;
 using HomeBudget.Api.Features.Exports;
+using HomeBudget.Api.Features.Transactions;
 using HomeBudget.Api.Infrastructure.Data;
 
 using Microsoft.EntityFrameworkCore;
@@ -197,11 +198,17 @@ public static class FamilyEndpoints
         var childcareIds = roles.Values.Where(r => r.Role == FamilyRole.Childcare).Select(r => r.Category.Id).ToList();
         var aidIds = roles.Values.Where(r => r.Role == FamilyRole.ChildcareAid).Select(r => r.Category.Id).ToList();
 
-        var lines = await db.TransactionLines.AsNoTracking()
-            .Join(db.Transactions, l => l.TransactionId, t => t.Id, (l, t) => new { l.CategoryId, l.Amount, t.Date, t.PayeeId })
-            .Where(x => x.Date >= start && x.Date <= end && x.CategoryId != null
-                && (childcareIds.Contains(x.CategoryId.Value) || aidIds.Contains(x.CategoryId.Value)))
-            .ToListAsync(ct);
+        // Chaque opération compte dans son mois concerné s'il est renseigné, sinon dans le mois de sa date : le salaire
+        // de la garde de décembre payé en janvier reste dans l'année de la garde. Ce mois est à un an au plus de la date.
+        var (from, to) = (start.AddMonths(-TransactionValidation.ReferenceMonthRange), end.AddMonths(TransactionValidation.ReferenceMonthRange));
+        var lines = (await db.TransactionLines.AsNoTracking()
+                .Join(db.Transactions, l => l.TransactionId, t => t.Id, (l, t) => new { l.CategoryId, l.Amount, t.Date, t.ReferenceMonth, t.PayeeId })
+                .Where(x => x.Date >= from && x.Date <= to && x.CategoryId != null
+                    && (childcareIds.Contains(x.CategoryId.Value) || aidIds.Contains(x.CategoryId.Value)))
+                .ToListAsync(ct))
+            .Select(x => new { x.CategoryId, x.Amount, Date = x.ReferenceMonth ?? x.Date, x.PayeeId })
+            .Where(x => x.Date >= start && x.Date <= end)
+            .ToList();
         var childcare = lines.Where(x => childcareIds.Contains(x.CategoryId!.Value)).ToList();
         var aids = lines.Where(x => aidIds.Contains(x.CategoryId!.Value)).ToList();
 

@@ -1,4 +1,5 @@
 import type { Schemas } from '@/api/client'
+import { periodLabel } from './budget'
 import { formatAmount, formatDate } from './format'
 
 type FieldChange = Schemas['FieldChangeDto']
@@ -14,6 +15,7 @@ const fieldTitles: Record<string, string> = {
   reconciled: 'Rapprochement',
   reimburses: 'Dépense remboursée',
   advance: 'Avance',
+  referenceMonth: 'Mois concerné',
   lines: 'Ventilation',
 }
 
@@ -22,6 +24,8 @@ function value(field: string, raw: string | null): string {
   switch (field) {
     case 'date':
       return formatDate(raw)
+    case 'referenceMonth':
+      return periodLabel(raw)
     case 'cleared':
       return raw === 'true' ? 'pointée' : 'non pointée'
     case 'reconciled':

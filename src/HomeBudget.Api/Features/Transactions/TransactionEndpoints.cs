@@ -329,6 +329,10 @@ public static class TransactionEndpoints
                 errors[$"lines[{i}].tags"] = [tagError];
             }
         }
+        if (request.ReferenceMonth is { } month && !TransactionValidation.IsReferenceMonthValid(request.Date, month))
+        {
+            errors["referenceMonth"] = [$"Le mois concerné est à {TransactionValidation.ReferenceMonthRange} mois au plus de la date."];
+        }
         return errors.Count == 0 ? null : TypedResults.ValidationProblem(errors);
     }
 
@@ -340,6 +344,7 @@ public static class TransactionEndpoints
         transaction.Label = Clean(request.Label);
         transaction.Notes = Clean(request.Notes);
         transaction.IsCleared = request.IsCleared ?? transaction.IsCleared;
+        transaction.ReferenceMonth = TransactionValidation.NormalizeReferenceMonth(request.Date, request.ReferenceMonth);
         var lines = new List<TransactionLine>(request.Lines.Count);
         foreach (var l in request.Lines)
         {
@@ -403,7 +408,8 @@ public static class TransactionEndpoints
             t.AdvanceId,
             t.CreatedBy,
             t.UpdatedBy,
-            attachments.GetValueOrDefault(t.Id)))];
+            attachments.GetValueOrDefault(t.Id),
+            t.ReferenceMonth))];
     }
 
     private static async Task<IResult> SetLinksAsync(Guid id, TransactionLinksRequest request, AppDbContext db, CancellationToken ct)

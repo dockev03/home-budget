@@ -141,7 +141,7 @@ Tag                        Id, Name, Color
 
 Transaction                Id, AccountId, Date, PayeeId?, Label, RawLabel?, Notes, Status{Posted,Pending},
                            IsCleared, ReconciliationId?, TransferId?, RecurrenceId?, OccurrenceDate?,
-                           ImportBatchId?, ImportHash?
+                           ImportBatchId?, ImportHash?, ReferenceMonth? (mois concerné, P2)
 TransactionLine            Id, TransactionId, CategoryId?, Amount, Memo
 TransactionLineTag         LineId, TagId
 TransactionChange          TransactionId, At, UserId, UserName, Changes(JSON avant/après)   (B13)
@@ -310,7 +310,7 @@ Il n'y a pas d'éditeur de règles. L'appli apprend des corrections :
 
 - **Rôles** : une catégorie porte un `FamilyRole` compatible avec son type (aides : revenus ; garde et santé : dépenses). Une sous-catégorie sans rôle prend celui de son parent. Les catégories par défaut « Allocation CAF », « CMG », « Nounou Maël » et « Santé » le reçoivent à la création, par la migration `FamilyTracking` sur une base existante, et à la restauration d'une sauvegarde antérieure au format 11.
 - **Aides (P1)**, `GET /api/family/benefits/{année}` : chaque échéance des récurrences d'une catégorie d'aide, avec l'attendu figé (`ExpectedAmount`), le reçu (montant de l'opération) et l'écart = reçu − attendu (manque : sautée ou opération supprimée ; inconnu : à valider ou à venir). S'y ajoutent les versements hors échéancier (opérations d'une catégorie d'aide qui ne viennent d'aucune échéance). Le mode « à valider » (E5) est conseillé : la confirmation saisit le montant réellement versé.
-- **Garde (P2)**, `GET /api/family/childcare/{année}` (et `/export` en CSV, audité) : frais payés (−Σ des lignes « garde ») moins aides à la garde reçues, par mois et par tiers ; montant déclarable = max(0, payé − aides). Aucune règle fiscale (plafond, taux du crédit d'impôt) n'est codée.
+- **Garde (P2)**, `GET /api/family/childcare/{année}` (et `/export` en CSV, audité) : frais payés (−Σ des lignes « garde ») moins aides à la garde reçues, par mois et par tiers ; montant déclarable = max(0, payé − aides). Chaque opération compte dans son **mois concerné** (`ReferenceMonth`, 1er du mois, à 12 mois au plus de la date, saisi dans le formulaire pour les catégories de garde) s'il est renseigné, sinon dans le mois de sa date : le salaire de novembre payé le 1er décembre est rapproché du CMG de novembre, et celui de décembre payé en janvier reste dans l'année. Aucune règle fiscale (plafond, taux du crédit d'impôt) n'est codée.
 - **Santé (P4)**, `GET /api/family/health?from&to` : chaque opération dont les lignes « santé » sont une dépense, avec ses remboursements liés (B11) classés selon le `Reimburser` de leur tiers (CPAM, mutuelle, autre) et le reste à charge. Les remboursements classés en santé mais liés à aucune dépense sont totalisés à part. `PUT /api/payees/{id}/reimburser` désigne un organisme.
 - **Années civiles** : celles de la déclaration d'impôts et de la CAF, indépendamment de la période budgétaire (R1).
 - **Visibilité (R8)** : les filtres de requête du contexte s'appliquent ; un membre n'y voit jamais les comptes privés d'un autre.

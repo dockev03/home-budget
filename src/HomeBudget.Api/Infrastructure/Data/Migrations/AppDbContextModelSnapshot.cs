@@ -1627,6 +1627,9 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.Property<Guid?>("ReconciliationId")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateOnly?>("ReferenceMonth")
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid?>("ReimbursesId")
                         .HasColumnType("TEXT");
 

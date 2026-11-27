@@ -7,6 +7,7 @@ using HomeBudget.Api.Domain.Attachments;
 using HomeBudget.Api.Domain.Audit;
 using HomeBudget.Api.Domain.Budgets;
 using HomeBudget.Api.Domain.Categories;
+using HomeBudget.Api.Domain.Family;
 using HomeBudget.Api.Domain.Imports;
 using HomeBudget.Api.Domain.Integrations;
 using HomeBudget.Api.Domain.Notifications;
@@ -93,6 +94,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
     public DbSet<MemberShare> MemberShares => Set<MemberShare>();
 
     public DbSet<SavedReport> SavedReports => Set<SavedReport>();
+
+    public DbSet<ChildcareDeclaration> ChildcareDeclarations => Set<ChildcareDeclaration>();
 
     public DbSet<Recurrence> Recurrences => Set<Recurrence>();
 
@@ -226,6 +229,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
             ConfigureAudit(e);
             e.Property(r => r.Name).HasMaxLength(SavedReport.MaxNameLength);
             e.PrimitiveCollection(r => r.Kinds).ElementType().HasConversion<string>();
+        });
+
+        builder.Entity<ChildcareDeclaration>(e =>
+        {
+            ConfigureAudit(e);
+            // Le salarié est un tiers : il ne peut pas disparaître tant qu'une déclaration le cite.
+            e.HasOne<Payee>().WithMany().HasForeignKey(d => d.PayeeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(d => new { d.Year, d.Month, d.PayeeId }).IsUnique();
         });
 
         builder.Entity<SavingsGoal>(e =>

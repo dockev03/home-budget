@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { mdiCalendarToday, mdiChevronLeft, mdiChevronRight, mdiClose, mdiDownload } from '@mdi/js'
 import { api, type Schemas } from '@/api/client'
 import { ApiError, unwrap } from '@/api/errors'
+import ChildcareDeclarationDialog from '@/components/ChildcareDeclarationDialog.vue'
 import { useAuthStore } from '@/stores/auth'
 import {
   benefitStatuses,
@@ -12,6 +13,7 @@ import {
   reimbursers,
   reimburserTitle,
   unreimbursed,
+  type ChildcareDeclaration,
   type Reimburser,
 } from '@/utils/family'
 import { formatAmount, formatDate, formatSignedAmount } from '@/utils/format'
@@ -37,6 +39,7 @@ const tab = computed<Tab>({
 
 const benefits = ref<Schemas['BenefitsDto'] | null>(null)
 const childcare = ref<Schemas['ChildcareDto'] | null>(null)
+const declarations = ref<ChildcareDeclaration[]>([])
 const health = ref<Schemas['HealthDto'] | null>(null)
 const organisms = ref<Schemas['PayeeDto'][]>([])
 const loading = ref(false)
@@ -60,9 +63,13 @@ async function load() {
         api.GET('/api/family/benefits/{year}', { params: { path: { year: year.value } } }),
       )
     } else if (tab.value === 'garde') {
-      childcare.value = await unwrap(
-        api.GET('/api/family/childcare/{year}', { params: { path: { year: year.value } } }),
-      )
+      const params = { params: { path: { year: year.value } } }
+      const [summary, list] = await Promise.all([
+        unwrap(api.GET('/api/family/childcare/{year}', params)),
+        unwrap(api.GET('/api/family/childcare/{year}/declarations', params)),
+      ])
+      childcare.value = summary
+      declarations.value = list
     } else {
       const [report, payees] = await Promise.all([
         unwrap(
@@ -119,6 +126,23 @@ async function setReimburser(id: string, reimburser: Reimburser) {
     savingOrganism.value = false
   }
 }
+
+// Déclarations Pajemploi (P2 bis) : un clic sur un mois ouvre ses déclarations.
+const declarationMonth = ref<number | null>(null)
+const showDeclarations = computed({
+  get: () => declarationMonth.value !== null,
+  set: (open) => {
+    if (!open) declarationMonth.value = null
+  },
+})
+const monthDeclarations = computed(() => declarations.value.filter((d) => d.month === declarationMonth.value))
+/** Salariés proposés : les tiers payés en frais de garde dans l'année, et ceux déjà déclarés. */
+const employees = computed(() => {
+  const list = new Map<string, string>()
+  for (const p of childcare.value?.payees ?? []) if (p.payeeId) list.set(p.payeeId, p.name)
+  for (const d of declarations.value) list.set(d.payeeId, d.payeeName)
+  return [...list].map(([id, name]) => ({ id, name }))
+})
 
 watch([year, tab], load, { immediate: true })
 </script>
@@ -267,21 +291,66 @@ watch([year, tab], load, { immediate: true })
     <v-row dense>
       <v-col cols="12" md="7">
         <v-card title="Par mois">
-          <v-table density="compact">
+          <v-card-subtitle class="text-wrap">
+            Touchez un mois pour saisir ou consulter ses déclarations Pajemploi. L'écart compare le payé à la
+            rémunération déclarée.
+          </v-card-subtitle>
+          <v-table density="compact" hover>
             <thead>
               <tr>
                 <th>Mois</th>
                 <th class="text-right">Payé</th>
                 <th class="text-right">Aides</th>
                 <th class="text-right">Reste</th>
+                <th class="text-right">Écart</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="m in childcare.months" :key="m.month">
-                <td>{{ monthName(m.month) }}</td>
+              <tr
+                v-for="m in childcare.months"
+                :key="m.month"
+                class="cursor-pointer"
+                tabindex="0"
+                role="button"
+                :aria-label="`Déclarations Pajemploi de ${monthName(m.month)}`"
+                :data-testid="`childcare-month-${m.month}`"
+                @click="declarationMonth = m.month"
+                @keydown.enter.prevent="declarationMonth = m.month"
+                @keydown.space.prevent="declarationMonth = m.month"
+              >
+                <td>
+                  {{ monthName(m.month) }}
+                  <v-chip
+                    v-if="m.declarations"
+                    size="x-small"
+                    color="success"
+                    variant="tonal"
+                    class="ml-1"
+                    :text="m.declarations > 1 ? `${m.declarations} déclarés` : 'déclaré'"
+                  />
+                  <v-chip
+                    v-else-if="m.paid > 0"
+                    size="x-small"
+                    color="warning"
+                    variant="tonal"
+                    class="ml-1"
+                    text="à déclarer"
+                  />
+                </td>
                 <td class="text-right text-no-wrap">{{ formatAmount(m.paid) }}</td>
                 <td class="text-right text-no-wrap">{{ formatAmount(m.aid) }}</td>
                 <td class="text-right text-no-wrap">{{ formatAmount(m.net) }}</td>
+                <td
+                  class="text-right text-no-wrap"
+                  :class="gapColor(m.paidGap) ? `text-${gapColor(m.paidGap)}` : ''"
+                >
+                  <span
+                    v-if="m.paidGap != null"
+                    :title="`Rémunération déclarée : ${formatAmount(m.declaredRemuneration)} · CMG déclaré : ${formatAmount(m.declaredCmg)} (écart sur les aides : ${formatSignedAmount(m.aidGap ?? 0)})`"
+                  >
+                    {{ formatSignedAmount(m.paidGap) }}
+                  </span>
+                </td>
               </tr>
             </tbody>
           </v-table>
@@ -302,6 +371,16 @@ watch([year, tab], load, { immediate: true })
       </v-col>
     </v-row>
   </template>
+
+  <ChildcareDeclarationDialog
+    v-if="declarationMonth !== null"
+    v-model="showDeclarations"
+    :year="year"
+    :month="declarationMonth"
+    :declarations="monthDeclarations"
+    :employees="employees"
+    @changed="load"
+  />
 
   <!-- P4 : santé, remboursements et reste à charge -->
   <template v-if="tab === 'sante' && health">

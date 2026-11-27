@@ -179,6 +179,9 @@ public sealed class BackupRestoreTests
         var payee = (await admin.GetJsonAsync("/api/payees?search=hyper")).EnumerateArray().First().GetProperty("id").GetGuid();
         (await admin.PutAsync($"/api/payees/{payee}/reimburser", new { reimburser = "PrimaryInsurance" }, null))
             .EnsureSuccessStatusCode();
+
+        // Déclaration Pajemploi (P2 bis).
+        await admin.CreateAsync("/api/family/childcare/declarations", FamilyTests.Declaration(2026, 11, payee));
     }
 
     private static async Task<string> ExportAsync(ApiClient client)
@@ -220,7 +223,7 @@ public sealed class BackupRestoreTests
 
         var document = JsonNode.Parse(backup)!;
         document["format"]!.GetValue<string>().ShouldBe("home-budget-backup");
-        document["formatVersion"]!.GetValue<int>().ShouldBe(11);
+        document["formatVersion"]!.GetValue<int>().ShouldBe(12);
         document["settings"]!["envelopeSince"]!.GetValue<string>().ShouldNotBeNull();
         document["categories"]!.AsArray().Count(c => c!["carryOverSince"] is not null).ShouldBe(1);
         document["categories"]!.AsArray().Count(c => c!["familyRole"]!.GetValue<string>() != "None").ShouldBe(4);
@@ -238,6 +241,9 @@ public sealed class BackupRestoreTests
         document["categories"]!.AsArray().Count(c => c!["excludeFromSplit"]!.GetValue<bool>()).ShouldBe(1);
         var report = document["savedReports"]!.AsArray().ShouldHaveSingleItem()!;
         report["kinds"]!.AsArray().ShouldHaveSingleItem()!.GetValue<string>().ShouldBe("Variable");
+        var declaration = document["childcareDeclarations"]!.AsArray().ShouldHaveSingleItem()!;
+        declaration["netSalary"]!.GetValue<decimal>().ShouldBe(638.25m);
+        declaration["normalHours"]!.GetValue<decimal>().ShouldBe(142m);
         report["range"]!.GetValue<string>().ShouldBe("Last3Periods");
         document["valuations"]!.AsArray().ShouldHaveSingleItem()!["value"]!.GetValue<decimal>().ShouldBe(5321.45m);
         document["savingsGoals"]!.AsArray().Count.ShouldBe(2);
@@ -479,6 +485,44 @@ public sealed class BackupRestoreTests
         var occurrences = restored["occurrences"]!.AsArray();
         occurrences.ShouldNotBeEmpty();
         occurrences.ShouldAllBe(o => o!["expectedAmount"]!.GetValue<decimal>() == amounts[o!["recurrenceId"]!.GetValue<Guid>()]);
+    }
+
+    [Fact]
+    public async Task Version_11_backup_restores_without_childcare_declarations_and_version_12_requires_them()
+    {
+        await using var factory = new HomeBudgetFactory();
+        var admin = await factory.CreateAdminClientAsync();
+        await SeedAsync(admin);
+        var node = JsonNode.Parse(await ExportAsync(admin))!.AsObject();
+        node.Remove("childcareDeclarations");
+
+        // Version 12 : la liste est attendue.
+        (await RestoreAsync(admin, node.ToJsonString())).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+
+        // Version 11 : elle n'existait pas ; les déclarations de l'instance sont remplacées par aucune.
+        node["formatVersion"] = 11;
+        (await RestoreAsync(admin, node.ToJsonString())).StatusCode.ShouldBe(HttpStatusCode.OK);
+        JsonNode.Parse(await ExportAsync(admin))!["childcareDeclarations"]!.AsArray().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Backup_with_a_duplicate_or_invalid_childcare_declaration_is_rejected()
+    {
+        await using var factory = new HomeBudgetFactory();
+        var admin = await factory.CreateAdminClientAsync();
+        await SeedAsync(admin);
+        var node = JsonNode.Parse(await ExportAsync(admin))!.AsObject();
+        var declarations = node["childcareDeclarations"]!.AsArray();
+        var copy = declarations[0]!.DeepClone().AsObject();
+        copy["id"] = Guid.NewGuid().ToString();
+        copy["mealAllowance"] = -1m;
+        declarations.Add(copy);
+
+        var response = await RestoreAsync(admin, node.ToJsonString());
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        body.ShouldContain("deux déclarations du même salarié pour le même mois");
+        body.ShouldContain("heure ou montant invalide");
     }
 
     [Fact]

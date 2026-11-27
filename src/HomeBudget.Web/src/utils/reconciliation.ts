@@ -22,6 +22,14 @@ export function reconciliationState(preview: Preview): { canReconcile: boolean; 
   }
 }
 
+/**
+ * Pointer une opération ajoute son montant au solde pointé, donc retire ce montant de l'écart :
+ * une opération non pointée dont le montant égale l'écart l'annule à elle seule.
+ */
+export function matchesDifference(amount: number, difference: number): boolean {
+  return difference !== 0 && Math.round(amount * 100) === Math.round(difference * 100)
+}
+
 /** Coût net d'une dépense remboursée (B11), ou null si rien n'a été remboursé. */
 export function netCost(t: Pick<Transaction, 'amount' | 'reimbursedAmount'>): number | null {
   if (t.amount >= 0 || !t.reimbursedAmount) return null

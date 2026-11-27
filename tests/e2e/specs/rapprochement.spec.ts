@@ -73,4 +73,37 @@ test.describe.serial('rapprochement bancaire', () => {
     await expect(page.getByRole('dialog').getByRole('button', { name: 'Supprimer' })).toBeVisible()
     expect(csp).toEqual([])
   })
+
+  test('pointage des opérations non pointées depuis le rapprochement', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'Les données sont créées une seule fois.')
+    const csp = watchCsp(page)
+    await login(page)
+
+    // Une dépense non pointée : le relevé à 57,50 € (70 − 12,50) laisse un écart de -12,50 €.
+    await navigate(page, 'Opérations')
+    await page.getByRole('button', { name: 'Nouvelle opération' }).click()
+    const dialog = page.getByRole('dialog')
+    await dialog.getByLabel('Montant', { exact: true }).fill('12,50')
+    await pick(dialog, page, 'Compte', account)
+    await dialog.getByRole('combobox', { name: 'Tiers' }).fill('Fromager E2E')
+    await dialog.getByRole('button', { name: 'Enregistrer' }).click()
+    await expect(dialog).toBeHidden()
+
+    await openReconciliation(page)
+    await page.getByLabel('Solde du relevé').fill('57,50')
+    await page.getByRole('button', { name: 'Calculer l’écart' }).click()
+    await expect(page.getByTestId('reconciliation-preview')).toContainText('Écart de -12,50')
+    const list = page.getByTestId('uncleared-list')
+    const line = list.locator('.v-list-item', { hasText: 'Fromager E2E' })
+    await expect(line).toContainText('Correspond à l’écart')
+    await expect(list).not.toContainText('Kiosque E2E')
+
+    // Pointée sur place : l'écart tombe à zéro et le rapprochement devient possible.
+    await line.getByRole('button', { name: 'Pointer Fromager E2E' }).click()
+    await expect(page.getByTestId('reconciliation-preview')).toContainText('Aucun écart : 2 opération(s)')
+    await expect(line.getByRole('button', { name: 'Dépointer Fromager E2E' })).toBeVisible()
+    await page.getByRole('button', { name: 'Rapprocher' }).click()
+    await expect(page.getByText('2 opération(s) verrouillée(s)')).toBeVisible()
+    expect(csp).toEqual([])
+  })
 })

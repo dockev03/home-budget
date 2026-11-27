@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { mdiLockOutline } from '@mdi/js'
+import { mdiCheckboxBlankCircleOutline, mdiCheckCircle, mdiLockOutline } from '@mdi/js'
 import { api, type Schemas } from '@/api/client'
 import { ifMatch } from '@/api/concurrency'
 import { ApiError, unwrap } from '@/api/errors'
 import { useAuthStore } from '@/stores/auth'
 import { useReferenceStore } from '@/stores/reference'
 import { formatAmount, formatDate, formatSignedAmount, parseAmount, todayIso } from '@/utils/format'
-import { reconciliationState } from '@/utils/reconciliation'
+import { matchesDifference, reconciliationState } from '@/utils/reconciliation'
 
 type Preview = Schemas['ReconciliationPreviewDto']
 type Reconciliation = Schemas['ReconciliationDto']
+type Transaction = Schemas['TransactionDto']
 
 const auth = useAuthStore()
 const reference = useReferenceStore()
@@ -20,6 +21,11 @@ const date = ref(todayIso())
 const balance = ref('')
 const preview = ref<Preview | null>(null)
 const history = ref<Reconciliation[]>([])
+// Opérations non pointées à la date du relevé, à pointer sans quitter la vue.
+const uncleared = ref<Transaction[]>([])
+const unclearedCursor = ref<string | null>(null)
+const loadingUncleared = ref(false)
+const toggling = ref<string | null>(null)
 const computing = ref(false)
 const saving = ref(false)
 const cancelling = ref(false)
@@ -34,6 +40,8 @@ const statementBalance = computed(() => parseAmount(balance.value))
 // Autre compte, date ou solde : le calcul n'est plus valable.
 watch([accountId, date, balance], () => {
   preview.value = null
+  uncleared.value = []
+  unclearedCursor.value = null
   confirmCancel.value = false
 })
 watch(accountId, () => void loadHistory())
@@ -51,25 +59,87 @@ async function loadHistory() {
   }
 }
 
+async function fetchPreview(): Promise<Preview | null> {
+  if (!accountId.value || statementBalance.value === null) return null
+  return unwrap(
+    api.GET('/api/accounts/{accountId}/reconciliations/preview', {
+      params: {
+        path: { accountId: accountId.value },
+        query: { date: date.value, statementBalance: statementBalance.value },
+      },
+    }),
+  )
+}
+
 async function compute() {
   if (!accountId.value || statementBalance.value === null) return
   computing.value = true
   error.value = null
   success.value = null
   try {
-    preview.value = await unwrap(
-      api.GET('/api/accounts/{accountId}/reconciliations/preview', {
-        params: {
-          path: { accountId: accountId.value },
-          query: { date: date.value, statementBalance: statementBalance.value },
-        },
-      }),
-    )
+    preview.value = await fetchPreview()
+    uncleared.value = []
+    unclearedCursor.value = null
+    if (preview.value?.unclearedCount) await loadUncleared()
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : 'Calcul impossible.'
   } finally {
     computing.value = false
   }
+}
+
+async function loadUncleared(more = false) {
+  if (!accountId.value || !preview.value) return
+  loadingUncleared.value = true
+  try {
+    const page = await unwrap(
+      api.GET('/api/transactions', {
+        params: {
+          query: {
+            accountId: accountId.value,
+            cleared: false,
+            to: preview.value.date,
+            cursor: more ? (unclearedCursor.value ?? undefined) : undefined,
+            limit: 50,
+          },
+        },
+      }),
+    )
+    uncleared.value = more ? [...uncleared.value, ...page.items] : page.items
+    unclearedCursor.value = page.nextCursor ?? null
+  } catch (e) {
+    error.value = e instanceof ApiError ? e.message : 'Chargement des opérations impossible.'
+  } finally {
+    loadingUncleared.value = false
+  }
+}
+
+/** Pointe ou dépointe une opération ; elle reste dans la liste pour pouvoir revenir en arrière, et l'écart est recalculé. */
+async function toggleCleared(t: Transaction) {
+  toggling.value = t.id
+  error.value = null
+  try {
+    const updated = await unwrap(
+      api.POST('/api/transactions/{id}/clear', {
+        params: { path: { id: t.id } },
+        body: { isCleared: !t.isCleared },
+      }),
+    )
+    uncleared.value = uncleared.value.map((i) => (i.id === t.id ? updated : i))
+    preview.value = await fetchPreview()
+  } catch (e) {
+    error.value = e instanceof ApiError ? e.message : 'Pointage impossible.'
+  } finally {
+    toggling.value = null
+  }
+}
+
+function transactionTitle(t: Transaction): string {
+  if (t.transferId) {
+    const other = t.transferAccountId ? reference.accountById.get(t.transferAccountId)?.name : undefined
+    return t.amount < 0 ? `Virement vers ${other ?? '?'}` : `Virement depuis ${other ?? '?'}`
+  }
+  return t.payeeName ?? t.label ?? reference.categoryLabel(t.lines[0]?.categoryId)
 }
 
 async function reconcile() {
@@ -85,6 +155,7 @@ async function reconcile() {
     )
     success.value = `Compte rapproché au ${formatDate(result.date)} : ${result.transactionCount} opération(s) verrouillée(s).`
     preview.value = null
+    uncleared.value = []
     balance.value = ''
     await loadHistory()
   } catch (e) {
@@ -204,12 +275,6 @@ onMounted(async () => {
       />
     </v-card-text>
     <v-card-actions>
-      <v-btn
-        v-if="preview.unclearedCount"
-        variant="text"
-        :to="{ name: 'transactions', query: { accountId, cleared: 'false', to: preview.date } }"
-        >Voir les opérations non pointées</v-btn
-      >
       <v-spacer />
       <v-btn
         v-if="auth.canWrite"
@@ -221,6 +286,55 @@ onMounted(async () => {
         @click="reconcile"
         >Rapprocher</v-btn
       >
+    </v-card-actions>
+  </v-card>
+
+  <v-card
+    v-if="preview && uncleared.length"
+    class="mb-4"
+    :title="`Opérations non pointées au ${formatDate(preview.date)}`"
+    subtitle="Pointez celles qui figurent sur le relevé : l’écart est recalculé."
+    data-testid="uncleared-list"
+  >
+    <v-list density="compact">
+      <v-list-item
+        v-for="t in uncleared"
+        :key="t.id"
+        :title="transactionTitle(t)"
+        :subtitle="formatDate(t.date)"
+        :class="{ 'bg-surface-variant': matchesDifference(t.amount, preview.difference) && !t.isCleared }"
+      >
+        <template #append>
+          <v-chip
+            v-if="!t.isCleared && matchesDifference(t.amount, preview.difference)"
+            size="small"
+            color="warning"
+            variant="tonal"
+            class="mr-2"
+            >Correspond à l’écart</v-chip
+          >
+          <span class="font-weight-medium text-no-wrap" :class="t.amount > 0 ? 'text-success' : ''">
+            {{ formatSignedAmount(t.amount) }}
+          </span>
+          <v-btn
+            :icon="t.isCleared ? mdiCheckCircle : mdiCheckboxBlankCircleOutline"
+            :color="t.isCleared ? 'success' : undefined"
+            variant="text"
+            size="small"
+            class="ml-1"
+            :loading="toggling === t.id"
+            :disabled="!auth.canWrite || (toggling !== null && toggling !== t.id)"
+            :aria-label="t.isCleared ? `Dépointer ${transactionTitle(t)}` : `Pointer ${transactionTitle(t)}`"
+            :aria-pressed="t.isCleared"
+            @click="toggleCleared(t)"
+          />
+        </template>
+      </v-list-item>
+    </v-list>
+    <v-card-actions v-if="unclearedCursor">
+      <v-spacer />
+      <v-btn variant="tonal" :loading="loadingUncleared" @click="loadUncleared(true)">Afficher plus</v-btn>
+      <v-spacer />
     </v-card-actions>
   </v-card>
 

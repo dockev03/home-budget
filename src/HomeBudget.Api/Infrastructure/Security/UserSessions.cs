@@ -219,16 +219,16 @@ public sealed class UserSessions(AppDbContext db, TimeProvider clock, SecurityAl
 
     private static UserSession Create(
         HttpContext http, Guid userId, string? stamp, SessionOrigin origin, DateTimeOffset now, Guid? id = null) => new()
-    {
-        Id = id ?? Guid.CreateVersion7(),
-        UserId = userId,
-        CreatedAt = now,
-        LastSeenAt = now,
-        IpAddress = IpAddress(http),
-        UserAgent = UserAgent(http),
-        Origin = origin,
-        SecurityStamp = stamp,
-    };
+        {
+            Id = id ?? Guid.CreateVersion7(),
+            UserId = userId,
+            CreatedAt = now,
+            LastSeenAt = now,
+            IpAddress = IpAddress(http),
+            UserAgent = UserAgent(http),
+            Origin = origin,
+            SecurityStamp = stamp,
+        };
 
     private static string? IpAddress(HttpContext http)
     {

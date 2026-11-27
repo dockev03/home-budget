@@ -7,6 +7,7 @@ using HomeBudget.Api.Domain.Attachments;
 using HomeBudget.Api.Domain.Audit;
 using HomeBudget.Api.Domain.Budgets;
 using HomeBudget.Api.Domain.Categories;
+using HomeBudget.Api.Domain.Dashboard;
 using HomeBudget.Api.Domain.Imports;
 using HomeBudget.Api.Domain.Integrations;
 using HomeBudget.Api.Domain.Notifications;
@@ -117,6 +118,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
 
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
+
+    public DbSet<DashboardLayout> DashboardLayouts => Set<DashboardLayout>();
 
     public DbSet<SentAlert> SentAlerts => Set<SentAlert>();
 
@@ -297,6 +300,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
         {
             e.HasOne<AppUser>().WithMany().HasForeignKey(p => p.UserId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(p => p.UserId).IsUnique();
+        });
+
+        builder.Entity<DashboardLayout>(e =>
+        {
+            e.HasOne<AppUser>().WithMany().HasForeignKey(l => l.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(l => l.UserId).IsUnique();
         });
 
         builder.Entity<SentAlert>(e =>

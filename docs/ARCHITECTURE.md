@@ -175,6 +175,7 @@ NotificationPreference     Id, UserId (unique), BudgetAlerts, ForecastAlerts, Du
                            (M1, M2, N9 ; sans ligne : toutes les alertes push, pas de résumé, alerte de verrouillage seule)
 UserSession                Id, UserId, CreatedAt, LastSeenAt, IpAddress?, UserAgent?, Origin{Password,Authenticator,
                            RecoveryCode,Legacy}, SecurityStamp, RevokedAt?   (N8 ; dates en ticks UTC)
+DashboardLayout            Id, UserId (unique), Order (JSON), Hidden (JSON)   (accueil : ordre des blocs et blocs masqués ; sans ligne : disposition par défaut)
 SentAlert                  Id, UserId, Kind, ObjectKey, PeriodKey, SentAt   (unique (UserId, Kind, ObjectKey, PeriodKey) ; purgé après 400 jours)
 ApiToken                   Id, UserId, Name, Hash (SHA-256), Prefix, Scope{Read,Write}, CreatedAt, ExpiresAt, LastUsedAt   (I5)
 Webhook                    Id, Name, Url, ProtectedSecret (Data Protection), Events (JSON), IsActive, OwnerId,

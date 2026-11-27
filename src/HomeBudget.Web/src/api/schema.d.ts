@@ -1732,6 +1732,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/logins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Historique des connexions (date, adresse IP, navigateur, résultat), la plus récente en premier. */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoginHistoryPage"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/audit": {
         parameters: {
             query?: never;
@@ -9191,6 +9239,9 @@ export interface components {
             targetId: null | string;
             details: null | string;
             ipAddress: null | string;
+            browser: null | string;
+            operatingSystem: null | string;
+            device: components["schemas"]["DeviceKind"];
         };
         AuditPage: {
             items: components["schemas"]["AuditEntryDto"][];
@@ -10664,6 +10715,29 @@ export interface components {
              * @default 0
              */
             monthlyInsurance: number;
+        };
+        LoginEntryDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            at: string;
+            action: components["schemas"]["AuditAction"];
+            details: null | string;
+            ipAddress: null | string;
+            browser: null | string;
+            operatingSystem: null | string;
+            device: components["schemas"]["DeviceKind"];
+        };
+        LoginHistoryPage: {
+            items: components["schemas"]["LoginEntryDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            retentionDays: null | number;
         };
         LoginRequest: {
             userName: string;

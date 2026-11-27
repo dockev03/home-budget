@@ -4,6 +4,7 @@ import { api, type Schemas } from '@/api/client'
 import { ApiError, unwrap } from '@/api/errors'
 import { useReferenceStore } from '@/stores/reference'
 import { auditActions, auditSeverity, auditTargetLabel, formatDateTime } from '@/utils/users'
+import { agentLabel } from '@/utils/sessions'
 
 type Entry = Schemas['AuditEntryDto']
 type Action = Schemas['AuditAction']
@@ -87,6 +88,7 @@ onMounted(async () => {
         <v-list-item-subtitle>
           {{ formatDateTime(entry.at) }} · {{ entry.userName ?? 'anonyme' }}
           <template v-if="entry.ipAddress"> · {{ entry.ipAddress }}</template>
+          <template v-if="agentLabel(entry)"> · {{ agentLabel(entry) }}</template>
         </v-list-item-subtitle>
       </v-list-item>
     </v-list>

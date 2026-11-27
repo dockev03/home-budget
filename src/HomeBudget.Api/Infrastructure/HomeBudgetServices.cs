@@ -125,6 +125,7 @@ public static class HomeBudgetServices
         services.AddHostedService<AlertWorker>();
         services.AddSingleton<SecurityAlertQueue>();
         services.AddHostedService<SecurityAlertWorker>();
+        services.AddHostedService<LoginHistoryCleanupWorker>();
 
         // Pièces jointes (B7).
         services.AddSingleton<AttachmentStore>();

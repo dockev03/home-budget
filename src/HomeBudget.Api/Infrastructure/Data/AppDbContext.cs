@@ -404,6 +404,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
             e.Property(l => l.Target).HasMaxLength(AuditLog.MaxTargetLength);
             e.Property(l => l.Details).HasMaxLength(AuditLog.MaxDetailsLength);
             e.Property(l => l.IpAddress).HasMaxLength(45);
+            e.Property(l => l.UserAgent).HasMaxLength(AuditLog.MaxUserAgentLength);
             e.HasIndex(l => l.Action);
             e.HasIndex(l => l.UserId);
         });

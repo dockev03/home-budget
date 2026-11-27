@@ -22,10 +22,13 @@ public sealed class AuditTrail(AppDbContext db, IHttpContextAccessor http, TimeP
             TargetId = targetId,
             Details = AuditLog.Truncate(details, AuditLog.MaxDetailsLength),
             IpAddress = http.HttpContext?.Connection.RemoteIpAddress?.ToString(),
+            UserAgent = AuditLog.Truncate(NullIfEmpty(http.HttpContext?.Request.Headers.UserAgent.ToString()), AuditLog.MaxUserAgentLength),
         };
         db.AuditLogs.Add(entry);
         return entry;
     }
+
+    private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
 
     /// <summary>Ajoute une entrée et l'enregistre aussitôt.</summary>
     public async Task RecordAsync(

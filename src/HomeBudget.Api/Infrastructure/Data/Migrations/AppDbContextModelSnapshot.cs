@@ -312,6 +312,10 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.Property<Guid?>("TargetId")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid?>("UserId")
                         .HasColumnType("TEXT");
 

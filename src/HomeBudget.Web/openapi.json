@@ -1583,6 +1583,54 @@
         }
       }
     },
+    "/api/account/logins": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Historique des connexions (date, adresse IP, navigateur, r\u00E9sultat), la plus r\u00E9cente en premier.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginHistoryPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/audit": {
       "get": {
         "tags": [
@@ -9454,7 +9502,10 @@
           "target",
           "targetId",
           "details",
-          "ipAddress"
+          "ipAddress",
+          "browser",
+          "operatingSystem",
+          "device"
         ],
         "type": "object",
         "properties": {
@@ -9506,6 +9557,21 @@
               "null",
               "string"
             ]
+          },
+          "browser": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "operatingSystem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "device": {
+            "$ref": "#/components/schemas/DeviceKind"
           }
         }
       },
@@ -14931,6 +14997,96 @@
             "type": "number",
             "format": "double",
             "default": 0
+          }
+        }
+      },
+      "LoginEntryDto": {
+        "required": [
+          "id",
+          "at",
+          "action",
+          "details",
+          "ipAddress",
+          "browser",
+          "operatingSystem",
+          "device"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "action": {
+            "$ref": "#/components/schemas/AuditAction"
+          },
+          "details": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ipAddress": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "browser": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "operatingSystem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "device": {
+            "$ref": "#/components/schemas/DeviceKind"
+          }
+        }
+      },
+      "LoginHistoryPage": {
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize",
+          "retentionDays"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoginEntryDto"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "retentionDays": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         }
       },

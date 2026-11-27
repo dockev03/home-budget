@@ -52,3 +52,17 @@ export function lastSeenLabel(iso: string, now: Date = new Date()): string {
   if (hours < 24) return `actif il y a ${hours} h`
   return `actif il y a ${Math.floor(hours / 24)} j`
 }
+
+/** Appareil d'une entrée du journal, ou null si le navigateur n'a pas été enregistré (entrées anciennes). */
+export function agentLabel(entry: {
+  browser?: string | null
+  operatingSystem?: string | null
+  device?: DeviceKind | null
+}): string | null {
+  if (!entry.browser) return null
+  return sessionTitle({
+    browser: entry.browser,
+    operatingSystem: entry.operatingSystem ?? 'Inconnu',
+    device: entry.device ?? 'Unknown',
+  })
+}

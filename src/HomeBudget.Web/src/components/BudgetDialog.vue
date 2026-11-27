@@ -192,7 +192,7 @@ async function reset() {
             :hint="preview"
             persistent-hint
             inputmode="decimal"
-            autofocus
+            v-autofocus
           />
           <p v-else class="text-body-2">
             Le budget est la somme des échéances de récurrence de la période.

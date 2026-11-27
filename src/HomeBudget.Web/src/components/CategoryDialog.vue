@@ -150,7 +150,7 @@ async function remove() {
       <v-card-text>
         <v-alert v-if="error" type="error" variant="tonal" class="mb-4" :text="error" />
         <v-form v-model="valid" @submit.prevent="save">
-          <v-text-field v-model="form.name" label="Nom" :rules="[required]" maxlength="60" autofocus />
+          <v-text-field v-model="form.name" label="Nom" :rules="[required]" maxlength="60" v-autofocus />
           <v-select
             v-model="form.parentId"
             :items="parents"

@@ -240,7 +240,7 @@ onMounted(load)
             label="Identifiant de connexion"
             autocomplete="off"
             :rules="[required, userNameRule]"
-            autofocus
+            v-autofocus
           />
           <v-text-field v-model="form.displayName" label="Nom affiché (facultatif)" maxlength="60" />
           <v-select v-model="form.role" :items="roles" item-title="title" item-value="value" label="Rôle">

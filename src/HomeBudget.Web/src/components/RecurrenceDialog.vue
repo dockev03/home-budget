@@ -262,7 +262,7 @@ async function remove() {
         </v-btn-toggle>
 
         <v-form v-model="valid" @submit.prevent="save">
-          <v-text-field v-model="label" label="Libellé" maxlength="200" :rules="[required]" autofocus />
+          <v-text-field v-model="label" label="Libellé" maxlength="200" :rules="[required]" v-autofocus />
 
           <v-row dense>
             <v-col cols="12" sm="6">

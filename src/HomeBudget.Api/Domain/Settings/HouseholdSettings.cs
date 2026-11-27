@@ -53,6 +53,12 @@ public sealed class HouseholdSettings : AuditableEntity
 
     public int BudgetAlertPercent { get; set; } = 100;
 
+    /// <summary>
+    /// Mode enveloppes (D7) : clé <c>AAAA-MM</c> de la période d'activation, à partir de laquelle « à affecter »
+    /// est cumulé et le reste de chaque dépense est reporté ; null si le mode est désactivé.
+    /// </summary>
+    public string? EnvelopeSince { get; set; }
+
     /// <summary>Le jeu de catégories par défaut (C6) a été créé : il ne l'est qu'une fois.</summary>
     public bool DefaultCategoriesCreated { get; set; }
 }

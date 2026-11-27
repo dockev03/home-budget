@@ -49,7 +49,7 @@ public sealed record BackupDocument(
 {
     public const string FormatName = "home-budget-backup";
 
-    public const int CurrentVersion = 9;
+    public const int CurrentVersion = 10;
 
     /// <summary>Version 1 : sans profils ni historique d'import (étapes 1 à 4), toujours restaurable.</summary>
     public const int MinVersion = 1;
@@ -80,6 +80,9 @@ public sealed record BackupDocument(
     /// (<c>GET /api/backups/attachments</c>), nommés par leur empreinte.
     /// </summary>
     public const int AttachmentsVersion = 9;
+
+    /// <summary>Version 10 : report du reste par catégorie (D6) et mode enveloppes (D7) (étape 15).</summary>
+    public const int EnvelopesVersion = 10;
 }
 
 /// <summary>Traçabilité (K2) et version de concurrence, conservées à la restauration.</summary>
@@ -98,7 +101,8 @@ public sealed record BackupSettings(
     ForecastStrategy ForecastStrategy = ForecastStrategy.Budget,
     int ForecastAverageMonths = HouseholdSettings.DefaultForecastAverageMonths,
     int EmergencyFundAverageMonths = HouseholdSettings.DefaultForecastAverageMonths,
-    SplitMode SplitMode = SplitMode.Equal);
+    SplitMode SplitMode = SplitMode.Equal,
+    string? EnvelopeSince = null);
 
 public sealed record BackupAccount(
     Guid Id,
@@ -161,7 +165,8 @@ public sealed record BackupSavingsGoal(
 
 public sealed record BackupCategory(
     Guid Id, Guid? ParentId, string? Name, CategoryKind Kind, string? Color, string? Icon, int SortOrder, bool IsArchived, BackupAudit? Audit,
-    bool ExcludeFromSplit = false);
+    bool ExcludeFromSplit = false,
+    string? CarryOverSince = null);
 
 public sealed record BackupPayee(Guid Id, string? Name, BackupAudit? Audit);
 

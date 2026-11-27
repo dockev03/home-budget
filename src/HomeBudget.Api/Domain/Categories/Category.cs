@@ -27,4 +27,10 @@ public sealed class Category : AuditableEntity
 
     /// <summary>Dépenses personnelles : exclues de la répartition des dépenses communes (K4), sous-catégories comprises.</summary>
     public bool ExcludeFromSplit { get; set; }
+
+    /// <summary>
+    /// Report du reste activé (D6) : clé <c>AAAA-MM</c> de la première période dont le reste est reporté sur la
+    /// suivante ; null si le report est désactivé. Réservé aux dépenses (fixes et variables).
+    /// </summary>
+    public string? CarryOverSince { get; set; }
 }

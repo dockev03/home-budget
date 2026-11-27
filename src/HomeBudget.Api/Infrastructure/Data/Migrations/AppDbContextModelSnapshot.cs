@@ -468,6 +468,10 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("CarryOverSince")
+                        .HasMaxLength(7)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Color")
                         .HasMaxLength(16)
                         .HasColumnType("TEXT");
@@ -1438,6 +1442,10 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
 
                     b.Property<int>("EmergencyFundAverageMonths")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("EnvelopeSince")
+                        .HasMaxLength(7)
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("ForecastAverageMonths")
                         .HasColumnType("INTEGER");

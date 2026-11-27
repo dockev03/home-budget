@@ -120,6 +120,7 @@ public sealed class BackupRestoreTests
             forecastStrategy = "Average",
             forecastAverageMonths = 3,
             emergencyFundAverageMonths = 4,
+            envelopeMode = true,
         }, settingsVersion)).EnsureSuccessStatusCode();
 
         // Valorisation, objectifs d'épargne et épargne de précaution (étape 11).
@@ -168,6 +169,10 @@ public sealed class BackupRestoreTests
             categoryIds = new[] { restaurants },
             kinds = new[] { "Variable" },
         });
+
+        // Report du reste (étape 15).
+        (await admin.PutAsync($"/api/budgets/categories/{await admin.CategoryIdAsync("Courses")}/carry-over", new { enabled = true }, null))
+            .EnsureSuccessStatusCode();
     }
 
     private static async Task<string> ExportAsync(ApiClient client)
@@ -209,7 +214,9 @@ public sealed class BackupRestoreTests
 
         var document = JsonNode.Parse(backup)!;
         document["format"]!.GetValue<string>().ShouldBe("home-budget-backup");
-        document["formatVersion"]!.GetValue<int>().ShouldBe(9);
+        document["formatVersion"]!.GetValue<int>().ShouldBe(10);
+        document["settings"]!["envelopeSince"]!.GetValue<string>().ShouldNotBeNull();
+        document["categories"]!.AsArray().Count(c => c!["carryOverSince"] is not null).ShouldBe(1);
         document["attachments"]!.AsArray().ShouldHaveSingleItem()!["fileName"]!.GetValue<string>().ShouldBe("fiche.pdf");
         var loan = document["loans"]!.AsArray().ShouldHaveSingleItem()!;
         loan["annualRate"]!.GetValue<decimal>().ShouldBe(3.875m);

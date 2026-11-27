@@ -3,10 +3,16 @@ import { computed, ref, watch } from 'vue'
 import { api } from '@/api/client'
 import { ifMatch } from '@/api/concurrency'
 import { ApiError, unwrap } from '@/api/errors'
-import { budgetModes, periodLabel, type BudgetLine, type BudgetMode } from '@/utils/budget'
-import { formatAmount, parseAmount, roundCents } from '@/utils/format'
+import { budgetModes, canCarryOver, periodLabel, type BudgetLine, type BudgetMode } from '@/utils/budget'
+import { formatAmount, formatSignedAmount, parseAmount, roundCents } from '@/utils/format'
 
-const props = defineProps<{ line: BudgetLine | null; incomeBase: number; periodKey: string | null }>()
+const props = defineProps<{
+  line: BudgetLine | null
+  incomeBase: number
+  periodKey: string | null
+  /** Mode enveloppes actif (D7) : toute dépense reporte son reste. */
+  envelope?: boolean
+}>()
 const visible = defineModel<boolean>({ required: true })
 const emit = defineEmits<{ saved: [] }>()
 
@@ -19,6 +25,9 @@ const valueText = ref('')
 const saving = ref(false)
 const deleting = ref(false)
 const error = ref<string | null>(null)
+/** Report du reste (D6) : période de début, null si désactivé ; modifié aussitôt, sans « Enregistrer ». */
+const carryOverSince = ref<string | null>(null)
+const carrying = ref(false)
 
 // Un revenu ne peut pas être budgété en % des revenus (calcul circulaire).
 const modes = computed(() =>
@@ -64,9 +73,31 @@ function fill() {
 watch(visible, (open) => {
   if (!open || !props.line) return
   error.value = null
+  carryOverSince.value = props.line.carryOverSince
   scope.value = props.line.periodBudget ? 'period' : 'default'
   fill()
 })
+
+async function toggleCarryOver(enabled: boolean | null) {
+  const line = props.line
+  if (!line) return
+  carrying.value = true
+  error.value = null
+  try {
+    const result = await unwrap(
+      api.PUT('/api/budgets/categories/{categoryId}/carry-over', {
+        params: { path: { categoryId: line.categoryId } },
+        body: { enabled: !!enabled, since: null },
+      }),
+    )
+    carryOverSince.value = result.since
+    emit('saved')
+  } catch (e) {
+    error.value = e instanceof ApiError ? e.message : 'Enregistrement impossible.'
+  } finally {
+    carrying.value = false
+  }
+}
 watch(scope, () => {
   if (visible.value) fill()
 })
@@ -172,6 +203,29 @@ async function reset() {
           </p>
           <button type="submit" hidden />
         </form>
+        <template v-if="canCarryOver(line)">
+          <v-divider class="my-4" />
+          <v-switch
+            :model-value="envelope || carryOverSince !== null"
+            :disabled="envelope"
+            :loading="carrying"
+            color="primary"
+            label="Reporter le reste sur la période suivante"
+            :hint="
+              envelope
+                ? 'Toujours actif en mode enveloppes.'
+                : carryOverSince
+                  ? `Depuis ${periodLabel(carryOverSince)} : un reste positif s'ajoute au budget suivant, un dépassement s'en déduit.`
+                  : 'Un reste positif s\'ajoute au budget suivant, un dépassement s\'en déduit.'
+            "
+            persistent-hint
+            data-testid="carry-over"
+            @update:model-value="toggleCarryOver"
+          />
+          <p v-if="line.carriedOver !== 0" class="text-body-2 text-medium-emphasis mt-4">
+            Report des périodes précédentes sur {{ periodName }} : {{ formatSignedAmount(line.carriedOver) }}.
+          </p>
+        </template>
       </v-card-text>
       <v-card-actions>
         <v-btn v-if="canDelete" color="error" :loading="deleting" @click="reset">

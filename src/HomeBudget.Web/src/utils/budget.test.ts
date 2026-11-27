@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   budgetModeLabel,
+  canCarryOver,
+  movableAmount,
+  toAssignLabel,
   gaugeValue,
   periodLabel,
   periodRange,
@@ -33,6 +36,8 @@ function line(overrides: Partial<BudgetLine> = {}): BudgetLine {
     periodBudget: null,
     provisioned: 0,
     defaultMode: 'Amount',
+    carriedOver: 0,
+    carryOverSince: null,
     ...overrides,
   }
 }
@@ -83,5 +88,16 @@ describe('budget', () => {
       ),
     ).toBe(nbsp('15 % des revenus budgétés · cette période'))
     expect(nbsp(budgetModeLabel(line({ provisioned: 120 })))).toBe('Montant fixe + 120,00 € de provisions')
+  })
+
+  it('signale le reste reporté et ce qui peut être déplacé', () => {
+    expect(nbsp(budgetModeLabel(line({ carriedOver: -50 })))).toBe(nbsp('Montant fixe · report -50,00 €'))
+    expect(nbsp(budgetModeLabel(line({ carriedOver: 12.5 })))).toBe(nbsp('Montant fixe · report +12,50 €'))
+    expect(movableAmount(line({ ownBudgeted: 650, provisioned: 100, carriedOver: -50 }))).toBe(600)
+    expect(canCarryOver(line())).toBe(true)
+    expect(canCarryOver(line({ kind: 'Savings' }))).toBe(false)
+    expect(canCarryOver(line({ isArchived: true }))).toBe(false)
+    expect(nbsp(toAssignLabel(120))).toBe(nbsp('120,00 € à affecter'))
+    expect(nbsp(toAssignLabel(-30))).toBe(nbsp('30,00 € affectés en trop'))
   })
 })

@@ -3121,6 +3121,147 @@
         }
       }
     },
+    "/api/budgets/categories/{categoryId}/carry-over": {
+      "put": {
+        "tags": [
+          "Budgets"
+        ],
+        "summary": "Active ou d\u00E9sactive le report du reste d\u0027une d\u00E9pense sur la p\u00E9riode suivante (D6).",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CarryOverRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CarryOverDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/budgets/{periodKey}/moves": {
+      "post": {
+        "tags": [
+          "Budgets"
+        ],
+        "summary": "D\u00E9place un montant du budget d\u0027une cat\u00E9gorie vers une autre, pour cette p\u00E9riode (D7).",
+        "parameters": [
+          {
+            "name": "periodKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BudgetMoveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetMoveDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/provisions": {
       "get": {
         "tags": [
@@ -8988,6 +9129,12 @@
           "excludeFromSplit": {
             "type": "boolean",
             "default": false
+          },
+          "carryOverSince": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -10240,6 +10387,12 @@
           },
           "splitMode": {
             "$ref": "#/components/schemas/SplitMode"
+          },
+          "envelopeSince": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -10683,7 +10836,8 @@
           "uncategorized",
           "warningPercent",
           "alertPercent",
-          "categories"
+          "categories",
+          "envelope"
         ],
         "type": "object",
         "properties": {
@@ -10717,6 +10871,16 @@
             "items": {
               "$ref": "#/components/schemas/BudgetLineDto"
             }
+          },
+          "envelope": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EnvelopeSummary"
+              }
+            ]
           }
         }
       },
@@ -10741,7 +10905,9 @@
           "status",
           "periodBudget",
           "provisioned",
-          "defaultMode"
+          "defaultMode",
+          "carriedOver",
+          "carryOverSince"
         ],
         "type": "object",
         "properties": {
@@ -10853,6 +11019,16 @@
                 "$ref": "#/components/schemas/BudgetMode"
               }
             ]
+          },
+          "carriedOver": {
+            "type": "number",
+            "format": "double"
+          },
+          "carryOverSince": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -10863,6 +11039,43 @@
           "Auto",
           null
         ]
+      },
+      "BudgetMoveDto": {
+        "required": [
+          "from",
+          "to"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/PeriodBudgetDto"
+          },
+          "to": {
+            "$ref": "#/components/schemas/PeriodBudgetDto"
+          }
+        }
+      },
+      "BudgetMoveRequest": {
+        "required": [
+          "fromCategoryId",
+          "toCategoryId",
+          "amount"
+        ],
+        "type": "object",
+        "properties": {
+          "fromCategoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "toCategoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          }
+        }
       },
       "BudgetStatus": {
         "enum": [
@@ -11102,6 +11315,43 @@
           "Matched",
           "Skipped"
         ]
+      },
+      "CarryOverDto": {
+        "required": [
+          "categoryId",
+          "since"
+        ],
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "since": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CarryOverRequest": {
+        "required": [
+          "enabled",
+          "since"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "since": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
       },
       "CategoryAmountDto": {
         "required": [
@@ -11723,6 +11973,32 @@
         "properties": {
           "code": {
             "type": "string"
+          }
+        }
+      },
+      "EnvelopeSummary": {
+        "required": [
+          "since",
+          "income",
+          "assigned",
+          "toAssign"
+        ],
+        "type": "object",
+        "properties": {
+          "since": {
+            "type": "string"
+          },
+          "income": {
+            "type": "number",
+            "format": "double"
+          },
+          "assigned": {
+            "type": "number",
+            "format": "double"
+          },
+          "toAssign": {
+            "type": "number",
+            "format": "double"
           }
         }
       },
@@ -14961,7 +15237,8 @@
           "forecastStrategy",
           "forecastAverageMonths",
           "emergencyFundAverageMonths",
-          "version"
+          "version",
+          "envelopeSince"
         ],
         "type": "object",
         "properties": {
@@ -14994,6 +15271,12 @@
           "version": {
             "type": "integer",
             "format": "int32"
+          },
+          "envelopeSince": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -15043,6 +15326,12 @@
             "type": "integer",
             "format": "int32",
             "default": 6
+          },
+          "envelopeMode": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },

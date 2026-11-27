@@ -70,10 +70,11 @@ public sealed class ForecastService(AppDbContext db, TimeProvider clock, IBudget
             ? await AveragesAsync(categories, calculator, period, settings.ForecastAverageMonths, ct)
             : null;
 
+        var book = averages is null ? await BudgetBook.LoadAsync(db, settings, schedule, ct) : null;
         var budgets = new List<List<ForecastBudget>>();
         foreach (var p in periods)
         {
-            budgets.Add(averages is null ? await BudgetRemaindersAsync(settings, p, ct) : await AverageRemaindersAsync(categories, averages, p, ct));
+            budgets.Add(book is not null ? await BudgetRemaindersAsync(book, p, today, ct) : await AverageRemaindersAsync(categories, averages!, p, ct));
         }
 
         var scenarios = scenarioIds is { Count: > 0 } ? await ScenarioMovementsAsync(scenarioIds, accountIds, today, horizonEnd, ct) : null;
@@ -102,10 +103,13 @@ public sealed class ForecastService(AppDbContext db, TimeProvider clock, IBudget
             scenarios?.Ids ?? [], result);
     }
 
-    /// <summary>Budget restant (R3) : budget qui sortira des comptes (D11) − réalisé, par catégorie principale.</summary>
-    private async Task<List<ForecastBudget>> BudgetRemaindersAsync(HouseholdSettings settings, Period period, CancellationToken ct)
+    /// <summary>
+    /// Budget restant (R3) : budget qui sortira des comptes (provisions D11 et reste reporté D6 compris) − réalisé,
+    /// par catégorie principale.
+    /// </summary>
+    private static async Task<List<ForecastBudget>> BudgetRemaindersAsync(BudgetBook book, Period period, DateOnly today, CancellationToken ct)
     {
-        var (categories, _, _, budget, _) = await BudgetEndpoints.ComputeAsync(db, settings, period, schedule, ct);
+        var (categories, _, _, budget, _, _) = await book.ComputeAsync(period, today, ct);
         // Les parts réservées des provisions restent sur les comptes : seul le montant à échéance en sort.
         return [.. categories
             .Where(c => c.ParentId is null && budget.Categories[c.Id].CashBudgeted > 0)

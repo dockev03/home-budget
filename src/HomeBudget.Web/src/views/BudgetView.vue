@@ -1,15 +1,24 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { mdiAlertOutline, mdiContentCopy } from '@mdi/js'
+import { mdiAlertOutline, mdiContentCopy, mdiSwapHorizontal } from '@mdi/js'
 import { api, type Schemas } from '@/api/client'
 import { ApiError, unwrap } from '@/api/errors'
 import BudgetDialog from '@/components/BudgetDialog.vue'
 import CopyBudgetDialog from '@/components/CopyBudgetDialog.vue'
+import MoveBudgetDialog from '@/components/MoveBudgetDialog.vue'
 import ProvisionsCard from '@/components/ProvisionsCard.vue'
 import PeriodNavigator from '@/components/PeriodNavigator.vue'
 import { useAuthStore } from '@/stores/auth'
-import { budgetModeLabel, gaugeValue, remainingLabel, statusColor, type BudgetLine } from '@/utils/budget'
+import {
+  budgetModeLabel,
+  gaugeValue,
+  periodLabel,
+  remainingLabel,
+  statusColor,
+  toAssignLabel,
+  type BudgetLine,
+} from '@/utils/budget'
 import { formatAmount, formatSignedAmount } from '@/utils/format'
 import { iconPath } from '@/utils/icons'
 import { categoryKinds } from '@/utils/labels'
@@ -24,6 +33,7 @@ const error = ref<string | null>(null)
 const dialog = ref(false)
 const editing = ref<BudgetLine | null>(null)
 const copyDialog = ref(false)
+const moveDialog = ref(false)
 const copied = ref<string | null>(null)
 
 const periodKey = computed(() => (route.params.period as string | undefined) || null)
@@ -97,6 +107,15 @@ watch(periodKey, load, { immediate: true })
     >
       Copier
     </v-btn>
+    <v-btn
+      v-if="auth.canWrite && budget"
+      :prepend-icon="mdiSwapHorizontal"
+      variant="text"
+      color="primary"
+      @click="moveDialog = true"
+    >
+      Déplacer
+    </v-btn>
     <PeriodNavigator :period="budget?.period ?? null" @go="goTo" />
   </div>
   <v-snackbar v-model="copiedVisible" :text="copied ?? ''" timeout="3000" />
@@ -105,6 +124,29 @@ watch(periodKey, load, { immediate: true })
   <v-alert v-if="error" type="error" variant="tonal" class="mb-4" :text="error" />
 
   <template v-if="budget">
+    <!-- Mode enveloppes (D7) : à affecter = revenus reçus − montants affectés, cumulé depuis l'activation. -->
+    <v-card v-if="budget.envelope" class="mb-4" data-testid="envelope">
+      <v-card-item>
+        <v-card-title :class="budget.envelope.toAssign < 0 ? 'text-error' : ''">
+          {{ toAssignLabel(budget.envelope.toAssign) }}
+        </v-card-title>
+        <v-card-subtitle>
+          Cette période : {{ formatAmount(budget.envelope.income) }} reçus,
+          {{ formatAmount(budget.envelope.assigned) }} affectés · cumul depuis
+          {{ periodLabel(budget.envelope.since) }}
+        </v-card-subtitle>
+      </v-card-item>
+      <v-alert
+        v-if="budget.envelope.toAssign < 0"
+        type="warning"
+        variant="tonal"
+        density="compact"
+        class="ma-4 mt-0"
+        :icon="mdiAlertOutline"
+        text="Vous avez affecté plus que vos revenus reçus : réduisez un budget ou attendez le prochain revenu."
+      />
+    </v-card>
+
     <!-- Récapitulatif (D8) : Restant = Revenus − Fixes − Variables − Épargne. -->
     <v-card class="mb-4" title="Récapitulatif">
       <v-table density="comfortable">
@@ -198,6 +240,13 @@ watch(periodKey, load, { immediate: true })
     v-model="dialog"
     :line="editing"
     :income-base="budget?.incomeBase ?? 0"
+    :period-key="budget?.period.key ?? null"
+    :envelope="!!budget?.envelope"
+    @saved="load"
+  />
+  <MoveBudgetDialog
+    v-model="moveDialog"
+    :lines="budget?.categories ?? []"
     :period-key="budget?.period.key ?? null"
     @saved="load"
   />

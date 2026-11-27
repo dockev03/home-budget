@@ -6,6 +6,7 @@ import { ifMatch } from '@/api/concurrency'
 import { ApiError, unwrap } from '@/api/errors'
 import { usePendingStore } from '@/stores/pending'
 import { useReferenceStore } from '@/stores/reference'
+import { periodLabel } from '@/utils/budget'
 import { isRestoreConfirmed, RESTORE_CONFIRMATION } from '@/utils/exports'
 
 const reference = useReferenceStore()
@@ -29,6 +30,7 @@ const form = ref<Schemas['SettingsRequest']>({
   forecastStrategy: 'Budget',
   forecastAverageMonths: 6,
   emergencyFundAverageMonths: 6,
+  envelopeMode: false,
 })
 const valid = ref(false)
 const saving = ref(false)
@@ -59,8 +61,10 @@ async function load() {
       forecastStrategy,
       forecastAverageMonths,
       emergencyFundAverageMonths,
+      envelopeSince,
     } = settings.value
     form.value = {
+      envelopeMode: envelopeSince !== null,
       periodMode,
       periodStartDay,
       budgetWarningPercent,
@@ -193,6 +197,23 @@ onMounted(load)
           type="number"
           :rules="[percentRule(200)]"
           style="max-width: 200px"
+        />
+      </v-card-text>
+    </v-card>
+
+    <v-card class="mb-4" title="Mode enveloppes">
+      <v-card-text>
+        <v-switch
+          v-model="form.envelopeMode"
+          color="primary"
+          label="Affecter chaque euro reçu à une catégorie"
+          :hint="
+            settings?.envelopeSince
+              ? `Actif depuis ${periodLabel(settings.envelopeSince)}. Le budget affiche ce qui reste à affecter, et chaque dépense reporte son reste sur la période suivante.`
+              : 'À affecter = revenus reçus − montants affectés, cumulé depuis l\'activation. Chaque dépense reporte son reste sur la période suivante.'
+          "
+          persistent-hint
+          data-testid="envelope-mode"
         />
       </v-card-text>
     </v-card>

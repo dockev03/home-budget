@@ -5,6 +5,8 @@ using HomeBudget.Api.Domain.Audit;
 using HomeBudget.Api.Domain.Users;
 using HomeBudget.Api.Infrastructure;
 using HomeBudget.Api.Infrastructure.Data;
+using HomeBudget.Api.Infrastructure.Notifications;
+using HomeBudget.Api.Infrastructure.Security;
 
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -67,7 +69,8 @@ public static class AuthEndpoints
     }
 
     private static async Task<Results<Ok<LoginResponse>, ProblemHttpResult>> LoginAsync(
-        LoginRequest request, SignInManager<AppUser> signIn, UserManager<AppUser> users, AuditTrail audit)
+        LoginRequest request, HttpContext http, SignInManager<AppUser> signIn, UserManager<AppUser> users, AuditTrail audit,
+        SecurityAlertQueue alerts, TimeProvider clock)
     {
         var userName = request.UserName.Trim();
         var user = await users.FindByNameAsync(userName);
@@ -77,32 +80,45 @@ public static class AuthEndpoints
             await audit.RecordAsync(AuditAction.LoginFailed, details: "Compte désactivé.", actor: user);
             return Incorrect();
         }
+        var wasLocked = user is not null && await users.IsLockedOutAsync(user);
+        UserSessions.MarkLogin(http, SessionOrigin.Password);
         var result = await signIn.PasswordSignInAsync(userName, request.Password, request.RememberMe, lockoutOnFailure: true);
+        await AlertIfNewlyLockedAsync(result, wasLocked, user, http, users, alerts, clock);
         return await ToResponseAsync(result, signIn, users, audit, user, userName, "mot de passe");
     }
 
     private static async Task<Results<Ok<LoginResponse>, ProblemHttpResult>> LoginTwoFactorAsync(
-        TwoFactorLoginRequest request, SignInManager<AppUser> signIn, UserManager<AppUser> users, AuditTrail audit)
+        TwoFactorLoginRequest request, HttpContext http, SignInManager<AppUser> signIn, UserManager<AppUser> users, AuditTrail audit,
+        SecurityAlertQueue alerts, TimeProvider clock)
     {
         var code = NormalizeCode(request.Code);
         // Récupéré avant la connexion : après succès, le cookie de seconde étape est supprimé.
         var pending = await signIn.GetTwoFactorAuthenticationUserAsync();
+        var wasLocked = pending is not null && await users.IsLockedOutAsync(pending);
+        UserSessions.MarkLogin(http, SessionOrigin.Authenticator);
         var result = await signIn.TwoFactorAuthenticatorSignInAsync(code, request.RememberMe, rememberClient: false);
+        await AlertIfNewlyLockedAsync(result, wasLocked, pending, http, users, alerts, clock);
         return await ToResponseAsync(result, signIn, users, audit, pending, null, "code TOTP");
     }
 
     private static async Task<Results<Ok<LoginResponse>, ProblemHttpResult>> LoginRecoveryCodeAsync(
-        RecoveryCodeLoginRequest request, SignInManager<AppUser> signIn, UserManager<AppUser> users, AuditTrail audit)
+        RecoveryCodeLoginRequest request, HttpContext http, SignInManager<AppUser> signIn, UserManager<AppUser> users, AuditTrail audit)
     {
         // Format « XXXXX-XXXXX » : le tiret fait partie du code.
         var code = request.RecoveryCode.Replace(" ", string.Empty, StringComparison.Ordinal).Trim().ToUpperInvariant();
         var pending = await signIn.GetTwoFactorAuthenticationUserAsync();
+        UserSessions.MarkLogin(http, SessionOrigin.RecoveryCode);
         var result = await signIn.TwoFactorRecoveryCodeSignInAsync(code);
         return await ToResponseAsync(result, signIn, users, audit, pending, null, "code de secours");
     }
 
-    private static async Task<NoContent> LogoutAsync(SignInManager<AppUser> signIn)
+    private static async Task<NoContent> LogoutAsync(HttpContext http, SignInManager<AppUser> signIn, UserSessions sessions)
     {
+        if (UserSessions.SessionId(http.User) is { } sessionId
+            && Guid.TryParse(http.User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+        {
+            await sessions.RevokeAsync(userId, sessionId, http.RequestAborted);
+        }
         await signIn.SignOutAsync();
         return TypedResults.NoContent();
     }
@@ -140,6 +156,29 @@ public static class AuthEndpoints
             actor: user,
             actorName: attemptedUserName);
         return Incorrect();
+    }
+
+    /// <summary>
+    /// Alerte par e-mail (N9) quand cette tentative vient de verrouiller le compte : les tentatives suivantes, refusées
+    /// pendant le verrouillage, ne renvoient pas d'alerte.
+    /// </summary>
+    private static async Task AlertIfNewlyLockedAsync(
+        SignInResult result, bool wasLocked, AppUser? user, HttpContext http, UserManager<AppUser> users, SecurityAlertQueue alerts,
+        TimeProvider clock)
+    {
+        if (!result.IsLockedOut || wasLocked || user is null)
+        {
+            return;
+        }
+        var lockedUntil = await users.GetLockoutEndDateAsync(user);
+        var ip = http.Connection.RemoteIpAddress;
+        alerts.Enqueue(new SecurityAlert(
+            SecurityAlertKind.LockedOut,
+            user.Id,
+            clock.GetUtcNow(),
+            ip is null ? null : (ip.IsIPv4MappedToIPv6 ? ip.MapToIPv4() : ip).ToString(),
+            http.Request.Headers.UserAgent.ToString(),
+            LockedUntil: lockedUntil));
     }
 
     private static ProblemHttpResult Incorrect() =>

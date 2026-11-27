@@ -9,7 +9,8 @@ namespace HomeBudget.Api.Infrastructure.Security;
 /// <summary>
 /// Validation de la session à chaque requête : un utilisateur désactivé, ou dont l'empreinte de sécurité a
 /// changé (mot de passe, rôle, double authentification), perd aussitôt ses autres sessions. Remplace la
-/// validation périodique d'Identity (toutes les 30 minutes par défaut).
+/// validation périodique d'Identity (toutes les 30 minutes par défaut). La session elle-même doit exister
+/// (<see cref="UserSessions"/>) : une session révoquée est refusée.
 /// </summary>
 public static class SessionValidator
 {
@@ -22,7 +23,8 @@ public static class SessionValidator
         var principal = context.Principal;
         var user = principal is null ? null : await users.GetUserAsync(principal);
         var stamp = principal?.FindFirst(users.Options.ClaimsIdentity.SecurityStampClaimType)?.Value;
-        if (user is null || !user.IsActive || !string.Equals(stamp, user.SecurityStamp, StringComparison.Ordinal))
+        if (user is null || !user.IsActive || !string.Equals(stamp, user.SecurityStamp, StringComparison.Ordinal)
+            || !await context.HttpContext.RequestServices.GetRequiredService<UserSessions>().ValidateAsync(context, user))
         {
             context.RejectPrincipal();
             await context.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);

@@ -80,6 +80,7 @@ export const auditActions: Record<string, string> = {
   WebhookUpdated: 'Webhook modifié',
   WebhookDisabled: 'Webhook désactivé (échecs)',
   AttachmentsRestored: 'Pièces jointes restaurées',
+  SessionRevoked: 'Session fermée à distance',
 }
 
 const targets: Record<string, string> = {
@@ -95,6 +96,7 @@ const targets: Record<string, string> = {
   Recurrence: 'récurrence',
   Transaction: 'opération',
   User: 'utilisateur',
+  UserSession: 'session',
   Webhook: 'webhook',
 }
 
@@ -110,6 +112,7 @@ export function auditSeverity(action: string): 'error' | 'warning' | undefined {
       'RoleChanged',
       'UserDeactivated',
       'TwoFactorDisabled',
+      'SessionRevoked',
       'Restored',
       'AccountVisibilityChanged',
       'WebhookDisabled',

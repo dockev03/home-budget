@@ -171,7 +171,10 @@ ImportBatch                Id, AccountId, FileName, Format{Csv,Ofx,Qif}, Created
 AuditLog                   Id, At, UserId, Action, Entity, EntityId, Changes(JSON), Ip
 PushSubscription           Id, UserId, Endpoint (unique), P256dh, Auth, Device?, CreatedAt, LastSuccessAt?   (M1, un par appareil)
 NotificationPreference     Id, UserId (unique), BudgetAlerts, ForecastAlerts, DueTomorrowAlerts, PendingAlerts,
-                           EmailSummary{None,Weekly,Monthly}   (M1, M2 ; sans ligne : toutes les alertes, pas de résumé)
+                           EmailSummary{None,Weekly,Monthly}, LoginEmailAlert, LockoutEmailAlert
+                           (M1, M2, N9 ; sans ligne : toutes les alertes push, pas de résumé, alerte de verrouillage seule)
+UserSession                Id, UserId, CreatedAt, LastSeenAt, IpAddress?, UserAgent?, Origin{Password,Authenticator,
+                           RecoveryCode,Legacy}, SecurityStamp, RevokedAt?   (N8 ; dates en ticks UTC)
 DashboardLayout            Id, UserId (unique), Order (JSON), Hidden (JSON)   (accueil : ordre des blocs et blocs masqués ; sans ligne : disposition par défaut)
 SentAlert                  Id, UserId, Kind, ObjectKey, PeriodKey, SentAt   (unique (UserId, Kind, ObjectKey, PeriodKey) ; purgé après 400 jours)
 ApiToken                   Id, UserId, Name, Hash (SHA-256), Prefix, Scope{Read,Write}, CreatedAt, ExpiresAt, LastUsedAt   (I5)
@@ -237,6 +240,14 @@ Il n'y a pas d'éditeur de règles. L'appli apprend des corrections :
   - CSP stricte (aucun script inline) ;
   - `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `frame-ancestors 'none'` ;
   - HSTS fixé par le NPM.
+- **Sessions suivies côté serveur** (N8, `UserSessions`) :
+  - à la connexion, `OnSigningIn` crée une ligne `UserSession` et ajoute son identifiant au cookie (revendication `hb_sid`) ; un rafraîchissement (changement de mot de passe, de rôle ou de 2FA) garde la même session ;
+  - `SessionValidator` refuse un cookie dont la session n'existe plus, et met à jour la dernière activité, l'IP et le User-Agent (au plus toutes les 5 minutes, ou quand ils changent) ;
+  - révoquer une session, ou se déconnecter, la marque révoquée (`RevokedAt`) : le cookie est refusé dès la requête suivante, même une copie. La liste n'affiche que les sessions non révoquées, d'empreinte de sécurité à jour et actives depuis moins de 30 jours ; les autres sont purgées à la connexion suivante, une fois le cookie expiré ;
+  - un cookie émis avant le suivi est repris à sa première requête (session `Legacy`, cookie réémis) : personne n'est déconnecté par la mise à jour. Son identifiant de session est déduit du cookie (utilisateur, date d'émission) : les requêtes parallèles reprennent la même session, et une copie du cookie d'une session révoquée reste refusée ;
+  - navigateur, système et type d'appareil sont lus dans le User-Agent (`UserAgentInfo`, sans bibliothèque) : à titre indicatif, l'en-tête étant fourni par le client ;
+  - `GET /api/account/sessions`, `DELETE /api/account/sessions/{id}`, `POST /api/account/sessions/revoke-others` ; chaque fermeture est tracée (`SessionRevoked`).
+- **Alertes de sécurité par e-mail** (N9) : à chaque connexion (si activée) et quand une tentative verrouille le compte (une seule alerte par verrouillage). Date, IP, navigateur, système, méthode de connexion et lien vers **Sécurité**. Mises en file (`SecurityAlertQueue`, bornée) et envoyées par `SecurityAlertWorker` : la connexion n'attend pas le serveur SMTP. Préférences dans **Sécurité** (`/api/account/security-alerts`).
 - **Derrière le reverse proxy** : `ForwardedHeaders` est activé, en faisant confiance uniquement au réseau Docker du NPM (`KnownNetworks`).
 - **Pièces jointes** (B7, `Features/Attachments`) :
   - liste blanche de types de fichiers (JPEG, PNG, WebP, HEIC, PDF), reconnue sur les premiers octets du fichier, jamais sur l'extension ni le type annoncé ;

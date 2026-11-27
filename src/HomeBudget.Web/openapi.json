@@ -7029,6 +7029,141 @@
         }
       }
     },
+    "/api/account/sessions": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Sessions ouvertes (appareil, adresse IP, activit\u00E9), la plus r\u00E9cente en premier.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SessionDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account/sessions/{id}": {
+      "delete": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Ferme une session : l\u0027appareil concern\u00E9 devra se reconnecter.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account/sessions/revoke-others": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Ferme toutes les sessions sauf celle-ci.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevokeResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account/security-alerts": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Alertes de s\u00E9curit\u00E9 par e-mail : connexion, verrouillage du compte.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityAlertSettings"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Active ou d\u00E9sactive les alertes de s\u00E9curit\u00E9 par e-mail.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SecurityAlertRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityAlertSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/split/settings": {
       "get": {
         "tags": [
@@ -9214,7 +9349,8 @@
           "WebhookCreated",
           "WebhookUpdated",
           "WebhookDisabled",
-          "AttachmentsRestored"
+          "AttachmentsRestored",
+          "SessionRevoked"
         ]
       },
       "AuditEntryDto": {
@@ -13224,6 +13360,14 @@
           }
         }
       },
+      "DeviceKind": {
+        "enum": [
+          "Unknown",
+          "Desktop",
+          "Mobile",
+          "Tablet"
+        ]
+      },
       "EmailSummaryFrequency": {
         "enum": [
           "None",
@@ -16122,6 +16266,18 @@
           }
         }
       },
+      "RevokeResult": {
+        "required": [
+          "revoked"
+        ],
+        "type": "object",
+        "properties": {
+          "revoked": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "RoleRequest": {
         "required": [
           "role"
@@ -16755,6 +16911,104 @@
             "type": "boolean"
           }
         }
+      },
+      "SecurityAlertRequest": {
+        "required": [
+          "onLogin",
+          "onLockout"
+        ],
+        "type": "object",
+        "properties": {
+          "onLogin": {
+            "type": "boolean"
+          },
+          "onLockout": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SecurityAlertSettings": {
+        "required": [
+          "emailAvailable",
+          "email",
+          "onLogin",
+          "onLockout"
+        ],
+        "type": "object",
+        "properties": {
+          "emailAvailable": {
+            "type": "boolean"
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "onLogin": {
+            "type": "boolean"
+          },
+          "onLockout": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SessionDto": {
+        "required": [
+          "id",
+          "createdAt",
+          "lastSeenAt",
+          "ipAddress",
+          "browser",
+          "operatingSystem",
+          "device",
+          "origin",
+          "isCurrent"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ipAddress": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "browser": {
+            "type": "string"
+          },
+          "operatingSystem": {
+            "type": "string"
+          },
+          "device": {
+            "$ref": "#/components/schemas/DeviceKind"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/SessionOrigin"
+          },
+          "isCurrent": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SessionOrigin": {
+        "enum": [
+          "Password",
+          "Authenticator",
+          "RecoveryCode",
+          "Legacy"
+        ]
       },
       "SettingsDto": {
         "required": [

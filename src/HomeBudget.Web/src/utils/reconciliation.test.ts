@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { advanceProgress, netCost, netCostText, reconciliationState } from './reconciliation'
+import {
+  advanceProgress,
+  matchesDifference,
+  netCost,
+  netCostText,
+  reconciliationState,
+} from './reconciliation'
 
 const preview = (difference: number, toReconcileCount = 3) => ({
   date: '2026-11-20',
@@ -46,5 +52,18 @@ describe('advanceProgress', () => {
     expect(advanceProgress({ expectedAmount: 200, received: 50, status: 'Open' })).toBe(25)
     expect(advanceProgress({ expectedAmount: 200, received: 250, status: 'Open' })).toBe(100)
     expect(advanceProgress({ expectedAmount: 200, received: 0, status: 'Settled' })).toBe(100)
+  })
+})
+
+describe('matchesDifference', () => {
+  it("repère l'opération dont le montant annule l'écart", () => {
+    expect(matchesDifference(-12.5, -12.5)).toBe(true)
+    expect(matchesDifference(0.1 + 0.2, 0.3)).toBe(true)
+  })
+
+  it('ignore les autres montants et un écart nul', () => {
+    expect(matchesDifference(12.5, -12.5)).toBe(false)
+    expect(matchesDifference(-12, -12.5)).toBe(false)
+    expect(matchesDifference(0, 0)).toBe(false)
   })
 })

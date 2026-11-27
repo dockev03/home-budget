@@ -7052,6 +7052,103 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Photo de profil de l'utilisateur connecté. Le front ajoute v (date de la photo) pour qu'un changement ne serve pas l'ancienne copie hors ligne. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        /** Remplace la photo de profil, envoyée telle quelle (JPEG, PNG ou WebP, 256 Kio au plus). */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "image/jpeg": string;
+                    "image/png": string;
+                    "image/webp": string;
+                    "application/octet-stream": string;
+                };
+            };
+            responses: {
+                /** @description Payload Too Large */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Unsupported Media Type */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Retire la photo de profil : la pastille reprend l'initiale. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CurrentUser"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/account/sessions": {
         parameters: {
             query?: never;
@@ -10124,6 +10221,8 @@ export interface components {
             twoFactorEnabled: boolean;
             displayName: string;
             twoFactorRequired: boolean;
+            /** Format: date-time */
+            avatarUpdatedAt: null | string;
         };
         DashboardDto: {
             period: components["schemas"]["PeriodDto"];

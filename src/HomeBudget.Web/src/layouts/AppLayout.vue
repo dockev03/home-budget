@@ -6,6 +6,7 @@ import {
   mdiChartBar,
   mdiAccountGroupOutline,
   mdiApi,
+  mdiAccountCircleOutline,
   mdiBellOutline,
   mdiCloudOffOutline,
   mdiBankOutline,
@@ -35,6 +36,7 @@ import {
   mdiWeatherNight,
   mdiWhiteBalanceSunny,
 } from '@mdi/js'
+import AvatarDialog from '@/components/AvatarDialog.vue'
 import TransactionDialog from '@/components/TransactionDialog.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useOfflineStore } from '@/stores/offline'
@@ -43,6 +45,7 @@ import { useReferenceStore } from '@/stores/reference'
 import { useTransactionEditor } from '@/stores/transactionEditor'
 import { useThemePreference } from '@/composables/useThemePreference'
 import { roleLabel } from '@/utils/users'
+import { avatarUrl } from '@/utils/avatar'
 import { api } from '@/api/client'
 import { clearApiCache, warmUpCache } from '@/offline/cache'
 import { applyUpdate, updateAvailable } from '@/pwa'
@@ -185,6 +188,8 @@ const themeOptions = [
 ] as const
 
 const userInitial = computed(() => auth.user?.userName.charAt(0).toUpperCase() ?? '?')
+const userAvatar = computed(() => avatarUrl(auth.user?.avatarUpdatedAt))
+const editingAvatar = ref(false)
 
 async function logout() {
   loggingOut.value = true
@@ -230,11 +235,27 @@ async function logout() {
     <v-menu>
       <template #activator="{ props }">
         <v-btn v-bind="props" icon aria-label="Compte">
-          <v-avatar color="primary" size="32">{{ userInitial }}</v-avatar>
+          <v-avatar color="primary" size="32" data-testid="account-avatar">
+            <v-img v-if="userAvatar" :src="userAvatar" alt="" cover />
+            <template v-else>{{ userInitial }}</template>
+          </v-avatar>
         </v-btn>
       </template>
       <v-list density="compact">
-        <v-list-item :title="auth.user?.displayName" :subtitle="roleLabel(auth.user?.roles[0])" />
+        <v-list-item :title="auth.user?.displayName" :subtitle="roleLabel(auth.user?.roles[0])">
+          <template #prepend>
+            <v-avatar color="primary" size="40" data-testid="account-menu-avatar">
+              <v-img v-if="userAvatar" :src="userAvatar" alt="" cover />
+              <template v-else>{{ userInitial }}</template>
+            </v-avatar>
+          </template>
+        </v-list-item>
+        <v-list-item
+          :prepend-icon="mdiAccountCircleOutline"
+          title="Photo de profil"
+          data-testid="avatar-menu-item"
+          @click="editingAvatar = true"
+        />
         <v-divider />
         <template v-if="!mdAndUp">
           <v-list-item
@@ -309,6 +330,7 @@ async function logout() {
     @click="editor.open('create', null, ($route.query.accountId as string) ?? null)"
   />
   <TransactionDialog />
+  <AvatarDialog v-model="editingAvatar" />
 
   <v-snackbar :model-value="updateAvailable" timeout="-1" location="top">
     Une nouvelle version de l'appli est disponible.

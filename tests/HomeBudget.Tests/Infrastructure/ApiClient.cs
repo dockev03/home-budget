@@ -36,13 +36,17 @@ public sealed class ApiClient(HttpClient http)
     }
 
     /// <summary>POST d'un contenu brut (fichier envoyé tel quel), avec le jeton anti-CSRF.</summary>
-    public async Task<HttpResponseMessage> PostContentAsync(string url, HttpContent content)
+    public Task<HttpResponseMessage> PostContentAsync(string url, HttpContent content) =>
+        SendContentAsync(HttpMethod.Post, url, content);
+
+    /// <summary>Envoi d'un contenu brut (fichier envoyé tel quel), avec le jeton anti-CSRF.</summary>
+    public async Task<HttpResponseMessage> SendContentAsync(HttpMethod method, string url, HttpContent content)
     {
         if (_csrf is null)
         {
             await RefreshCsrfAsync();
         }
-        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(url, UriKind.Relative)) { Content = content };
+        using var request = new HttpRequestMessage(method, new Uri(url, UriKind.Relative)) { Content = content };
         request.Headers.Add("X-CSRF-TOKEN", _csrf);
         return await http.SendAsync(request);
     }

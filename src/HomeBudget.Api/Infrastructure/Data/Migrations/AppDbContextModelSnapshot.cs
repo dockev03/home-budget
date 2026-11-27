@@ -1905,6 +1905,9 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTimeOffset?>("AvatarUpdatedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("TEXT");
@@ -2029,6 +2032,25 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Invitations");
+                });
+
+            modelBuilder.Entity("HomeBudget.Api.Domain.Users.UserAvatar", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("BLOB");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("UserAvatars");
                 });
 
             modelBuilder.Entity("HomeBudget.Api.Domain.Users.UserSession", b =>
@@ -2497,6 +2519,15 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.HasOne("HomeBudget.Api.Domain.Transactions.Transaction", null)
                         .WithMany("Lines")
                         .HasForeignKey("TransactionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("HomeBudget.Api.Domain.Users.UserAvatar", b =>
+                {
+                    b.HasOne("HomeBudget.Api.Domain.Users.AppUser", null)
+                        .WithOne()
+                        .HasForeignKey("HomeBudget.Api.Domain.Users.UserAvatar", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

@@ -15,7 +15,8 @@ public sealed record TransactionRequest(
     [property: StringLength(200)] string? Label,
     [property: StringLength(2000)] string? Notes,
     bool? IsCleared,
-    [property: Required, MinLength(1), MaxLength(50)] IReadOnlyList<TransactionLineRequest> Lines);
+    [property: Required, MinLength(1), MaxLength(50)] IReadOnlyList<TransactionLineRequest> Lines,
+    DateOnly? ReferenceMonth = null);
 
 public sealed record TransactionLineDto(Guid Id, Guid? CategoryId, decimal Amount, string? Memo, IReadOnlyList<string> Tags);
 
@@ -25,6 +26,7 @@ public sealed record TransactionLineDto(Guid Id, Guid? CategoryId, decimal Amoun
 /// <param name="AdvanceId">Avance soldée en tout ou partie par ce revenu (B12).</param>
 /// <param name="CreatedBy">Auteur de l'opération (K2) ; null pour une opération générée ou importée sans session.</param>
 /// <param name="AttachmentCount">Nombre de pièces jointes (B7).</param>
+/// <param name="ReferenceMonth">Mois concerné (1er du mois), s'il diffère du mois de la date ; null sinon.</param>
 public sealed record TransactionDto(
     Guid Id,
     Guid AccountId,
@@ -47,7 +49,8 @@ public sealed record TransactionDto(
     Guid? AdvanceId,
     Guid? CreatedBy,
     Guid? UpdatedBy,
-    int AttachmentCount);
+    int AttachmentCount,
+    DateOnly? ReferenceMonth);
 
 /// <summary>
 /// Liens d'un revenu (B11, B12) : la dépense qu'il rembourse et l'avance qu'il solde. Modifiables même sur une

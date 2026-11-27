@@ -32,6 +32,7 @@ const transaction = (
   version: 1,
   isReconciled: false,
   reimbursesId: null,
+  referenceMonth: null,
   reimbursedAmount: 0,
   advanceId: null,
   createdBy: null,

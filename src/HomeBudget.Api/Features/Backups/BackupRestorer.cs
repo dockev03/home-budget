@@ -73,7 +73,8 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 t.Id, t.AccountId, t.Date, t.PayeeId, t.Label, t.Notes, t.IsCleared, t.TransferId,
                 [.. t.Lines.OrderBy(l => l.SortOrder).Select(l => new BackupTransactionLine(
                     l.Id, l.CategoryId, l.Amount, l.Memo, [.. l.Tags.Select(g => g.Id).Order()]))],
-                AuditOf(t), t.RawLabel, t.ImportBatchId, t.ImportHash, t.ReconciliationId, t.ReimbursesId, t.AdvanceId))],
+                AuditOf(t), t.RawLabel, t.ImportBatchId, t.ImportHash, t.ReconciliationId, t.ReimbursesId, t.AdvanceId,
+                t.ReferenceMonth))],
             [.. recurrences.Select(r => new BackupRecurrence(
                 r.Id, r.Label, r.AccountId, r.ToAccountId, r.PayeeId, r.CategoryId, r.Amount, r.Notes, r.Mode, r.StartDate,
                 r.Unit, r.Interval, r.End, r.EndDate, r.Count, r.IsInstallment, r.GenerateFrom, AuditOf(r), r.Tolerance, r.ToleranceUnit, r.IsSubscription, r.BusinessDayShift))],
@@ -322,6 +323,7 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 ReconciliationId = t.ReconciliationId,
                 ReimbursesId = t.ReimbursesId,
                 AdvanceId = t.AdvanceId,
+                ReferenceMonth = t.ReferenceMonth,
             }, t.Audit);
             entity.SetLines(t.Lines!.OfType<BackupTransactionLine>().Select(l => new TransactionLine
             {

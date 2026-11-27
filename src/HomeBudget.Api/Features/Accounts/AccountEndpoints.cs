@@ -56,6 +56,8 @@ public static class AccountEndpoints
 
     /// <param name="HolderId">Titulaire d'un compte partagé (K4) ; null pour un compte joint ou privé.</param>
     /// <param name="RemainingPrincipal">Capital restant dû aujourd'hui d'un compte de crédit dont les conditions sont saisies (A8).</param>
+    /// <param name="SavingsRate">Taux du jour d'un compte d'épargne qui a au moins un taux saisi (A9).</param>
+    /// <param name="InterestEarned">Intérêts acquis depuis le 1er janvier par ce compte d'épargne, à titre indicatif (A9).</param>
     public sealed record AccountDto(
         Guid Id,
         string Name,
@@ -76,7 +78,9 @@ public static class AccountEndpoints
         Guid? OwnerId,
         bool IsEmergencyFund,
         Guid? HolderId,
-        decimal? RemainingPrincipal);
+        decimal? RemainingPrincipal,
+        decimal? SavingsRate,
+        decimal? InterestEarned);
 
     public sealed record AccountList(IReadOnlyList<AccountDto> Items, decimal NetWorth);
 
@@ -88,7 +92,8 @@ public static class AccountEndpoints
             .ToListAsync();
         var balances = await Balances.ComputeAsync(db, clock, accounts);
         var loans = await LoanEndpoints.RemainingPrincipalsAsync(db, clock, accounts.Select(a => a.Id));
-        var items = accounts.Select(a => ToDto(a, balances, loans)).ToList();
+        var savings = await SavingsInterestEndpoints.SummariesAsync(db, clock, accounts);
+        var items = accounts.Select(a => ToDto(a, balances, loans, savings)).ToList();
         var netWorth = items.Where(a => a.IncludeInNetWorth && !a.IsArchived).Sum(a => a.Balance);
         return TypedResults.Ok(new AccountList(items, netWorth));
     }
@@ -245,6 +250,11 @@ public static class AccountEndpoints
         {
             errors["type"] = ["Ce compte a des conditions de crédit : supprimez-les avant de changer son type."];
         }
+        if (existing is not null && existing.Type == AccountType.Savings && request.Type != AccountType.Savings
+            && await db.SavingsRates.AnyAsync(r => r.AccountId == existing.Id))
+        {
+            errors["type"] = ["Ce compte a des taux de rémunération : supprimez-les avant de changer son type."];
+        }
         if (request.HolderId is { } holderId && holderId != existing?.HolderId && !await db.Users.AnyAsync(u => u.Id == holderId && u.IsActive))
         {
             errors["holderId"] = ["Titulaire inconnu ou désactivé."];
@@ -258,16 +268,27 @@ public static class AccountEndpoints
     }
 
     private static async Task<AccountDto> ToDtoAsync(Account account, AppDbContext db, TimeProvider clock) =>
-        ToDto(account, await Balances.ComputeAsync(db, clock, [account]), await LoanEndpoints.RemainingPrincipalsAsync(db, clock, [account.Id]));
+        ToDto(
+            account,
+            await Balances.ComputeAsync(db, clock, [account]),
+            await LoanEndpoints.RemainingPrincipalsAsync(db, clock, [account.Id]),
+            await SavingsInterestEndpoints.SummariesAsync(db, clock, [account]));
 
-    private static AccountDto ToDto(Account a, IReadOnlyDictionary<Guid, Balances.AccountBalance> balances, IReadOnlyDictionary<Guid, decimal> loans)
+    private static AccountDto ToDto(
+        Account a,
+        IReadOnlyDictionary<Guid, Balances.AccountBalance> balances,
+        IReadOnlyDictionary<Guid, decimal> loans,
+        IReadOnlyDictionary<Guid, (decimal Rate, decimal Earned)> savings)
     {
         var balance = balances.GetValueOrDefault(a.Id);
+        var hasSavings = savings.TryGetValue(a.Id, out var saving);
         return new AccountDto(
             a.Id, a.Name, a.Type, a.InitialBalance, a.InitialDate, a.Color, a.Icon, a.IncludeInForecast,
             a.IncludeInNetWorth, a.OverdraftThreshold, a.IsArchived, a.SortOrder,
             balance.Current, balance.Future, a.Version,
             a.Visibility == AccountVisibility.Private, a.OwnerId, a.IsEmergencyFund, a.HolderId,
-            loans.TryGetValue(a.Id, out var remaining) ? remaining : null);
+            loans.TryGetValue(a.Id, out var remaining) ? remaining : null,
+            hasSavings ? saving.Rate : null,
+            hasSavings ? saving.Earned : null);
     }
 }

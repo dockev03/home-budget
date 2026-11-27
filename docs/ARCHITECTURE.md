@@ -124,6 +124,8 @@ Account                    Id, Name, Type{Checking,Savings,Investment,Cash,Credi
 AccountValuation           AccountId, Date, Value, Note   (A7 ; unique par compte et date ; visibilité du compte, R8)
 Loan                       AccountId (unique), Principal, AnnualRate (% à 4 décimales, stocké en dix-millièmes),
                            DurationMonths, FirstPaymentDate, MonthlyInsurance   (A8 ; visibilité du compte, R8)
+SavingsRate                AccountId, EffectiveFrom, AnnualRate (% à 4 décimales, comme Loan)   (A9 ; unique par compte
+                           et date ; un taux futur est un changement programmé ; visibilité du compte, R8)
 Reconciliation             AccountId, Date, StatementBalance, Difference, ClosedAt                (A5)
 
 CategoryGroup ─┐
@@ -264,7 +266,7 @@ Il n'y a pas d'éditeur de règles. L'appli apprend des corrections :
 - **Tâche `BackupWorker`**, chaque nuit :
   1. un instantané cohérent de la base avec `VACUUM INTO '/data/backups/homebudget-AAAAMMJJ.db'` ;
   2. une rotation selon `BACKUP_KEEP_DAILY`, `_WEEKLY` et `_MONTHLY`.
-- **Pièces jointes** : elles ne sont jamais modifiées (nommées par empreinte), donc le dossier `attachments/` peut être copié tel quel. La sauvegarde JSON (format 12) en contient la liste ; les fichiers sont exportés à part dans une archive ZIP (`GET /api/backups/attachments`), réimportable (`POST`), qui n'ajoute que les fichiers manquants dont l'empreinte correspond au nom.
+- **Pièces jointes** : elles ne sont jamais modifiées (nommées par empreinte), donc le dossier `attachments/` peut être copié tel quel. La sauvegarde JSON (format 13) en contient la liste ; les fichiers sont exportés à part dans une archive ZIP (`GET /api/backups/attachments`), réimportable (`POST`), qui n'ajoute que les fichiers manquants dont l'empreinte correspond au nom.
 - **Recommandation** : synchroniser `/data/backups` et `/data/attachments` vers un NAS ou un stockage hors de la machine (en dehors de l'appli).
 - **Export et restauration JSON** depuis l'interface (administrateurs), avec un audit et une confirmation.
 
@@ -289,7 +291,8 @@ Il n'y a pas d'éditeur de règles. L'appli apprend des corrections :
 - **Patrimoine net** (G5, `BalanceHistory`, fonction pure) : solde de chaque compte « inclus dans le patrimoine » en fin de chaque période (aujourd'hui pour la période en cours), archivés compris, sur 12, 24 ou 60 périodes. Avant sa date d'ouverture, un compte vaut 0.
 - **Objectif d'épargne** (J1, J2, `SavingsGoalPlan`) : l'épargne réunie est le solde du compte rattaché, ou l'opposé du cumul des lignes de la catégorie d'épargne (sous-catégories comprises) depuis `StartDate`. Le versement conseillé répartit le reste à réunir sur les périodes restantes jusqu'à celle de la date cible, la période en cours comprise, arrondi au centime supérieur. L'épargne d'un enfant (J4) est un objectif rattaché à son livret ou à une catégorie dédiée.
 - **Épargne de précaution** (J3) : solde des comptes marqués `IsEmergencyFund` (par défaut les comptes d'épargne), divisé par les dépenses fixes et variables moyennes des N dernières périodes clôturées. La moyenne ne remonte pas avant la période de la première opération.
-- **Visibilité** (R8) : valorisations et objectifs rattachés à un compte suivent sa visibilité ; le cumul d'une catégorie ne compte que les opérations visibles.
+- **Rémunération des livrets** (A9, `SavingsInterest`, fonction pure) : règle des quinzaines des livrets réglementés. L'année compte 24 quinzaines (du 1er au 15, du 16 à la fin du mois), qui rapportent chacune solde rémunéré × taux / 24, quelle que soit leur durée. Solde rémunéré = solde à la fin de la quinzaine précédente (solde initial à la date d'ouverture + opérations) moins les retraits de la quinzaine, 0 au plus bas : un dépôt rapporte à partir de la quinzaine suivante, un retrait cesse de rapporter dès le début de la sienne. Le taux d'une quinzaine est celui en vigueur à son premier jour (`SavingsRate`, 0 avant le premier) : un taux fixé en cours de quinzaine s'applique à la suivante. Intérêts acquis = quinzaines terminées ; estimation au 31/12 = toute l'année, opérations futures saisies et taux programmés compris ; les totaux sont arrondis au centime depuis les montants non arrondis. Ils sont indicatifs : ni solde, ni patrimoine, ni prévision. La capitalisation du 31 décembre n'est pas simulée : les intérêts rapportent une fois l'opération réelle de la banque enregistrée (import ou saisie). `GET/POST /api/accounts/{id}/savings-rates`, `PUT` et `DELETE …/{rateId}` (If-Match), `GET /api/accounts/{id}/interest?year=` ; la liste des comptes donne le taux du jour et les intérêts acquis de l'année. Un compte qui a des taux reste un compte d'épargne. Sauvegarde : format 13.
+- **Visibilité** (R8) : valorisations, taux et objectifs rattachés à un compte suivent sa visibilité ; le cumul d'une catégorie ne compte que les opérations visibles.
 
 ### 6.9 Crédits, calendrier, rapports et répartition (A8, E8, G8, G9, K4)
 

@@ -189,6 +189,44 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.ToTable("Loans");
                 });
 
+            modelBuilder.Entity("HomeBudget.Api.Domain.Accounts.SavingsRate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("AnnualRate")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId", "EffectiveFrom")
+                        .IsUnique();
+
+                    b.ToTable("SavingsRates");
+                });
+
             modelBuilder.Entity("HomeBudget.Api.Domain.Advances.Advance", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2235,6 +2273,15 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                 });
 
             modelBuilder.Entity("HomeBudget.Api.Domain.Accounts.Loan", b =>
+                {
+                    b.HasOne("HomeBudget.Api.Domain.Accounts.Account", null)
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("HomeBudget.Api.Domain.Accounts.SavingsRate", b =>
                 {
                     b.HasOne("HomeBudget.Api.Domain.Accounts.Account", null)
                         .WithMany()

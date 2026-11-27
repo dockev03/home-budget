@@ -1158,6 +1158,300 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/accounts/{accountId}/savings-rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Taux du livret, du plus récent (ou programmé) au plus ancien. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    accountId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SavingsRateDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Ajoute un taux à une date, passée ou future (changement programmé). */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    accountId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SavingsRateRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SavingsRateDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/{accountId}/savings-rates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Modifie un taux (If-Match requis). */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    accountId: string;
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SavingsRateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SavingsRateDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Supprime un taux (If-Match requis). */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    accountId: string;
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts/{accountId}/interest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Intérêts du livret par quinzaine sur une année (l'année en cours par défaut) : acquis à ce jour et estimés au 31 décembre. */
+        get: {
+            parameters: {
+                query?: {
+                    year?: number;
+                };
+                header?: never;
+                path: {
+                    accountId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SavingsInterestDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/categories": {
         parameters: {
             query?: never;
@@ -9071,6 +9365,10 @@ export interface components {
             holderId: null | string;
             /** Format: double */
             remainingPrincipal: null | number;
+            /** Format: double */
+            savingsRate: null | number;
+            /** Format: double */
+            interestEarned: null | number;
         };
         AccountList: {
             items: components["schemas"]["AccountDto"][];
@@ -9431,6 +9729,7 @@ export interface components {
             savedReports?: null | components["schemas"]["BackupSavedReport"][];
             attachments?: null | components["schemas"]["BackupAttachment"][];
             childcareDeclarations?: null | components["schemas"]["BackupChildcareDeclaration"][];
+            savingsRates?: null | components["schemas"]["BackupSavingsRate"][];
         };
         BackupImportBatch: {
             /** Format: uuid */
@@ -9643,6 +9942,17 @@ export interface components {
             color: null | string;
             icon: null | string;
             isArchived: boolean;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
+        BackupSavingsRate: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            accountId: string;
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: double */
+            annualRate: number;
             audit: null | components["schemas"]["BackupAudit"];
         };
         BackupScenario: {
@@ -10583,6 +10893,19 @@ export interface components {
             /** Format: int32 */
             duplicates: number;
         };
+        InterestFortnightDto: {
+            /** Format: date */
+            start: string;
+            /** Format: date */
+            end: string;
+            /** Format: double */
+            base: number;
+            /** Format: double */
+            annualRate: number;
+            /** Format: double */
+            interest: number;
+            isEnded: boolean;
+        };
         InvitationDto: {
             /** Format: uuid */
             id: string;
@@ -11278,6 +11601,41 @@ export interface components {
         };
         /** @enum {unknown} */
         SavingsGoalStatus: "InProgress" | "Reached" | "Overdue";
+        SavingsInterestDto: {
+            /** Format: uuid */
+            accountId: string;
+            /** Format: int32 */
+            year: number;
+            /** Format: date */
+            asOf: string;
+            /** Format: double */
+            currentRate: null | number;
+            nextRate: null | components["schemas"]["SavingsRateDto"];
+            /** Format: double */
+            earned: number;
+            /** Format: double */
+            projected: number;
+            fortnights: components["schemas"]["InterestFortnightDto"][];
+        };
+        SavingsRateDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            accountId: string;
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: double */
+            annualRate: number;
+            isScheduled: boolean;
+            /** Format: int32 */
+            version: number;
+        };
+        SavingsRateRequest: {
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: double */
+            annualRate: number;
+        };
         ScenarioDto: {
             /** Format: uuid */
             id: string;

@@ -5310,6 +5310,82 @@
         }
       }
     },
+    "/api/dashboard/layout": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Disposition de l\u0027accueil : blocs dans l\u0027ordre d\u0027affichage et blocs masqu\u00E9s.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LayoutDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Enregistre l\u0027ordre des blocs de l\u0027accueil et les blocs masqu\u00E9s ; les blocs inconnus sont ignor\u00E9s, les blocs absents ajout\u00E9s \u00E0 la fin.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LayoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LayoutDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "R\u00E9tablit la disposition par d\u00E9faut de l\u0027accueil.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LayoutDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/dashboard/{periodKey}": {
       "get": {
         "tags": [
@@ -13622,6 +13698,57 @@
           "remaining": {
             "type": "number",
             "format": "double"
+          }
+        }
+      },
+      "LayoutDto": {
+        "required": [
+          "order",
+          "hidden",
+          "isDefault"
+        ],
+        "type": "object",
+        "properties": {
+          "order": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hidden": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isDefault": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LayoutRequest": {
+        "required": [
+          "order",
+          "hidden"
+        ],
+        "type": "object",
+        "properties": {
+          "order": {
+            "maxItems": 32,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hidden": {
+            "maxItems": 32,
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

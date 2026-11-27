@@ -67,7 +67,7 @@ function backToPassword() {
           label="Identifiant"
           :rules="[required]"
           autocomplete="username"
-          autofocus
+          v-autofocus
         />
         <v-text-field
           v-model="password"
@@ -108,7 +108,7 @@ function backToPassword() {
           autocomplete="one-time-code"
           maxlength="7"
           :rules="[required, totpCode]"
-          autofocus
+          v-autofocus
         />
         <v-btn type="submit" color="primary" block size="large" :loading="loading" :disabled="!valid">
           Valider
@@ -128,7 +128,7 @@ function backToPassword() {
           label="Code de secours"
           :rules="[required]"
           autocomplete="off"
-          autofocus
+          v-autofocus
         />
         <v-btn type="submit" color="primary" block size="large" :loading="loading" :disabled="!valid">
           Valider

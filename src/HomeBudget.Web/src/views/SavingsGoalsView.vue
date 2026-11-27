@@ -284,7 +284,7 @@ onMounted(load)
       <v-card-text>
         <v-alert v-if="formError" type="error" variant="tonal" class="mb-4" :text="formError" />
         <v-form v-model="valid" @submit.prevent="save">
-          <v-text-field v-model="form.name" label="Nom" maxlength="100" :rules="[required]" autofocus />
+          <v-text-field v-model="form.name" label="Nom" maxlength="100" :rules="[required]" v-autofocus />
           <v-row dense>
             <v-col cols="12" sm="6">
               <v-text-field

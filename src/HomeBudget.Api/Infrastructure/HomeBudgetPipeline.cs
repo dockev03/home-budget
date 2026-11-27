@@ -10,6 +10,7 @@ using HomeBudget.Api.Features.Calendar;
 using HomeBudget.Api.Features.Categories;
 using HomeBudget.Api.Features.Dashboard;
 using HomeBudget.Api.Features.Exports;
+using HomeBudget.Api.Features.Family;
 using HomeBudget.Api.Features.Forecasts;
 using HomeBudget.Api.Features.Imports;
 using HomeBudget.Api.Features.Integrations;
@@ -116,6 +117,7 @@ public static class HomeBudgetPipeline
         app.MapPasswordEndpoints();
         app.MapAuditEndpoints();
         app.MapSplitEndpoints();
+        app.MapFamilyEndpoints();
         app.MapNotificationEndpoints();
         app.MapSyncEndpoints();
         app.MapAttachmentEndpoints();

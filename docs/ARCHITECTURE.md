@@ -129,12 +129,13 @@ Reconciliation             AccountId, Date, StatementBalance, Difference, Closed
 CategoryGroup ─┐
 Category       Id, ParentId?, Name, Kind{Income,Fixed,Variable,Savings}, Color, Icon, SortOrder, IsArchived,
                ExcludeFromSplit (K4 : dépenses personnelles, sous-catégories comprises),
-               CarryOverSince? (D6 : première période reportée, null = report désactivé ; dépenses seulement)
+               CarryOverSince? (D6 : première période reportée, null = report désactivé ; dépenses seulement),
+               FamilyRole{None,Benefit,ChildcareAid,Childcare,Health} (P1, P2, P4 ; hérité du parent si None)
 CategoryBudget             CategoryId, Mode{Amount,PercentOfIncome,Auto}, Value             (défaut)
 PeriodBudget               CategoryId, PeriodKey, Mode, Value                               (D4 : remplace le défaut)
 Provision                  Label, CategoryId, Amount, DueDate, IsAnnual, StartDate          (D11 : parts par période)
 
-Payee                      Id, Name, DefaultCategoryId?
+Payee                      Id, Name, DefaultCategoryId?, Reimburser{None,PrimaryInsurance,Mutual}   (P4)
 LearnedRule                Id, Key (libellé normalisé), PayeeId?, CategoryId?, Hits, LastUsedAt   (I2–I4)
 Tag                        Id, Name, Color
 
@@ -151,7 +152,8 @@ Recurrence                 Id, AccountId, Label, PayeeId?, Frequency{Day,Week,Mo
                            StartDate, EndDate?, MaxOccurrences?, Mode{Auto,Confirm}, Tolerance,
                            BusinessDay{None,Next,Previous}, IsSubscription, TransferAccountId?, IsActive
 RecurrenceLine             RecurrenceId, CategoryId, Amount
-RecurrenceOccurrence       RecurrenceId, Date, State{Generated,Skipped,Matched}, TransactionId?
+RecurrenceOccurrence       RecurrenceId, Date, State{Generated,Skipped,Matched}, TransactionId?,
+                           ExpectedAmount? (P1 : montant de la récurrence figé au traitement de l'échéance)
 
 SavingsGoal                Id, Name, TargetAmount, TargetDate?, AccountId? | CategoryId?, StartDate,
                            Color, Icon, IsArchived   (J1–J4 ; un compte ou une catégorie d'épargne)
@@ -249,7 +251,7 @@ Il n'y a pas d'éditeur de règles. L'appli apprend des corrections :
 - **Tâche `BackupWorker`**, chaque nuit :
   1. un instantané cohérent de la base avec `VACUUM INTO '/data/backups/homebudget-AAAAMMJJ.db'` ;
   2. une rotation selon `BACKUP_KEEP_DAILY`, `_WEEKLY` et `_MONTHLY`.
-- **Pièces jointes** : elles ne sont jamais modifiées (nommées par empreinte), donc le dossier `attachments/` peut être copié tel quel. La sauvegarde JSON (format 10) en contient la liste ; les fichiers sont exportés à part dans une archive ZIP (`GET /api/backups/attachments`), réimportable (`POST`), qui n'ajoute que les fichiers manquants dont l'empreinte correspond au nom.
+- **Pièces jointes** : elles ne sont jamais modifiées (nommées par empreinte), donc le dossier `attachments/` peut être copié tel quel. La sauvegarde JSON (format 11) en contient la liste ; les fichiers sont exportés à part dans une archive ZIP (`GET /api/backups/attachments`), réimportable (`POST`), qui n'ajoute que les fichiers manquants dont l'empreinte correspond au nom.
 - **Recommandation** : synchroniser `/data/backups` et `/data/attachments` vers un NAS ou un stockage hors de la machine (en dehors de l'appli).
 - **Export et restauration JSON** depuis l'interface (administrateurs), avec un audit et une confirmation.
 
@@ -303,6 +305,15 @@ Il n'y a pas d'éditeur de règles. L'appli apprend des corrections :
 - **Mode enveloppes** : option du foyer (`EnvelopeSince`). Toute dépense active reporte son reste depuis l'activation ; « à affecter » = Σ (revenus reçus − dépenses et épargne budgétées) de l'activation à la période affichée. Négatif, il signale qu'on a affecté plus que ce qu'on a reçu.
 - **Déplacer** (`POST /api/budgets/{période}/moves`) : retire un montant du budget propre d'une catégorie (hors provisions et report) pour l'ajouter à une autre ; les deux deviennent des budgets propres à la période (D4), en montant.
 - Une catégorie archivée ne reporte plus ; désactiver puis réactiver le report le fait repartir de la période en cours.
+
+### 6.12 Suivis du foyer : aides, garde, santé (P1, P2, P4)
+
+- **Rôles** : une catégorie porte un `FamilyRole` compatible avec son type (aides : revenus ; garde et santé : dépenses). Une sous-catégorie sans rôle prend celui de son parent. Les catégories par défaut « Allocation CAF », « CMG », « Nounou Maël » et « Santé » le reçoivent à la création, par la migration `FamilyTracking` sur une base existante, et à la restauration d'une sauvegarde antérieure au format 11.
+- **Aides (P1)**, `GET /api/family/benefits/{année}` : chaque échéance des récurrences d'une catégorie d'aide, avec l'attendu figé (`ExpectedAmount`), le reçu (montant de l'opération) et l'écart = reçu − attendu (manque : sautée ou opération supprimée ; inconnu : à valider ou à venir). S'y ajoutent les versements hors échéancier (opérations d'une catégorie d'aide qui ne viennent d'aucune échéance). Le mode « à valider » (E5) est conseillé : la confirmation saisit le montant réellement versé.
+- **Garde (P2)**, `GET /api/family/childcare/{année}` (et `/export` en CSV, audité) : frais payés (−Σ des lignes « garde ») moins aides à la garde reçues, par mois et par tiers ; montant déclarable = max(0, payé − aides). Aucune règle fiscale (plafond, taux du crédit d'impôt) n'est codée.
+- **Santé (P4)**, `GET /api/family/health?from&to` : chaque opération dont les lignes « santé » sont une dépense, avec ses remboursements liés (B11) classés selon le `Reimburser` de leur tiers (CPAM, mutuelle, autre) et le reste à charge. Les remboursements classés en santé mais liés à aucune dépense sont totalisés à part. `PUT /api/payees/{id}/reimburser` désigne un organisme.
+- **Années civiles** : celles de la déclaration d'impôts et de la CAF, indépendamment de la période budgétaire (R1).
+- **Visibilité (R8)** : les filtres de requête du contexte s'appliquent ; un membre n'y voit jamais les comptes privés d'un autre.
 
 ## 7. Conventions d'API
 

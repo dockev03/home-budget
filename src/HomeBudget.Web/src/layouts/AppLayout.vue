@@ -13,6 +13,7 @@ import {
   mdiCalendarMonthOutline,
   mdiChartSankey,
   mdiCallSplit,
+  mdiHumanMaleFemaleChild,
   mdiCalendarSync,
   mdiCogOutline,
   mdiChartDonut,
@@ -138,6 +139,7 @@ const navigation = computed(() =>
     },
     { title: 'Avances', icon: mdiHandCoinOutline, to: { name: 'advances' }, exact: true, bottom: false },
     { title: 'Répartition', icon: mdiCallSplit, to: { name: 'split' }, exact: false, bottom: false },
+    { title: 'Famille', icon: mdiHumanMaleFemaleChild, to: { name: 'family' }, exact: false, bottom: false },
     {
       title: 'Notifications',
       icon: mdiBellOutline,

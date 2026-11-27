@@ -3,7 +3,7 @@ namespace HomeBudget.Api.Domain.Categories;
 /// <summary>Jeu de catégories créé au premier lancement (C6), repris du classeur Excel du foyer.</summary>
 public static class DefaultCategories
 {
-    public sealed record Definition(string Name, CategoryKind Kind, string Icon, string Color);
+    public sealed record Definition(string Name, CategoryKind Kind, string Icon, string Color, FamilyRole FamilyRole = FamilyRole.None);
 
     public static readonly IReadOnlyList<Definition> All =
     [
@@ -12,8 +12,8 @@ public static class DefaultCategories
         new("CSE / Ndf", CategoryKind.Income, "receipt", "#43a047"),
         new("Primes", CategoryKind.Income, "star", "#66bb6a"),
         new("Cadeaux / Autre", CategoryKind.Income, "gift", "#81c784"),
-        new("Allocation CAF", CategoryKind.Income, "family", "#00897b"),
-        new("CMG", CategoryKind.Income, "baby", "#26a69a"),
+        new("Allocation CAF", CategoryKind.Income, "family", "#00897b", FamilyRole.Benefit),
+        new("CMG", CategoryKind.Income, "baby", "#26a69a", FamilyRole.ChildcareAid),
         new("Intérêts", CategoryKind.Income, "percent", "#4db6ac"),
 
         new("Prêt Immo", CategoryKind.Fixed, "home", "#1565c0"),
@@ -29,7 +29,7 @@ public static class DefaultCategories
         new("LOA Matelas", CategoryKind.Fixed, "bed", "#5e35b1"),
         new("Impôts", CategoryKind.Fixed, "bank", "#455a64"),
         new("Gaz", CategoryKind.Fixed, "fire", "#ef6c00"),
-        new("Nounou Maël", CategoryKind.Fixed, "baby", "#ec407a"),
+        new("Nounou Maël", CategoryKind.Fixed, "baby", "#ec407a", FamilyRole.Childcare),
         new("Eau", CategoryKind.Fixed, "water", "#0288d1"),
         new("Abonnement IT", CategoryKind.Fixed, "cloud", "#546e7a"),
         new("Frais bancaire", CategoryKind.Fixed, "bank", "#607d8b"),
@@ -39,7 +39,7 @@ public static class DefaultCategories
         new("Restaurants", CategoryKind.Variable, "food", "#f4511e"),
         new("Essence", CategoryKind.Variable, "gas-station", "#6d4c41"),
         new("Shopping", CategoryKind.Variable, "shopping", "#d81b60"),
-        new("Santé", CategoryKind.Variable, "medical", "#e53935"),
+        new("Santé", CategoryKind.Variable, "medical", "#e53935", FamilyRole.Health),
         new("Chien", CategoryKind.Variable, "paw", "#8d6e63"),
         new("Cadeaux", CategoryKind.Variable, "gift", "#ab47bc"),
         new("Bricolage", CategoryKind.Variable, "hammer", "#795548"),
@@ -50,4 +50,8 @@ public static class DefaultCategories
         new("Avance Pro", CategoryKind.Variable, "briefcase-clock", "#8e24aa"),
         new("Transfert CSE / NdF", CategoryKind.Variable, "swap", "#9575cd"),
     ];
+
+    /// <summary>Rôle par défaut d'une catégorie d'après son nom (P1, P2, P4) : données d'avant l'étape 16.</summary>
+    public static FamilyRole RoleOf(string name, CategoryKind kind) =>
+        All.FirstOrDefault(d => d.Name == name && d.Kind == kind)?.FamilyRole ?? FamilyRole.None;
 }

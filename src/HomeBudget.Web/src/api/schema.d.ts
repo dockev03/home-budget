@@ -1379,12 +1379,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Tiers dont le nom contient le texte recherché, les plus utilisés en premier. */
+        /** Tiers dont le nom contient le texte recherché, les plus utilisés en premier ; ou les organismes de santé seuls. */
         get: {
             parameters: {
                 query?: {
                     search?: string;
                     limit?: number;
+                    reimbursers?: boolean;
                 };
                 header?: never;
                 path?: never;
@@ -1404,6 +1405,64 @@ export interface paths {
             };
         };
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/payees/{id}/reimburser": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Désigne le tiers comme organisme de santé (CPAM ou mutuelle), ou le retire (P4). */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ReimburserRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PayeeDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
@@ -7056,6 +7115,193 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/family/benefits/{year}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Aides de l'année civile (P1) : chaque échéance attendue, le montant reçu et l'écart, plus les versements hors échéancier. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    year: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BenefitsDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/family/childcare/{year}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Frais de garde de l'année civile (P2) : payé, aides à la garde reçues et montant déclarable, par mois et par tiers. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    year: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ChildcareDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/family/childcare/{year}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Exporte le récapitulatif des frais de garde de l'année en CSV. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    year: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/family/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dépenses de santé de la plage (P4), avec les remboursements CPAM et mutuelle liés et le reste à charge (défaut : l'année en cours). */
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HealthDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/notifications": {
         parameters: {
             query?: never;
@@ -8427,6 +8673,7 @@ export interface components {
             /** @default false */
             excludeFromSplit: boolean;
             carryOverSince?: null | string;
+            familyRole?: components["schemas"]["FamilyRole"];
         };
         BackupDocument: {
             format: null | string;
@@ -8547,12 +8794,15 @@ export interface components {
             /** Format: uuid */
             transactionId: null | string;
             audit: null | components["schemas"]["BackupAudit"];
+            /** Format: double */
+            expectedAmount?: null | number;
         };
         BackupPayee: {
             /** Format: uuid */
             id: string;
             name: null | string;
             audit: null | components["schemas"]["BackupAudit"];
+            reimburser?: components["schemas"]["Reimburser"];
         };
         BackupPeriodBudget: {
             /** Format: uuid */
@@ -8789,6 +9039,49 @@ export interface components {
             note: null | string;
             audit: null | components["schemas"]["BackupAudit"];
         };
+        BenefitRowDto: {
+            /** Format: uuid */
+            recurrenceId: null | string;
+            /** Format: uuid */
+            occurrenceId: null | string;
+            /** Format: uuid */
+            transactionId: null | string;
+            /** Format: uuid */
+            categoryId: string;
+            categoryName: string;
+            label: string;
+            /** Format: date */
+            date: string;
+            status: components["schemas"]["BenefitStatus"];
+            /** Format: double */
+            expected: number;
+            /** Format: double */
+            received: null | number;
+            /** Format: double */
+            gap: null | number;
+        };
+        BenefitsDto: {
+            /** Format: int32 */
+            year: number;
+            rows: components["schemas"]["BenefitRowDto"][];
+            categories: components["schemas"]["BenefitTotalsDto"][];
+            total: components["schemas"]["BenefitTotalsDto"];
+        };
+        /** @enum {unknown} */
+        BenefitStatus: "Received" | "Pending" | "Skipped" | "Missing" | "Upcoming" | "Unscheduled";
+        BenefitTotalsDto: {
+            /** Format: uuid */
+            categoryId: string;
+            categoryName: string;
+            /** Format: double */
+            expected: number;
+            /** Format: double */
+            received: number;
+            /** Format: double */
+            gap: number;
+            /** Format: double */
+            upcoming: number;
+        };
         BudgetComparisonDto: {
             /** Format: uuid */
             categoryId: string;
@@ -8998,6 +9291,7 @@ export interface components {
             /** Format: int32 */
             version: number;
             excludeFromSplit: boolean;
+            familyRole: components["schemas"]["FamilyRole"];
         };
         /** @enum {unknown} */
         CategoryKind: "Income" | "Fixed" | "Variable" | "Savings";
@@ -9012,10 +9306,40 @@ export interface components {
             sortOrder: null | number;
             isArchived: null | boolean;
             excludeFromSplit?: null | boolean;
+            familyRole?: null | components["schemas"]["FamilyRole"];
         };
         ChangePasswordRequest: {
             currentPassword: string;
             newPassword: string;
+        };
+        ChildcareDto: {
+            /** Format: int32 */
+            year: number;
+            months: components["schemas"]["ChildcareMonthDto"][];
+            payees: components["schemas"]["ChildcarePayeeDto"][];
+            /** Format: double */
+            paid: number;
+            /** Format: double */
+            aid: number;
+            /** Format: double */
+            declarable: number;
+        };
+        ChildcareMonthDto: {
+            /** Format: int32 */
+            month: number;
+            /** Format: double */
+            paid: number;
+            /** Format: double */
+            aid: number;
+            /** Format: double */
+            net: number;
+        };
+        ChildcarePayeeDto: {
+            /** Format: uuid */
+            payeeId: null | string;
+            name: string;
+            /** Format: double */
+            paid: number;
         };
         ClearRequest: {
             isCleared: boolean;
@@ -9135,6 +9459,8 @@ export interface components {
             /** Format: double */
             toAssign: number;
         };
+        /** @enum {unknown} */
+        FamilyRole: "None" | "Benefit" | "ChildcareAid" | "Childcare" | "Health";
         FieldChangeDto: {
             field: string;
             before: null | string;
@@ -9219,6 +9545,44 @@ export interface components {
         ForecastStrategy: "Budget" | "Average";
         /** @enum {unknown} */
         FrequencyUnit: "Day" | "Week" | "Month" | "Year";
+        HealthDto: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            rows: components["schemas"]["HealthRowDto"][];
+            /** Format: double */
+            expense: number;
+            /** Format: double */
+            primaryInsurance: number;
+            /** Format: double */
+            mutual: number;
+            /** Format: double */
+            other: number;
+            /** Format: double */
+            remaining: number;
+            /** Format: double */
+            unlinked: number;
+        };
+        HealthRowDto: {
+            /** Format: uuid */
+            transactionId: string;
+            /** Format: date */
+            date: string;
+            payee: null | string;
+            label: null | string;
+            categoryName: string;
+            /** Format: double */
+            expense: number;
+            /** Format: double */
+            primaryInsurance: number;
+            /** Format: double */
+            mutual: number;
+            /** Format: double */
+            other: number;
+            /** Format: double */
+            remaining: number;
+        };
         HttpValidationProblemDetails: {
             type?: null | string;
             title?: null | string;
@@ -9578,6 +9942,7 @@ export interface components {
             name: string;
             /** Format: int32 */
             usageCount: number;
+            reimburser: components["schemas"]["Reimburser"];
         };
         PendingOccurrenceDto: {
             /** Format: uuid */
@@ -9824,6 +10189,11 @@ export interface components {
             /** @default false */
             isSubscription: boolean;
             businessDayShift?: components["schemas"]["BusinessDayShift"];
+        };
+        /** @enum {unknown} */
+        Reimburser: "None" | "PrimaryInsurance" | "Mutual";
+        ReimburserRequest: {
+            reimburser: components["schemas"]["Reimburser"];
         };
         RemainingToLiveDto: {
             /** Format: double */

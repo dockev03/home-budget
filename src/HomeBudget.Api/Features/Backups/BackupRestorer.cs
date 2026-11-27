@@ -66,8 +66,8 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 a.Id, a.Name, a.Type, a.InitialBalance, a.InitialDate, a.OwnerId, a.Visibility, a.Color, a.Icon,
                 a.IncludeInForecast, a.IncludeInNetWorth, a.OverdraftThreshold, a.IsArchived, a.SortOrder, AuditOf(a), a.IsEmergencyFund, a.HolderId))],
             [.. categories.Select(c => new BackupCategory(
-                c.Id, c.ParentId, c.Name, c.Kind, c.Color, c.Icon, c.SortOrder, c.IsArchived, AuditOf(c), c.ExcludeFromSplit, c.CarryOverSince))],
-            [.. payees.Select(p => new BackupPayee(p.Id, p.Name, AuditOf(p)))],
+                c.Id, c.ParentId, c.Name, c.Kind, c.Color, c.Icon, c.SortOrder, c.IsArchived, AuditOf(c), c.ExcludeFromSplit, c.CarryOverSince, c.FamilyRole))],
+            [.. payees.Select(p => new BackupPayee(p.Id, p.Name, AuditOf(p), p.Reimburser))],
             [.. budgets.Select(b => new BackupBudget(b.Id, b.CategoryId, b.Mode, b.Value, AuditOf(b)))],
             [.. transactions.Select(t => new BackupTransaction(
                 t.Id, t.AccountId, t.Date, t.PayeeId, t.Label, t.Notes, t.IsCleared, t.TransferId,
@@ -78,7 +78,7 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 r.Id, r.Label, r.AccountId, r.ToAccountId, r.PayeeId, r.CategoryId, r.Amount, r.Notes, r.Mode, r.StartDate,
                 r.Unit, r.Interval, r.End, r.EndDate, r.Count, r.IsInstallment, r.GenerateFrom, AuditOf(r), r.Tolerance, r.ToleranceUnit, r.IsSubscription, r.BusinessDayShift))],
             [.. occurrences.Select(o => new BackupOccurrence(
-                o.Id, o.RecurrenceId, o.Index, o.ScheduledDate, o.DueDate, o.Status, o.TransactionId, AuditOf(o)))],
+                o.Id, o.RecurrenceId, o.Index, o.ScheduledDate, o.DueDate, o.Status, o.TransactionId, AuditOf(o), o.ExpectedAmount))],
             [.. profiles.Select(p => new BackupImportProfile(
                 p.Id, p.Name, p.Delimiter, p.DateFormat, p.DecimalSeparator, p.DateColumn, p.LabelColumn,
                 p.AmountColumn, p.DebitColumn, p.CreditColumn, AuditOf(p)))],
@@ -227,13 +227,14 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 IsArchived = c.IsArchived,
                 ExcludeFromSplit = c.ExcludeFromSplit,
                 CarryOverSince = c.CarryOverSince,
+                FamilyRole = document.FormatVersion >= BackupDocument.FamilyVersion ? c.FamilyRole : DefaultCategories.RoleOf(c.Name!.Trim(), c.Kind),
             }, c.Audit));
         }
 
         foreach (var p in document.Payees!.OfType<BackupPayee>())
         {
             var name = p.Name!.Trim();
-            db.Payees.Add(Stamp(new Payee { Id = p.Id, Name = name, NormalizedName = Payee.Normalize(name) }, p.Audit));
+            db.Payees.Add(Stamp(new Payee { Id = p.Id, Name = name, NormalizedName = Payee.Normalize(name), Reimburser = p.Reimburser }, p.Audit));
         }
 
         foreach (var b in document.Budgets!.OfType<BackupBudget>())
@@ -361,6 +362,7 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
             }, r.Audit));
         }
 
+        var recurrenceAmounts = document.Recurrences!.OfType<BackupRecurrence>().GroupBy(r => r.Id).ToDictionary(g => g.Key, g => (decimal?)g.First().Amount);
         foreach (var o in document.Occurrences!.OfType<BackupOccurrence>())
         {
             db.RecurrenceOccurrences.Add(Stamp(new RecurrenceOccurrence
@@ -372,6 +374,7 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 DueDate = o.DueDate,
                 Status = o.Status,
                 TransactionId = o.TransactionId,
+                ExpectedAmount = document.FormatVersion >= BackupDocument.FamilyVersion ? o.ExpectedAmount : recurrenceAmounts.GetValueOrDefault(o.RecurrenceId),
             }, o.Audit));
         }
 

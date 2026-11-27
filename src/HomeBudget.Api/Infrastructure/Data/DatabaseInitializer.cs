@@ -51,6 +51,7 @@ public static class DatabaseInitializer
                     Kind = definition.Kind,
                     Icon = definition.Icon,
                     Color = definition.Color,
+                    FamilyRole = definition.FamilyRole,
                     SortOrder = order++,
                 });
             }

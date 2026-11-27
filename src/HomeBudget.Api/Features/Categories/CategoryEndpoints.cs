@@ -39,12 +39,14 @@ public static class CategoryEndpoints
         [property: StringLength(40)] string? Icon,
         int? SortOrder,
         bool? IsArchived,
-        bool? ExcludeFromSplit = null);
+        bool? ExcludeFromSplit = null,
+        FamilyRole? FamilyRole = null);
 
     /// <param name="ExcludeFromSplit">Dépenses personnelles, hors de la répartition des dépenses communes (K4).</param>
+    /// <param name="FamilyRole">Rôle dans les suivis du foyer (aides, garde, santé) ; une sous-catégorie sans rôle prend celui de son parent.</param>
     public sealed record CategoryDto(
         Guid Id, Guid? ParentId, string Name, CategoryKind Kind, string? Color, string? Icon, int SortOrder, bool IsArchived, int Version,
-        bool ExcludeFromSplit);
+        bool ExcludeFromSplit, FamilyRole FamilyRole);
 
     private static async Task<Ok<List<CategoryDto>>> ListAsync(AppDbContext db, bool? includeArchived)
     {
@@ -77,6 +79,7 @@ public static class CategoryEndpoints
             Icon = Clean(request.Icon),
             IsArchived = request.IsArchived ?? false,
             ExcludeFromSplit = request.ExcludeFromSplit ?? false,
+            FamilyRole = request.FamilyRole ?? FamilyRole.None,
             SortOrder = request.SortOrder
                 ?? (await db.Categories.Where(c => c.ParentId == request.ParentId).MaxAsync(c => (int?)c.SortOrder) ?? -1) + 1,
         };
@@ -110,11 +113,17 @@ public static class CategoryEndpoints
         category.SortOrder = request.SortOrder ?? category.SortOrder;
         category.IsArchived = request.IsArchived ?? category.IsArchived;
         category.ExcludeFromSplit = request.ExcludeFromSplit ?? category.ExcludeFromSplit;
+        // Un rôle devenu incompatible avec le type (changement de type) est retiré.
+        category.FamilyRole = request.FamilyRole ?? (Category.Fits(category.FamilyRole, category.Kind) ? category.FamilyRole : FamilyRole.None);
 
         // Une sous-catégorie a toujours le type de son parent ; l'archivage du parent masque ses enfants.
         foreach (var child in await db.Categories.Where(c => c.ParentId == id).ToListAsync())
         {
             child.Kind = category.Kind;
+            if (!Category.Fits(child.FamilyRole, child.Kind))
+            {
+                child.FamilyRole = FamilyRole.None;
+            }
             if (category.IsArchived)
             {
                 child.IsArchived = true;
@@ -181,6 +190,11 @@ public static class CategoryEndpoints
             errors["kind"] = ["Un objectif d'épargne est rattaché à cette catégorie : elle doit rester une catégorie d'épargne."];
         }
 
+        if (request.FamilyRole is { } role && (!Enum.IsDefined(role) || !Category.Fits(role, kind)))
+        {
+            errors["familyRole"] = ["Les aides sont des revenus ; la garde et la santé, des dépenses."];
+        }
+
         var name = request.Name.Trim();
         var siblings = await db.Categories
             .Where(c => c.ParentId == request.ParentId && (existing == null || c.Id != existing.Id))
@@ -196,5 +210,5 @@ public static class CategoryEndpoints
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static CategoryDto ToDto(Category c) =>
-        new(c.Id, c.ParentId, c.Name, c.Kind, c.Color, c.Icon, c.SortOrder, c.IsArchived, c.Version, c.ExcludeFromSplit);
+        new(c.Id, c.ParentId, c.Name, c.Kind, c.Color, c.Icon, c.SortOrder, c.IsArchived, c.Version, c.ExcludeFromSplit, c.FamilyRole);
 }

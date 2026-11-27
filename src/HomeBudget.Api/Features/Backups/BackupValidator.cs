@@ -231,6 +231,11 @@ public static class BackupValidator
             {
                 errors.Add($"{where} : report du reste invalide.");
             }
+            Defined(where, c.FamilyRole, errors);
+            if (!Domain.Categories.Category.Fits(c.FamilyRole, c.Kind))
+            {
+                errors.Add($"{where} : rôle incompatible avec le type de la catégorie.");
+            }
             Audit(where, c.Audit, errors);
         }
 
@@ -242,6 +247,7 @@ public static class BackupValidator
             {
                 errors.Add($"{where} : nom en double.");
             }
+            Defined(where, p.Reimburser, errors);
             Audit(where, p.Audit, errors);
         }
 
@@ -564,6 +570,10 @@ public static class BackupValidator
             if (o.Index < 0)
             {
                 errors.Add($"{where} : rang négatif.");
+            }
+            if (o.ExpectedAmount is { } expected)
+            {
+                Amount(where, expected, errors);
             }
             Audit(where, o.Audit, errors);
         }

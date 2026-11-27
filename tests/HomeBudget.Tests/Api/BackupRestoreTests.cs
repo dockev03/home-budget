@@ -173,6 +173,11 @@ public sealed class BackupRestoreTests
         // Report du reste (étape 15).
         (await admin.PutAsync($"/api/budgets/categories/{await admin.CategoryIdAsync("Courses")}/carry-over", new { enabled = true }, null))
             .EnsureSuccessStatusCode();
+
+        // Organisme de santé (étape 16).
+        var payee = (await admin.GetJsonAsync("/api/payees?search=hyper")).EnumerateArray().First().GetProperty("id").GetGuid();
+        (await admin.PutAsync($"/api/payees/{payee}/reimburser", new { reimburser = "PrimaryInsurance" }, null))
+            .EnsureSuccessStatusCode();
     }
 
     private static async Task<string> ExportAsync(ApiClient client)
@@ -214,9 +219,12 @@ public sealed class BackupRestoreTests
 
         var document = JsonNode.Parse(backup)!;
         document["format"]!.GetValue<string>().ShouldBe("home-budget-backup");
-        document["formatVersion"]!.GetValue<int>().ShouldBe(10);
+        document["formatVersion"]!.GetValue<int>().ShouldBe(11);
         document["settings"]!["envelopeSince"]!.GetValue<string>().ShouldNotBeNull();
         document["categories"]!.AsArray().Count(c => c!["carryOverSince"] is not null).ShouldBe(1);
+        document["categories"]!.AsArray().Count(c => c!["familyRole"]!.GetValue<string>() != "None").ShouldBe(4);
+        document["payees"]!.AsArray().Single(p => p!["name"]!.GetValue<string>() == "Hyper U")!["reimburser"]!.GetValue<string>().ShouldBe("PrimaryInsurance");
+        document["occurrences"]!.AsArray().ShouldAllBe(o => o!["expectedAmount"] != null);
         document["attachments"]!.AsArray().ShouldHaveSingleItem()!["fileName"]!.GetValue<string>().ShouldBe("fiche.pdf");
         var loan = document["loans"]!.AsArray().ShouldHaveSingleItem()!;
         loan["annualRate"]!.GetValue<decimal>().ShouldBe(3.875m);
@@ -434,6 +442,39 @@ public sealed class BackupRestoreTests
         var response = await RestoreAsync(admin, node.ToJsonString());
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await ApiClient.ReadJsonAsync(response)).GetProperty("errors").GetProperty("file")[0].GetString()!.ShouldContain("crédits");
+    }
+
+    [Fact]
+    public async Task Version_10_backup_gets_default_family_roles_and_expected_amounts()
+    {
+        await using var factory = new HomeBudgetFactory();
+        var admin = await factory.CreateAdminClientAsync();
+        await SeedAsync(admin);
+        var node = JsonNode.Parse(await ExportAsync(admin))!.AsObject();
+        node["formatVersion"] = 10;
+        foreach (var c in node["categories"]!.AsArray())
+        {
+            c!.AsObject().Remove("familyRole");
+        }
+        foreach (var p in node["payees"]!.AsArray())
+        {
+            p!.AsObject().Remove("reimburser");
+        }
+        foreach (var o in node["occurrences"]!.AsArray())
+        {
+            o!.AsObject().Remove("expectedAmount");
+        }
+
+        (await RestoreAsync(admin, node.ToJsonString())).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var restored = JsonNode.Parse(await ExportAsync(admin))!;
+        restored["categories"]!.AsArray().Where(c => c!["familyRole"]!.GetValue<string>() != "None")
+            .Select(c => c!["name"]!.GetValue<string>()).Order().ShouldBe(["Allocation CAF", "CMG", "Nounou Maël", "Santé"]);
+        restored["payees"]!.AsArray().ShouldAllBe(p => p!["reimburser"]!.GetValue<string>() == "None");
+        var amounts = restored["recurrences"]!.AsArray().ToDictionary(r => r!["id"]!.GetValue<Guid>(), r => r!["amount"]!.GetValue<decimal>());
+        var occurrences = restored["occurrences"]!.AsArray();
+        occurrences.ShouldNotBeEmpty();
+        occurrences.ShouldAllBe(o => o!["expectedAmount"]!.GetValue<decimal>() == amounts[o!["recurrenceId"]!.GetValue<Guid>()]);
     }
 
     [Fact]

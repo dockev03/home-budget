@@ -35,6 +35,7 @@ public static partial class BackupEndpoints
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
             .WithSummary("Remplace toutes les données du foyer par la sauvegarde envoyée (validée en entier d'abord, instantané de la base juste avant). Les utilisateurs sont conservés.");
+        group.MapAttachmentArchiveEndpoints();
 
         return app;
     }
@@ -53,6 +54,7 @@ public static partial class BackupEndpoints
     private static async Task<IResult> RestoreAsync(
         HttpContext http,
         BackupRestorer restorer,
+        Attachments.AttachmentStore store,
         BackupService backups,
         IOptions<JsonOptions> json,
         ClaimsPrincipal user,
@@ -118,7 +120,9 @@ public static partial class BackupEndpoints
             document.Transactions!.Count,
             document.Recurrences!.Count,
             document.Occurrences!.Count,
-            Path.GetFileName(snapshot));
+            Path.GetFileName(snapshot),
+            document.Attachments?.Count ?? 0,
+            (document.Attachments ?? []).OfType<BackupAttachment>().Select(a => a.Sha256!).Distinct().Count(h => !store.Exists(h)));
         LogRestored(logger, user.Identity?.Name, result.Transactions, result.Snapshot);
         await audit.RecordAsync(AuditAction.Restored, details: $"{result.Transactions} opération(s) restaurée(s) ; instantané {result.Snapshot}.");
         return TypedResults.Ok(result);

@@ -3,10 +3,12 @@ using System.Security.Claims;
 using HomeBudget.Api.Domain;
 using HomeBudget.Api.Domain.Accounts;
 using HomeBudget.Api.Domain.Advances;
+using HomeBudget.Api.Domain.Attachments;
 using HomeBudget.Api.Domain.Audit;
 using HomeBudget.Api.Domain.Budgets;
 using HomeBudget.Api.Domain.Categories;
 using HomeBudget.Api.Domain.Imports;
+using HomeBudget.Api.Domain.Integrations;
 using HomeBudget.Api.Domain.Notifications;
 using HomeBudget.Api.Domain.Payees;
 using HomeBudget.Api.Domain.Reconciliations;
@@ -117,6 +119,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
 
     public DbSet<SentAlert> SentAlerts => Set<SentAlert>();
+
+    public DbSet<Attachment> Attachments => Set<Attachment>();
+
+    public DbSet<ApiToken> ApiTokens => Set<ApiToken>();
+
+    public DbSet<Webhook> Webhooks => Set<Webhook>();
+
+    public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -292,6 +302,53 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
             e.HasIndex(a => new { a.UserId, a.Kind, a.ObjectKey, a.PeriodKey }).IsUnique();
         });
 
+        builder.Entity<Attachment>(e =>
+        {
+            ConfigureAudit(e);
+            e.Property(a => a.FileName).HasMaxLength(Attachment.MaxFileNameLength);
+            e.Property(a => a.ContentType).HasMaxLength(Attachment.MaxContentTypeLength);
+            e.Property(a => a.Sha256).HasMaxLength(Attachment.HashLength);
+            // Les pièces jointes (B7) disparaissent avec leur opération et suivent sa visibilité (R8) ;
+            // le fichier, partagé par empreinte, est effacé quand plus aucune ne l'utilise.
+            e.HasOne<Transaction>().WithMany().HasForeignKey(a => a.TransactionId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(a => a.TransactionId);
+            e.HasIndex(a => a.Sha256);
+            e.HasQueryFilter(a => SeesAllAccounts || Transactions.Any(t => t.Id == a.TransactionId));
+        });
+
+        // API publique (I5) : jetons personnels et webhooks, supprimés avec leur utilisateur.
+        builder.Entity<ApiToken>(e =>
+        {
+            e.Property(t => t.Name).HasMaxLength(ApiToken.MaxNameLength);
+            e.Property(t => t.Hash).HasMaxLength(64);
+            e.Property(t => t.Prefix).HasMaxLength(ApiToken.PrefixLength);
+            e.HasOne<AppUser>().WithMany().HasForeignKey(t => t.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(t => t.Hash).IsUnique();
+            e.HasIndex(t => t.UserId);
+        });
+
+        builder.Entity<Webhook>(e =>
+        {
+            ConfigureAudit(e);
+            e.Property(w => w.Name).HasMaxLength(Webhook.MaxNameLength);
+            e.Property(w => w.Url).HasMaxLength(Webhook.MaxUrlLength);
+            e.Property(w => w.ProtectedSecret).HasMaxLength(1000);
+            e.HasOne<AppUser>().WithMany().HasForeignKey(w => w.OwnerId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<WebhookDelivery>(e =>
+        {
+            e.Property(d => d.Event).HasMaxLength(32);
+            e.Property(d => d.LastError).HasMaxLength(WebhookDelivery.MaxErrorLength);
+            // SQLite ne compare ni ne trie les DateTimeOffset : les dates de la file sont stockées en ticks UTC.
+            e.Property(d => d.CreatedAt).HasConversion(UtcTicks);
+            e.Property(d => d.NextAttemptAt).HasConversion(UtcTicks);
+            e.Property(d => d.CompletedAt).HasConversion(UtcTicks);
+            e.HasOne<Webhook>().WithMany().HasForeignKey(d => d.WebhookId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(d => new { d.Status, d.NextAttemptAt });
+            e.HasIndex(d => new { d.WebhookId, d.CreatedAt });
+        });
+
         builder.Entity<AuditLog>(e =>
         {
             e.Property(l => l.UserName).HasMaxLength(AuditLog.MaxUserNameLength);
@@ -458,6 +515,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
             e.HasQueryFilter(b => SeesAllAccounts || Accounts.Any(a => a.Id == b.AccountId));
         });
     }
+
+    private static readonly Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTimeOffset, long> UtcTicks =
+        new(v => v.UtcTicks, v => new DateTimeOffset(v, TimeSpan.Zero));
 
     private static void ConfigureAudit<T>(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T> e)
         where T : AuditableEntity =>

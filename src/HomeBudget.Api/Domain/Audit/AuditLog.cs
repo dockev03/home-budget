@@ -20,6 +20,12 @@ public enum AuditAction
     BackupExported,
     Restored,
     Deleted,
+    ApiTokenCreated,
+    ApiTokenRevoked,
+    WebhookCreated,
+    WebhookUpdated,
+    WebhookDisabled,
+    AttachmentsRestored,
 }
 
 /// <summary>

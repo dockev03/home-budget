@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
+  mdiPaperclip,
   mdiCheckCircle,
   mdiCheckboxMarkedOutline,
   mdiCheckboxBlankCircleOutline,
@@ -21,6 +22,7 @@ import OfflineQueueCard from '@/components/OfflineQueueCard.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useReferenceStore } from '@/stores/reference'
 import { useTransactionEditor, type Transaction } from '@/stores/transactionEditor'
+import { attachmentCountLabel } from '@/utils/attachments'
 import { transactionsExportUrl, type TransactionFilters } from '@/utils/exports'
 import { formatDayHeading, formatSignedAmount, parseAmount } from '@/utils/format'
 import { netCostText } from '@/utils/reconciliation'
@@ -400,6 +402,14 @@ onMounted(async () => {
         <v-list-item-title class="text-wrap">{{ title(t) }}</v-list-item-title>
         <v-list-item-subtitle>{{ subtitle(t) }}</v-list-item-subtitle>
         <template #append>
+          <v-icon
+            v-if="(t.attachmentCount ?? 0) > 0"
+            :icon="mdiPaperclip"
+            size="small"
+            class="mr-2 text-medium-emphasis"
+            :aria-label="attachmentCountLabel(t.attachmentCount)"
+            :title="attachmentCountLabel(t.attachmentCount)"
+          />
           <span class="font-weight-medium text-no-wrap" :class="t.amount > 0 ? 'text-success' : ''">
             {{ formatSignedAmount(t.amount) }}
           </span>

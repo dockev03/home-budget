@@ -18,13 +18,17 @@ public sealed class SecurityHeadersMiddleware(RequestDelegate next)
         "img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; " +
         "base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 
+    // Pièces jointes (B7) : servies sans rien pouvoir exécuter, ni script, ni formulaire, ni sous-ressource.
+    public const string AttachmentContentSecurityPolicy = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox";
+
     public Task InvokeAsync(HttpContext context)
     {
         context.Response.OnStarting(() =>
         {
             var headers = context.Response.Headers;
-            headers.ContentSecurityPolicy = context.Request.Path.StartsWithSegments("/api/docs")
-                ? DocsContentSecurityPolicy
+            var path = context.Request.Path;
+            headers.ContentSecurityPolicy = path.StartsWithSegments("/api/docs") ? DocsContentSecurityPolicy
+                : path.StartsWithSegments("/api/attachments") ? AttachmentContentSecurityPolicy
                 : ContentSecurityPolicy;
             headers.XContentTypeOptions = "nosniff";
             headers.XFrameOptions = "DENY";

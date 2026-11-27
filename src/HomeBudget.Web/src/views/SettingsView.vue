@@ -15,6 +15,10 @@ const restoreConfirmation = ref('')
 const restoring = ref(false)
 const restored = ref<Schemas['RestoreResultDto'] | null>(null)
 const restoreError = ref<string | null>(null)
+const archiveFile = ref<File | File[] | null>(null)
+const importingArchive = ref(false)
+const archiveResult = ref<Schemas['AttachmentArchiveResultDto'] | null>(null)
+const archiveError = ref<string | null>(null)
 
 const settings = ref<Schemas['SettingsDto'] | null>(null)
 const form = ref<Schemas['SettingsRequest']>({
@@ -121,6 +125,29 @@ async function restore() {
   }
 }
 
+/** H6, B7 : ajoute les fichiers de pièces jointes manquants (après une restauration sur une autre instance). */
+async function importArchive() {
+  const file = Array.isArray(archiveFile.value) ? archiveFile.value[0] : archiveFile.value
+  if (!file) return
+  importingArchive.value = true
+  archiveResult.value = null
+  archiveError.value = null
+  try {
+    archiveResult.value = await unwrap(
+      api.POST('/api/backups/attachments', {
+        body: file as unknown as string,
+        bodySerializer: (body) => body as unknown as BodyInit,
+        headers: { 'Content-Type': 'application/zip' },
+      }),
+    )
+    archiveFile.value = null
+  } catch (e) {
+    archiveError.value = e instanceof ApiError ? e.message : 'Import impossible.'
+  } finally {
+    importingArchive.value = false
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -218,9 +245,10 @@ onMounted(load)
     <v-card-text>
       <p class="mb-4">
         Le fichier JSON contient les paramètres, comptes et leurs valorisations, catégories, tiers, budgets,
-        opérations, récurrences, échéances, scénarios et objectifs d'épargne. Il ne contient ni les comptes
-        utilisateurs, ni les mots de passe, ni les secrets de double authentification. Conservez-le en lieu
-        sûr : il contient toutes vos données financières.
+        opérations, récurrences, échéances, scénarios, objectifs d'épargne et la liste des pièces jointes. Il
+        ne contient ni les fichiers joints (archive à part, ci-dessous), ni les comptes utilisateurs, ni les
+        mots de passe, ni les secrets de double authentification. Conservez-le en lieu sûr : il contient
+        toutes vos données financières.
       </p>
       <v-btn href="/api/backups/export" download color="primary" variant="tonal" :prepend-icon="mdiDownload"
         >Télécharger la sauvegarde</v-btn
@@ -236,6 +264,10 @@ onMounted(load)
       <v-alert v-if="restored" type="success" variant="tonal" class="mb-4" closable>
         Données restaurées : {{ restored.accounts }} comptes, {{ restored.transactions }} opérations,
         {{ restored.recurrences }} récurrences. Instantané préalable : {{ restored.snapshot }}.
+        <template v-if="(restored.missingAttachmentFiles ?? 0) > 0">
+          <br />{{ restored.missingAttachmentFiles }} fichier(s) de pièces jointes manquent : importez
+          l'archive des pièces jointes ci-dessous.
+        </template>
       </v-alert>
       <v-file-input
         v-model="restoreFile"
@@ -256,6 +288,34 @@ onMounted(load)
         :disabled="!restoreFile || !isRestoreConfirmed(restoreConfirmation)"
         @click="restore"
         >Restaurer</v-btn
+      >
+    </v-card-text>
+    <v-divider />
+    <!-- B7 : fichiers des pièces jointes, nommés par empreinte ; l'import n'ajoute que les manquants. -->
+    <v-card-text data-testid="attachments-archive">
+      <p class="text-subtitle-2 mb-2">Pièces jointes</p>
+      <p class="mb-4">
+        L'archive ZIP contient les fichiers joints aux opérations. Après une restauration sur une autre
+        instance, importez-la pour retrouver les fichiers : seuls les fichiers manquants et intacts sont
+        ajoutés.
+      </p>
+      <v-btn href="/api/backups/attachments" download variant="tonal" :prepend-icon="mdiDownload" class="mb-4"
+        >Télécharger l'archive des pièces jointes</v-btn
+      >
+      <v-alert v-if="archiveError" type="error" variant="tonal" class="mb-4" :text="archiveError" />
+      <v-alert v-if="archiveResult" type="success" variant="tonal" class="mb-4" closable>
+        {{ archiveResult.imported }} fichier(s) ajouté(s), {{ archiveResult.skipped }} déjà présent(s),
+        {{ archiveResult.rejected }} refusé(s). Fichiers encore manquants : {{ archiveResult.missing }}.
+      </v-alert>
+      <v-file-input
+        v-model="archiveFile"
+        label="Archive des pièces jointes (.zip)"
+        accept="application/zip,.zip"
+        :prepend-icon="mdiFileUploadOutline"
+        style="max-width: 520px"
+      />
+      <v-btn :loading="importingArchive" :disabled="!archiveFile" @click="importArchive"
+        >Importer l'archive</v-btn
       >
     </v-card-text>
   </v-card>

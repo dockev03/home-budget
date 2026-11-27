@@ -30,7 +30,9 @@ import { netCostText } from '@/utils/reconciliation'
 import { categoryKindTitle } from '@/utils/labels'
 import { required } from '@/utils/rules'
 import { authorText } from '@/utils/users'
+import TransactionAttachments from '@/components/TransactionAttachments.vue'
 import TransactionHistory from '@/components/TransactionHistory.vue'
+import { useAuthStore } from '@/stores/auth'
 
 type Kind = 'expense' | 'income' | 'transfer'
 interface Line {
@@ -45,6 +47,7 @@ const emptyLine = (): Line => ({ categoryId: null, amount: '', memo: '', tags: [
 const LAST_ACCOUNT_KEY = 'hb.lastAccountId'
 
 const editor = useTransactionEditor()
+const auth = useAuthStore()
 const offline = useOfflineStore()
 const reference = useReferenceStore()
 const { smAndDown } = useDisplay()
@@ -811,6 +814,13 @@ async function remove() {
         <div v-if="author" class="text-caption text-medium-emphasis mt-2" data-testid="author">
           {{ author }}
         </div>
+        <!-- B7 : pièces jointes, y compris d'une opération rapprochée (elles ne changent ni montant ni date). -->
+        <TransactionAttachments
+          v-if="isEdit && source"
+          :transaction-id="source.id"
+          :can-write="auth.canWrite"
+          @changed="editor.revision++"
+        />
         <TransactionHistory v-if="isEdit && source" :transaction-id="source.id" />
       </v-card-text>
 

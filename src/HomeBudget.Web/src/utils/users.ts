@@ -74,11 +74,18 @@ export const auditActions: Record<string, string> = {
   BackupExported: 'Sauvegarde téléchargée',
   Restored: 'Restauration',
   Deleted: 'Suppression',
+  ApiTokenCreated: 'Jeton d’accès créé',
+  ApiTokenRevoked: 'Jeton d’accès révoqué',
+  WebhookCreated: 'Webhook créé',
+  WebhookUpdated: 'Webhook modifié',
+  WebhookDisabled: 'Webhook désactivé (échecs)',
+  AttachmentsRestored: 'Pièces jointes restaurées',
 }
 
 const targets: Record<string, string> = {
   Account: 'compte',
   Advance: 'avance',
+  Attachment: 'pièce jointe',
   Category: 'catégorie',
   CategoryBudget: 'budget',
   ImportProfile: 'profil d’import',
@@ -88,6 +95,7 @@ const targets: Record<string, string> = {
   Recurrence: 'récurrence',
   Transaction: 'opération',
   User: 'utilisateur',
+  Webhook: 'webhook',
 }
 
 export function auditTargetLabel(target: string | null | undefined): string {
@@ -98,9 +106,14 @@ export function auditTargetLabel(target: string | null | undefined): string {
 export function auditSeverity(action: string): 'error' | 'warning' | undefined {
   if (action === 'LoginFailed' || action === 'LoginLockedOut') return 'error'
   if (
-    ['RoleChanged', 'UserDeactivated', 'TwoFactorDisabled', 'Restored', 'AccountVisibilityChanged'].includes(
-      action,
-    )
+    [
+      'RoleChanged',
+      'UserDeactivated',
+      'TwoFactorDisabled',
+      'Restored',
+      'AccountVisibilityChanged',
+      'WebhookDisabled',
+    ].includes(action)
   )
     return 'warning'
   return undefined

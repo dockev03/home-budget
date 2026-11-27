@@ -34,11 +34,31 @@ public sealed class HomeBudgetOptions
 
     public NotificationOptions Notifications { get; set; } = new();
 
+    public WebhookOptions Webhooks { get; set; } = new();
+
     public string DatabasePath => Path.Combine(DataPath, "homebudget.db");
 
     public string KeysPath => Path.Combine(DataPath, "keys");
 
     public string BackupsPath => Path.Combine(DataPath, "backups");
+
+    public string AttachmentsPath => Path.Combine(DataPath, "attachments");
+}
+
+/// <summary>Webhooks (I5) : envoi des événements aux adresses configurées par les administrateurs.</summary>
+public sealed class WebhookOptions
+{
+    /// <summary>Envoi des événements en file d'attente.</summary>
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>
+    /// Autorise les adresses des réseaux privés (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fc00::/7, 100.64.0.0/10) :
+    /// domotique, n8n sur le réseau Docker. La boucle locale, le link-local et les métadonnées cloud restent refusés.
+    /// </summary>
+    public bool AllowPrivateNetworks { get; set; } = true;
+
+    /// <summary>Intervalle entre deux passages de la file d'attente, en secondes.</summary>
+    public int IntervalSeconds { get; set; } = 15;
 }
 
 public sealed class BackupOptions
@@ -137,6 +157,9 @@ public sealed class SecurityOptions
 {
     /// <summary>Nombre de requêtes d'authentification autorisées par minute et par adresse IP.</summary>
     public int AuthRequestsPerMinute { get; set; } = 10;
+
+    /// <summary>Nombre de requêtes autorisées par minute et par jeton d'accès personnel (I5).</summary>
+    public int ApiRequestsPerMinute { get; set; } = 120;
 
     /// <summary>
     /// Autorise les cookies sur HTTP non chiffré (développement local, tests E2E sans proxy).

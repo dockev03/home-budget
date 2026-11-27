@@ -373,6 +373,13 @@ public static class TransactionEndpoints
             .GroupBy(x => x.ExpenseId)
             .ToDictionary(g => g.Key, g => g.Sum(x => x.Amount));
 
+        var ids = transactions.Select(t => t.Id).ToList();
+        var attachments = await db.Attachments.AsNoTracking()
+            .Where(a => ids.Contains(a.TransactionId))
+            .GroupBy(a => a.TransactionId)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count);
+
         return [.. transactions.Select(t => new TransactionDto(
             t.Id,
             t.AccountId,
@@ -395,7 +402,8 @@ public static class TransactionEndpoints
             reimbursed.GetValueOrDefault(t.Id),
             t.AdvanceId,
             t.CreatedBy,
-            t.UpdatedBy))];
+            t.UpdatedBy,
+            attachments.GetValueOrDefault(t.Id)))];
     }
 
     private static async Task<IResult> SetLinksAsync(Guid id, TransactionLinksRequest request, AppDbContext db, CancellationToken ct)

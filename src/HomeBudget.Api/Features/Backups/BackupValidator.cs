@@ -512,6 +512,28 @@ public static class BackupValidator
             Audit(where, r.Audit, errors);
         }
 
+        if (document.FormatVersion >= BackupDocument.AttachmentsVersion && (document.Attachments is null || document.Attachments.Contains(null)))
+        {
+            errors.Add("Fichier incomplet : la liste des pièces jointes est attendue.");
+        }
+        UniqueIds("pièce jointe", (document.Attachments ?? []).OfType<BackupAttachment>().Select(a => a.Id), errors);
+        foreach (var a in (document.Attachments ?? []).OfType<BackupAttachment>())
+        {
+            var where = $"Pièce jointe {a.Id}";
+            Reference(where, "opération", a.TransactionId, transactionIds, errors);
+            Text(where, "nom", a.FileName, Domain.Attachments.Attachment.MaxFileNameLength, required: true, errors);
+            if (a.ContentType is not (Attachments.FileSignature.Jpeg or Attachments.FileSignature.Png or Attachments.FileSignature.WebP
+                or Attachments.FileSignature.Heic or Attachments.FileSignature.Pdf))
+            {
+                errors.Add($"{where} : type de fichier non accepté.");
+            }
+            if (!Attachments.AttachmentStore.IsValidHash(a.Sha256) || a.Size is <= 0 or > Domain.Attachments.Attachment.MaxSize)
+            {
+                errors.Add($"{where} : empreinte ou taille invalide.");
+            }
+            Audit(where, a.Audit, errors);
+        }
+
         UniqueIds("modification d'opération", (document.TransactionChanges ?? []).Select(c => c!.Id), errors);
         foreach (var c in (document.TransactionChanges ?? []).OfType<BackupTransactionChange>())
         {

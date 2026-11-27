@@ -6958,7 +6958,7 @@
         "tags": [
           "Split"
         ],
-        "summary": "Mode de r\u00E9partition et parts fixes des membres.",
+        "summary": "Mode de r\u00E9partition, parts fixes et membres exclus.",
         "responses": {
           "200": {
             "description": "OK",
@@ -6976,7 +6976,7 @@
         "tags": [
           "Split"
         ],
-        "summary": "Modifie le mode de r\u00E9partition et les parts fixes (administrateurs, If-Match : version des param\u00E8tres du foyer).",
+        "summary": "Modifie le mode de r\u00E9partition, les parts fixes et les membres exclus (administrateurs, If-Match : version des param\u00E8tres du foyer).",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9892,6 +9892,10 @@
                 "$ref": "#/components/schemas/BackupAudit"
               }
             ]
+          },
+          "excludeFromSplit": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -13861,7 +13865,8 @@
         "required": [
           "userId",
           "name",
-          "percent"
+          "percent",
+          "excluded"
         ],
         "type": "object",
         "properties": {
@@ -13875,6 +13880,9 @@
           "percent": {
             "type": "number",
             "format": "double"
+          },
+          "excluded": {
+            "type": "boolean"
           }
         }
       },
@@ -13892,6 +13900,10 @@
           "percent": {
             "type": "number",
             "format": "double"
+          },
+          "excluded": {
+            "type": "boolean",
+            "default": false
           }
         }
       },

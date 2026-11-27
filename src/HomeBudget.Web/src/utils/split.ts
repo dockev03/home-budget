@@ -6,7 +6,7 @@ export type Split = Schemas['SplitDto']
 export type SplitMember = Schemas['SplitMemberDto']
 
 export const splitModes: { value: SplitMode; title: string; hint: string }[] = [
-  { value: 'Equal', title: 'À parts égales', hint: 'Chaque membre actif porte la même part.' },
+  { value: 'Equal', title: 'À parts égales', hint: 'Chaque membre qui participe porte la même part.' },
   {
     value: 'IncomeProRata',
     title: 'Au prorata des revenus',

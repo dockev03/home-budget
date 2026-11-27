@@ -6970,7 +6970,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Mode de répartition et parts fixes des membres. */
+        /** Mode de répartition, parts fixes et membres exclus. */
         get: {
             parameters: {
                 query?: never;
@@ -6991,7 +6991,7 @@ export interface paths {
                 };
             };
         };
-        /** Modifie le mode de répartition et les parts fixes (administrateurs, If-Match : version des paramètres du foyer). */
+        /** Modifie le mode de répartition, les parts fixes et les membres exclus (administrateurs, If-Match : version des paramètres du foyer). */
         put: {
             parameters: {
                 query?: never;
@@ -8778,6 +8778,8 @@ export interface components {
             /** Format: double */
             percent: number;
             audit: null | components["schemas"]["BackupAudit"];
+            /** @default false */
+            excludeFromSplit: boolean;
         };
         BackupOccurrence: {
             /** Format: uuid */
@@ -9860,12 +9862,15 @@ export interface components {
             name: string;
             /** Format: double */
             percent: number;
+            excluded: boolean;
         };
         MemberShareRequest: {
             /** Format: uuid */
             userId: string;
             /** Format: double */
             percent: number;
+            /** @default false */
+            excluded: boolean;
         };
         MergeDto: {
             /** Format: uuid */

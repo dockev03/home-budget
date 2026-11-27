@@ -99,7 +99,7 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 g.Id, g.Name, g.TargetAmount, g.TargetDate, g.AccountId, g.CategoryId, g.StartDate, g.Color, g.Icon, g.IsArchived, AuditOf(g)))],
             [.. loans.Select(l => new BackupLoan(
                 l.Id, l.AccountId, l.Principal, l.AnnualRate, l.DurationMonths, l.FirstPaymentDate, l.MonthlyInsurance, AuditOf(l)))],
-            [.. shares.Select(m => new BackupMemberShare(m.Id, m.UserId, m.Percent, AuditOf(m)))],
+            [.. shares.Select(m => new BackupMemberShare(m.Id, m.UserId, m.Percent, AuditOf(m), m.ExcludeFromSplit))],
             [.. reports.Select(r => new BackupSavedReport(
                 r.Id, r.Name, r.GroupBy, r.Range, r.From, r.To, r.AccountIds, r.CategoryIds, r.PayeeIds, r.TagIds, r.Kinds, r.IncludeTransfers, AuditOf(r)))],
             [.. attachments.Select(a => new BackupAttachment(a.Id, a.TransactionId, a.FileName, a.ContentType, a.Size, a.Sha256, AuditOf(a)))]);
@@ -476,7 +476,7 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
         // Une part d'un utilisateur inconnu de cette instance est ignorée.
         foreach (var m in (document.MemberShares ?? []).OfType<BackupMemberShare>().Where(m => users.Contains(m.UserId)))
         {
-            db.MemberShares.Add(Stamp(new Domain.Split.MemberShare { Id = m.Id, UserId = m.UserId, Percent = m.Percent }, m.Audit));
+            db.MemberShares.Add(Stamp(new Domain.Split.MemberShare { Id = m.Id, UserId = m.UserId, Percent = m.Percent, ExcludeFromSplit = m.ExcludeFromSplit }, m.Audit));
         }
 
         foreach (var r in (document.SavedReports ?? []).OfType<BackupSavedReport>())

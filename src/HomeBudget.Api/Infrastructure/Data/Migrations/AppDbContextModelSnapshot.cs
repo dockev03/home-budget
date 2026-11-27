@@ -1513,6 +1513,9 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("ExcludeFromSplit")
+                        .HasColumnType("INTEGER");
+
                     b.Property<long>("Percent")
                         .HasColumnType("INTEGER");
 

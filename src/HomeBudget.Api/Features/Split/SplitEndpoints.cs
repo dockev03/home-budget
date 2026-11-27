@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 namespace HomeBudget.Api.Features.Split;
 
 /// <summary>
-/// Répartition des dépenses communes (K4) entre les membres actifs du foyer, sur une période. Seuls les comptes partagés
+/// Répartition des dépenses communes (K4) entre les membres actifs du foyer qui n'en sont pas exclus, sur une période. Seuls les comptes partagés
 /// comptent, pour que chacun voie le même résultat sans jamais lire les comptes privés d'un autre (R8) :
 /// <list type="bullet">
 /// <item>une dépense commune (fixe ou variable, hors catégories exclues) payée depuis un compte qui a un titulaire est
@@ -21,6 +21,8 @@ namespace HomeBudget.Api.Features.Split;
 /// son compte réduit son apport ;</item>
 /// <item>les revenus de la base du prorata sont ceux des comptes partagés dont il est titulaire.</item>
 /// </list>
+/// Un membre exclu (compte d'administration, par exemple) n'a ni part ni solde : ce qu'il paie ou verse n'est l'apport
+/// de personne, mais ses dépenses communes restent dans le total des dépenses communes.
 /// </summary>
 public static class SplitEndpoints
 {
@@ -30,10 +32,10 @@ public static class SplitEndpoints
 
         group.MapGet("/settings", SettingsAsync)
             .Produces<SplitSettingsDto>()
-            .WithSummary("Mode de répartition et parts fixes des membres.");
+            .WithSummary("Mode de répartition, parts fixes et membres exclus.");
         group.MapPut("/settings", UpdateSettingsAsync).RequireAuthorization(AuthorizationPolicies.Admin)
             .Produces<SplitSettingsDto>().ProducesValidationProblem().WithConcurrencyProblems()
-            .WithSummary("Modifie le mode de répartition et les parts fixes (administrateurs, If-Match : version des paramètres du foyer).");
+            .WithSummary("Modifie le mode de répartition, les parts fixes et les membres exclus (administrateurs, If-Match : version des paramètres du foyer).");
         group.MapGet("/{periodKey}", GetAsync)
             .Produces<SplitDto>().ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("Répartition des dépenses communes de la période (clé AAAA-MM) : apports, parts, soldes et remboursements conseillés.");
@@ -41,14 +43,16 @@ public static class SplitEndpoints
         return app;
     }
 
-    public sealed record MemberShareDto(Guid UserId, string Name, decimal Percent);
+    /// <param name="Excluded">Membre tenu hors de la répartition.</param>
+    public sealed record MemberShareDto(Guid UserId, string Name, decimal Percent, bool Excluded);
 
     /// <param name="Version">Version des paramètres du foyer, attendue dans If-Match.</param>
     public sealed record SplitSettingsDto(SplitMode Mode, List<MemberShareDto> Shares, int Version);
 
-    public sealed record MemberShareRequest(Guid UserId, decimal Percent);
+    /// <param name="Excluded">Tient le membre hors de la répartition ; sa part fixe est alors nulle.</param>
+    public sealed record MemberShareRequest(Guid UserId, decimal Percent, bool Excluded = false);
 
-    /// <param name="Shares">Parts fixes en pourcentage (mode FixedShares) : 100 % au total.</param>
+    /// <param name="Shares">Parts fixes en pourcentage (mode FixedShares) : 100 % au total ; membres exclus. Un membre absent n'a ni part fixe ni exclusion.</param>
     public sealed record SplitSettingsRequest(SplitMode Mode, List<MemberShareRequest>? Shares);
 
     /// <param name="Share">Part retenue, en pourcentage.</param>
@@ -105,6 +109,14 @@ public static class SplitEndpoints
         {
             errors["shares"] = ["Une part va de 0 à 100 %, avec 2 décimales au plus."];
         }
+        else if (shares.Any(s => s.Excluded && s.Percent != 0))
+        {
+            errors["shares"] = ["Un membre exclu de la répartition n'a pas de part fixe."];
+        }
+        else if (users.All(u => shares.Any(s => s.UserId == u && s.Excluded)))
+        {
+            errors["shares"] = ["Au moins un membre participe à la répartition."];
+        }
         else if (request.Mode == SplitMode.FixedShares && shares.Sum(s => s.Percent) != 100m)
         {
             errors["shares"] = ["Les parts fixes totalisent 100 %."];
@@ -122,10 +134,11 @@ public static class SplitEndpoints
             if (existing.FirstOrDefault(e => e.UserId == share.UserId) is { } current)
             {
                 current.Percent = share.Percent;
+                current.ExcludeFromSplit = share.Excluded;
             }
             else
             {
-                db.MemberShares.Add(new MemberShare { UserId = share.UserId, Percent = share.Percent });
+                db.MemberShares.Add(new MemberShare { UserId = share.UserId, Percent = share.Percent, ExcludeFromSplit = share.Excluded });
             }
         }
         if (!await db.TrySaveAsync(ct))
@@ -138,8 +151,9 @@ public static class SplitEndpoints
     private static async Task<SplitSettingsDto> SettingsDtoAsync(AppDbContext db, SplitMode mode, int version, CancellationToken ct)
     {
         var members = await MembersAsync(db, ct);
-        var shares = await db.MemberShares.AsNoTracking().ToDictionaryAsync(s => s.UserId, s => s.Percent, ct);
-        return new SplitSettingsDto(mode, [.. members.Select(m => new MemberShareDto(m.Id, m.Name, shares.GetValueOrDefault(m.Id)))], version);
+        var shares = await db.MemberShares.AsNoTracking().ToDictionaryAsync(s => s.UserId, ct);
+        return new SplitSettingsDto(mode, [.. members.Select(m => new MemberShareDto(
+            m.Id, m.Name, shares.GetValueOrDefault(m.Id)?.Percent ?? 0m, shares.GetValueOrDefault(m.Id)?.ExcludeFromSplit ?? false))], version);
     }
 
     /// <summary>Membres actifs du foyer, par nom.</summary>
@@ -232,8 +246,10 @@ public static class SplitEndpoints
             }
         }
 
-        var members = await MembersAsync(db, ct);
-        var fixedShares = await db.MemberShares.AsNoTracking().ToDictionaryAsync(s => s.UserId, s => s.Percent, ct);
+        var memberShares = await db.MemberShares.AsNoTracking().ToListAsync(ct);
+        var excluded = memberShares.Where(s => s.ExcludeFromSplit).Select(s => s.UserId).ToHashSet();
+        var fixedShares = memberShares.ToDictionary(s => s.UserId, s => s.Percent);
+        var members = (await MembersAsync(db, ct)).Where(m => !excluded.Contains(m.Id)).ToList();
         var result = ExpenseSplit.Compute(settings.SplitMode, [.. members.Select(m => new SplitMember(
             m.Id, expensesPaid.GetValueOrDefault(m.Id), contributions.GetValueOrDefault(m.Id),
             incomes.GetValueOrDefault(m.Id), fixedShares.GetValueOrDefault(m.Id)))]);

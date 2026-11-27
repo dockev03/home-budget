@@ -230,7 +230,9 @@ public sealed class BackupRestoreTests
         var loan = document["loans"]!.AsArray().ShouldHaveSingleItem()!;
         loan["annualRate"]!.GetValue<decimal>().ShouldBe(3.875m);
         loan["monthlyInsurance"]!.GetValue<decimal>().ShouldBe(6.5m);
-        document["memberShares"]!.AsArray().ShouldHaveSingleItem()!["percent"]!.GetValue<decimal>().ShouldBe(100m);
+        var memberShare = document["memberShares"]!.AsArray().ShouldHaveSingleItem()!;
+        memberShare["percent"]!.GetValue<decimal>().ShouldBe(100m);
+        memberShare["excludeFromSplit"]!.GetValue<bool>().ShouldBeFalse();
         document["settings"]!["splitMode"]!.GetValue<string>().ShouldBe("FixedShares");
         document["accounts"]!.AsArray().Count(a => a!["holderId"] is not null).ShouldBe(1);
         document["categories"]!.AsArray().Count(c => c!["excludeFromSplit"]!.GetValue<bool>()).ShouldBe(1);

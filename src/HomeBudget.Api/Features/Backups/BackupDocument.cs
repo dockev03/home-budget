@@ -135,7 +135,7 @@ public sealed record BackupLoan(
     Guid Id, Guid AccountId, decimal Principal, decimal AnnualRate, int DurationMonths, DateOnly FirstPaymentDate, decimal MonthlyInsurance, BackupAudit? Audit);
 
 /// <summary>Part fixe d'un membre (K4) ; ignorée à la restauration si l'utilisateur n'existe pas sur l'instance.</summary>
-public sealed record BackupMemberShare(Guid Id, Guid UserId, decimal Percent, BackupAudit? Audit);
+public sealed record BackupMemberShare(Guid Id, Guid UserId, decimal Percent, BackupAudit? Audit, bool ExcludeFromSplit = false);
 
 /// <summary>Rapport personnalisé enregistré (G8).</summary>
 public sealed record BackupSavedReport(

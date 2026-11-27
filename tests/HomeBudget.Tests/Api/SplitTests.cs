@@ -126,6 +126,36 @@ public sealed class SplitTests
     }
 
     [Fact]
+    public async Task An_excluded_member_has_no_share_and_their_payments_count_for_nobody()
+    {
+        await using var factory = new HomeBudgetFactory { Today = Today };
+        var h = await SeedAsync(factory);
+
+        await SetModeAsync(h.Admin, "Equal", [new { userId = h.AdminId, percent = 0m, excluded = true }]);
+        var settings = await h.Alice.GetJsonAsync("/api/split/settings");
+        var shares = settings.GetProperty("shares").EnumerateArray().ToDictionary(s => s.GetProperty("userId").GetGuid());
+        shares[h.AdminId].GetProperty("excluded").GetBoolean().ShouldBeTrue();
+        shares[h.AliceId].GetProperty("excluded").GetBoolean().ShouldBeFalse();
+
+        // Alice porte seule la répartition : ses 240 d'apport sont sa part, les 250 de l'administrateur ne comptent pour personne.
+        var split = await h.Admin.GetJsonAsync("/api/split/2026-03");
+        split.Decimal("commonExpenses").ShouldBe(440m);
+        split.Decimal("totalPaid").ShouldBe(240m);
+        var alice = split.GetProperty("members").EnumerateArray().ShouldHaveSingleItem();
+        alice.GetProperty("userId").GetGuid().ShouldBe(h.AliceId);
+        (alice.Decimal("share"), alice.Decimal("paid"), alice.Decimal("balance")).ShouldBe((100m, 240m, 0m));
+        split.GetProperty("settlements").EnumerateArray().ShouldBeEmpty();
+
+        // Parts fixes : 100 % entre les seuls membres qui participent.
+        await SetModeAsync(h.Admin, "FixedShares", [new { userId = h.AdminId, percent = 0m, excluded = true }, new { userId = h.AliceId, percent = 100m, excluded = false }]);
+        Members(await h.Admin.GetJsonAsync("/api/split/2026-03")).Keys.ShouldBe([h.AliceId]);
+
+        // Réintégré : retour au partage à deux.
+        await SetModeAsync(h.Admin, "Equal");
+        Members(await h.Admin.GetJsonAsync("/api/split/2026-03")).Count.ShouldBe(2);
+    }
+
+    [Fact]
     public async Task Split_settings_and_holders_are_validated_and_reserved_to_administrators()
     {
         await using var factory = new HomeBudgetFactory { Today = Today };
@@ -139,6 +169,13 @@ public sealed class SplitTests
             .ShouldBe(HttpStatusCode.BadRequest);
         (await PutAsync(h.Admin, new { mode = "Equal", shares = new[] { new { userId = h.AdminId, percent = 33.333m } } }, version))
             .ShouldBe(HttpStatusCode.BadRequest);
+        (await PutAsync(h.Admin, new { mode = "FixedShares", shares = new[] { new { userId = h.AdminId, percent = 100m, excluded = true } } }, version))
+            .ShouldBe(HttpStatusCode.BadRequest);
+        (await PutAsync(h.Admin, new
+        {
+            mode = "Equal",
+            shares = new[] { new { userId = h.AdminId, percent = 0m, excluded = true }, new { userId = h.AliceId, percent = 0m, excluded = true } },
+        }, version)).ShouldBe(HttpStatusCode.BadRequest);
         (await PutAsync(h.Admin, new { mode = "Equal" }, null)).ShouldBe(HttpStatusCode.PreconditionRequired);
         (await PutAsync(h.Alice, new { mode = "Equal" }, version)).ShouldBe(HttpStatusCode.Forbidden);
 

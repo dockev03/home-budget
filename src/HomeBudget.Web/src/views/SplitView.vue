@@ -26,15 +26,17 @@ const error = ref<string | null>(null)
 const settingsOpen = ref(false)
 const settings = ref<Schemas['SplitSettingsDto'] | null>(null)
 const mode = ref<Schemas['SplitMode']>('Equal')
-const shares = ref<{ userId: string; name: string; percent: string }[]>([])
+const shares = ref<{ userId: string; name: string; percent: string; excluded: boolean }[]>([])
 const savingSettings = ref(false)
 const settingsError = ref<string | null>(null)
 
 const periodKey = computed(() => (route.params.period as string | undefined) || null)
-const total = computed(() => sharesTotal(shares.value.map((s) => parseAmount(s.percent))))
+const participants = computed(() => shares.value.filter((s) => !s.excluded))
+const total = computed(() => sharesTotal(participants.value.map((s) => parseAmount(s.percent))))
 const settingsValid = computed(
   () =>
-    shares.value.every((s) => {
+    participants.value.length > 0 &&
+    participants.value.every((s) => {
       const p = parseAmount(s.percent)
       return p !== null && p >= 0 && p <= 100
     }) &&
@@ -82,7 +84,11 @@ async function saveSettings() {
         headers: ifMatch(settings.value.version),
         body: {
           mode: mode.value,
-          shares: shares.value.map((s) => ({ userId: s.userId, percent: parseAmount(s.percent) ?? 0 })),
+          shares: shares.value.map((s) => ({
+            userId: s.userId,
+            percent: s.excluded ? 0 : (parseAmount(s.percent) ?? 0),
+            excluded: s.excluded,
+          })),
         },
       }),
     )
@@ -211,7 +217,7 @@ watch(periodKey, load, { immediate: true })
       Seuls les comptes partagés comptent. Une dépense payée depuis un compte qui a un titulaire est apportée
       par lui ; un virement vers un compte joint est un apport de celui à qui appartient le compte d'origine.
       Le titulaire se choisit dans la fiche du compte ; une catégorie peut être exclue de la répartition
-      (dépense personnelle).
+      (dépense personnelle), tout comme un membre (paramètres de répartition).
     </v-alert>
   </template>
 
@@ -229,9 +235,26 @@ watch(periodKey, load, { immediate: true })
             </template>
           </v-radio>
         </v-radio-group>
+        <div class="text-subtitle-2 mt-2">Membres qui participent</div>
+        <v-checkbox
+          v-for="s in shares"
+          :key="s.userId"
+          :model-value="!s.excluded"
+          :label="s.name"
+          density="compact"
+          hide-details
+          :data-testid="`split-participates-${s.name}`"
+          @update:model-value="s.excluded = !$event"
+        />
+        <div class="text-caption text-medium-emphasis mb-2">
+          Un membre décoché (compte d’administration, par exemple) n’a ni part ni solde.
+        </div>
+        <div v-if="!participants.length" class="text-error text-body-2 mb-2">
+          Au moins un membre participe à la répartition.
+        </div>
         <template v-if="mode === 'FixedShares'">
           <v-text-field
-            v-for="s in shares"
+            v-for="s in participants"
             :key="s.userId"
             v-model="s.percent"
             :label="s.name"

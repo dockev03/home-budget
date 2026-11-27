@@ -1278,7 +1278,7 @@
         "tags": [
           "Payees"
         ],
-        "summary": "Tiers dont le nom contient le texte recherch\u00E9, les plus utilis\u00E9s en premier.",
+        "summary": "Tiers dont le nom contient le texte recherch\u00E9, les plus utilis\u00E9s en premier ; ou les organismes de sant\u00E9 seuls.",
         "parameters": [
           {
             "name": "search",
@@ -1293,6 +1293,13 @@
             "schema": {
               "type": "integer",
               "format": "int32"
+            }
+          },
+          {
+            "name": "reimbursers",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
             }
           }
         ],
@@ -1309,6 +1316,60 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/payees/{id}/reimburser": {
+      "put": {
+        "tags": [
+          "Payees"
+        ],
+        "summary": "D\u00E9signe le tiers comme organisme de sant\u00E9 (CPAM ou mutuelle), ou le retire (P4).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReimburserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayeeDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
           }
         }
       }
@@ -7030,6 +7091,170 @@
         }
       }
     },
+    "/api/family/benefits/{year}": {
+      "get": {
+        "tags": [
+          "Family"
+        ],
+        "summary": "Aides de l\u0027ann\u00E9e civile (P1) : chaque \u00E9ch\u00E9ance attendue, le montant re\u00E7u et l\u0027\u00E9cart, plus les versements hors \u00E9ch\u00E9ancier.",
+        "parameters": [
+          {
+            "name": "year",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BenefitsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/family/childcare/{year}": {
+      "get": {
+        "tags": [
+          "Family"
+        ],
+        "summary": "Frais de garde de l\u0027ann\u00E9e civile (P2) : pay\u00E9, aides \u00E0 la garde re\u00E7ues et montant d\u00E9clarable, par mois et par tiers.",
+        "parameters": [
+          {
+            "name": "year",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChildcareDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/family/childcare/{year}/export": {
+      "get": {
+        "tags": [
+          "Family"
+        ],
+        "summary": "Exporte le r\u00E9capitulatif des frais de garde de l\u0027ann\u00E9e en CSV.",
+        "parameters": [
+          {
+            "name": "year",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/family/health": {
+      "get": {
+        "tags": [
+          "Family"
+        ],
+        "summary": "D\u00E9penses de sant\u00E9 de la plage (P4), avec les remboursements CPAM et mutuelle li\u00E9s et le reste \u00E0 charge (d\u00E9faut : l\u0027ann\u00E9e en cours).",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/notifications": {
       "get": {
         "tags": [
@@ -9135,6 +9360,9 @@
               "null",
               "string"
             ]
+          },
+          "familyRole": {
+            "$ref": "#/components/schemas/FamilyRole"
           }
         }
       },
@@ -9719,6 +9947,13 @@
                 "$ref": "#/components/schemas/BackupAudit"
               }
             ]
+          },
+          "expectedAmount": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
           }
         }
       },
@@ -9749,6 +9984,9 @@
                 "$ref": "#/components/schemas/BackupAudit"
               }
             ]
+          },
+          "reimburser": {
+            "$ref": "#/components/schemas/Reimburser"
           }
         }
       },
@@ -10667,6 +10905,156 @@
           }
         }
       },
+      "BenefitRowDto": {
+        "required": [
+          "recurrenceId",
+          "occurrenceId",
+          "transactionId",
+          "categoryId",
+          "categoryName",
+          "label",
+          "date",
+          "status",
+          "expected",
+          "received",
+          "gap"
+        ],
+        "type": "object",
+        "properties": {
+          "recurrenceId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "occurrenceId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "transactionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "categoryName": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BenefitStatus"
+          },
+          "expected": {
+            "type": "number",
+            "format": "double"
+          },
+          "received": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "gap": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "BenefitsDto": {
+        "required": [
+          "year",
+          "rows",
+          "categories",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BenefitRowDto"
+            }
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BenefitTotalsDto"
+            }
+          },
+          "total": {
+            "$ref": "#/components/schemas/BenefitTotalsDto"
+          }
+        }
+      },
+      "BenefitStatus": {
+        "enum": [
+          "Received",
+          "Pending",
+          "Skipped",
+          "Missing",
+          "Upcoming",
+          "Unscheduled"
+        ]
+      },
+      "BenefitTotalsDto": {
+        "required": [
+          "categoryId",
+          "categoryName",
+          "expected",
+          "received",
+          "gap",
+          "upcoming"
+        ],
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "categoryName": {
+            "type": "string"
+          },
+          "expected": {
+            "type": "number",
+            "format": "double"
+          },
+          "received": {
+            "type": "number",
+            "format": "double"
+          },
+          "gap": {
+            "type": "number",
+            "format": "double"
+          },
+          "upcoming": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "BudgetComparisonDto": {
         "required": [
           "categoryId",
@@ -11438,7 +11826,8 @@
           "sortOrder",
           "isArchived",
           "version",
-          "excludeFromSplit"
+          "excludeFromSplit",
+          "familyRole"
         ],
         "type": "object",
         "properties": {
@@ -11484,6 +11873,9 @@
           },
           "excludeFromSplit": {
             "type": "boolean"
+          },
+          "familyRole": {
+            "$ref": "#/components/schemas/FamilyRole"
           }
         }
       },
@@ -11556,6 +11948,16 @@
               "null",
               "boolean"
             ]
+          },
+          "familyRole": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FamilyRole"
+              }
+            ]
           }
         }
       },
@@ -11573,6 +11975,98 @@
             "maxLength": 256,
             "minLength": 0,
             "type": "string"
+          }
+        }
+      },
+      "ChildcareDto": {
+        "required": [
+          "year",
+          "months",
+          "payees",
+          "paid",
+          "aid",
+          "declarable"
+        ],
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "months": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChildcareMonthDto"
+            }
+          },
+          "payees": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChildcarePayeeDto"
+            }
+          },
+          "paid": {
+            "type": "number",
+            "format": "double"
+          },
+          "aid": {
+            "type": "number",
+            "format": "double"
+          },
+          "declarable": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "ChildcareMonthDto": {
+        "required": [
+          "month",
+          "paid",
+          "aid",
+          "net"
+        ],
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "paid": {
+            "type": "number",
+            "format": "double"
+          },
+          "aid": {
+            "type": "number",
+            "format": "double"
+          },
+          "net": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "ChildcarePayeeDto": {
+        "required": [
+          "payeeId",
+          "name",
+          "paid"
+        ],
+        "type": "object",
+        "properties": {
+          "payeeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "paid": {
+            "type": "number",
+            "format": "double"
           }
         }
       },
@@ -12002,6 +12496,15 @@
           }
         }
       },
+      "FamilyRole": {
+        "enum": [
+          "None",
+          "Benefit",
+          "ChildcareAid",
+          "Childcare",
+          "Health"
+        ]
+      },
       "FieldChangeDto": {
         "required": [
           "field",
@@ -12315,6 +12818,120 @@
           "Month",
           "Year"
         ]
+      },
+      "HealthDto": {
+        "required": [
+          "from",
+          "to",
+          "rows",
+          "expense",
+          "primaryInsurance",
+          "mutual",
+          "other",
+          "remaining",
+          "unlinked"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HealthRowDto"
+            }
+          },
+          "expense": {
+            "type": "number",
+            "format": "double"
+          },
+          "primaryInsurance": {
+            "type": "number",
+            "format": "double"
+          },
+          "mutual": {
+            "type": "number",
+            "format": "double"
+          },
+          "other": {
+            "type": "number",
+            "format": "double"
+          },
+          "remaining": {
+            "type": "number",
+            "format": "double"
+          },
+          "unlinked": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "HealthRowDto": {
+        "required": [
+          "transactionId",
+          "date",
+          "payee",
+          "label",
+          "categoryName",
+          "expense",
+          "primaryInsurance",
+          "mutual",
+          "other",
+          "remaining"
+        ],
+        "type": "object",
+        "properties": {
+          "transactionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "payee": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "categoryName": {
+            "type": "string"
+          },
+          "expense": {
+            "type": "number",
+            "format": "double"
+          },
+          "primaryInsurance": {
+            "type": "number",
+            "format": "double"
+          },
+          "mutual": {
+            "type": "number",
+            "format": "double"
+          },
+          "other": {
+            "type": "number",
+            "format": "double"
+          },
+          "remaining": {
+            "type": "number",
+            "format": "double"
+          }
+        }
       },
       "HttpValidationProblemDetails": {
         "type": "object",
@@ -13519,7 +14136,8 @@
         "required": [
           "id",
           "name",
-          "usageCount"
+          "usageCount",
+          "reimburser"
         ],
         "type": "object",
         "properties": {
@@ -13533,6 +14151,9 @@
           "usageCount": {
             "type": "integer",
             "format": "int32"
+          },
+          "reimburser": {
+            "$ref": "#/components/schemas/Reimburser"
           }
         }
       },
@@ -14370,6 +14991,24 @@
           },
           "businessDayShift": {
             "$ref": "#/components/schemas/BusinessDayShift"
+          }
+        }
+      },
+      "Reimburser": {
+        "enum": [
+          "None",
+          "PrimaryInsurance",
+          "Mutual"
+        ]
+      },
+      "ReimburserRequest": {
+        "required": [
+          "reimburser"
+        ],
+        "type": "object",
+        "properties": {
+          "reimburser": {
+            "$ref": "#/components/schemas/Reimburser"
           }
         }
       },
@@ -16808,6 +17447,9 @@
     },
     {
       "name": "Split"
+    },
+    {
+      "name": "Family"
     },
     {
       "name": "Notifications"

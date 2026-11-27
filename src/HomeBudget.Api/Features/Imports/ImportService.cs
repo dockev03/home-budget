@@ -320,6 +320,7 @@ public sealed class ImportService(AppDbContext db, RecurrenceGenerator generator
                 ScheduledDate = match.ScheduledDate,
                 DueDate = match.ScheduledDate,
                 Status = OccurrenceStatus.Pending,
+                ExpectedAmount = match.Recurrence.Amount,
             };
             db.RecurrenceOccurrences.Add(occurrence);
         }

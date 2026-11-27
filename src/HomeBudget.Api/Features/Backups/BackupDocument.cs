@@ -2,6 +2,7 @@ using HomeBudget.Api.Domain.Accounts;
 using HomeBudget.Api.Domain.Budgets;
 using HomeBudget.Api.Domain.Categories;
 using HomeBudget.Api.Domain.Imports;
+using HomeBudget.Api.Domain.Payees;
 using HomeBudget.Api.Domain.Recurrences;
 using HomeBudget.Api.Domain.Reports;
 using HomeBudget.Api.Domain.Savings;
@@ -49,7 +50,7 @@ public sealed record BackupDocument(
 {
     public const string FormatName = "home-budget-backup";
 
-    public const int CurrentVersion = 10;
+    public const int CurrentVersion = 11;
 
     /// <summary>Version 1 : sans profils ni historique d'import (étapes 1 à 4), toujours restaurable.</summary>
     public const int MinVersion = 1;
@@ -83,6 +84,12 @@ public sealed record BackupDocument(
 
     /// <summary>Version 10 : report du reste par catégorie (D6) et mode enveloppes (D7) (étape 15).</summary>
     public const int EnvelopesVersion = 10;
+
+    /// <summary>
+    /// Version 11 : rôle des catégories et organismes de santé (P1, P2, P4), montant attendu des échéances (étape 16).
+    /// Avant, le rôle est déduit du nom des catégories par défaut et l'attendu reprend le montant de la récurrence.
+    /// </summary>
+    public const int FamilyVersion = 11;
 }
 
 /// <summary>Traçabilité (K2) et version de concurrence, conservées à la restauration.</summary>
@@ -166,9 +173,10 @@ public sealed record BackupSavingsGoal(
 public sealed record BackupCategory(
     Guid Id, Guid? ParentId, string? Name, CategoryKind Kind, string? Color, string? Icon, int SortOrder, bool IsArchived, BackupAudit? Audit,
     bool ExcludeFromSplit = false,
-    string? CarryOverSince = null);
+    string? CarryOverSince = null,
+    FamilyRole FamilyRole = FamilyRole.None);
 
-public sealed record BackupPayee(Guid Id, string? Name, BackupAudit? Audit);
+public sealed record BackupPayee(Guid Id, string? Name, BackupAudit? Audit, Reimburser Reimburser = Reimburser.None);
 
 public sealed record BackupBudget(Guid Id, Guid CategoryId, BudgetMode Mode, decimal Value, BackupAudit? Audit);
 
@@ -261,7 +269,8 @@ public sealed record BackupOccurrence(
     DateOnly DueDate,
     OccurrenceStatus Status,
     Guid? TransactionId,
-    BackupAudit? Audit);
+    BackupAudit? Audit,
+    decimal? ExpectedAmount = null);
 
 public sealed record BackupImportProfile(
     Guid Id,

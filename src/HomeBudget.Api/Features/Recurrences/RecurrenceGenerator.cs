@@ -56,6 +56,7 @@ public sealed partial class RecurrenceGenerator(AppDbContext db, TimeProvider cl
                 ScheduledDate = scheduled.Date,
                 DueDate = scheduled.Date,
                 Status = OccurrenceStatus.Pending,
+                ExpectedAmount = recurrence.Amount,
             };
             if (recurrence.Mode == RecurrenceMode.Automatic)
             {

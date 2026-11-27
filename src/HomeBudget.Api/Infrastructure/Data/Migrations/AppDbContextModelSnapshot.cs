@@ -485,6 +485,11 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                     b.Property<bool>("ExcludeFromSplit")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("FamilyRole")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Icon")
                         .HasMaxLength(40)
                         .HasColumnType("TEXT");
@@ -935,6 +940,11 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Reimburser")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("TEXT");
 
@@ -1111,6 +1121,9 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
 
                     b.Property<DateOnly>("DueDate")
                         .HasColumnType("TEXT");
+
+                    b.Property<long?>("ExpectedAmount")
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("Index")
                         .HasColumnType("INTEGER");

@@ -4,6 +4,7 @@ import { api } from '@/api/client'
 import { ifMatch } from '@/api/concurrency'
 import { ApiError, unwrap } from '@/api/errors'
 import { useReferenceStore, type Category } from '@/stores/reference'
+import { roleAfterKindChange, rolesFor, type FamilyRole } from '@/utils/family'
 import { categoryKinds, type CategoryKind } from '@/utils/labels'
 import { required } from '@/utils/rules'
 import AppearancePicker from './AppearancePicker.vue'
@@ -26,6 +27,7 @@ const form = ref({
   color: null as string | null,
   isArchived: false,
   excludeFromSplit: false,
+  familyRole: 'None' as FamilyRole,
 })
 const valid = ref(false)
 const saving = ref(false)
@@ -62,6 +64,7 @@ watch(visible, (open) => {
         color: c.color,
         isArchived: c.isArchived,
         excludeFromSplit: c.excludeFromSplit,
+        familyRole: c.familyRole,
       }
     : {
         name: '',
@@ -71,6 +74,7 @@ watch(visible, (open) => {
         color: null,
         isArchived: false,
         excludeFromSplit: false,
+        familyRole: 'None' as FamilyRole,
       }
 })
 
@@ -82,6 +86,15 @@ watch(
     if (parent) form.value.kind = parent.kind
   },
   { immediate: true },
+)
+
+// Un rôle des suivis du foyer suit le type : les aides sont des revenus, la garde et la santé des dépenses.
+const roleOptions = computed(() => rolesFor(form.value.kind))
+watch(
+  () => form.value.kind,
+  (kind) => {
+    form.value.familyRole = roleAfterKindChange(form.value.familyRole, kind)
+  },
 )
 
 async function save() {
@@ -158,6 +171,22 @@ async function remove() {
             hint="Exclue de la répartition des dépenses communes, sous-catégories comprises."
             persistent-hint
             class="mb-2"
+          />
+          <v-select
+            v-if="roleOptions.length > 1"
+            v-model="form.familyRole"
+            :items="roleOptions"
+            item-title="title"
+            item-value="value"
+            label="Suivi du foyer"
+            :hint="
+              form.parentId
+                ? 'Sans rôle, la sous-catégorie prend celui de sa catégorie parente.'
+                : 'Aides attendues, frais de garde ou dépenses de santé (vue Famille).'
+            "
+            persistent-hint
+            class="mb-2"
+            data-testid="category-family-role"
           />
           <v-switch
             v-if="category"

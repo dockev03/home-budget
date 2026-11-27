@@ -57,6 +57,12 @@ export const router = createRouter({
       meta: { title: 'Répartition' },
     },
     {
+      path: '/famille/:year(\\d{4})?',
+      name: 'family',
+      component: () => import('@/views/FamilyView.vue'),
+      meta: { title: 'Famille' },
+    },
+    {
       path: '/import',
       name: 'import',
       component: () => import('@/views/ImportView.vue'),

@@ -90,6 +90,12 @@ public sealed class RecurrenceOccurrence : AuditableEntity
 
     public OccurrenceStatus Status { get; set; }
 
+    /// <summary>
+    /// Montant de la récurrence au moment où l'échéance a été traitée : l'attendu reste juste si la récurrence change
+    /// ensuite (P1). Null pour une échéance antérieure à l'étape 16 dont la récurrence a disparu.
+    /// </summary>
+    public decimal? ExpectedAmount { get; set; }
+
     /// <summary>Opération créée (la sortie, pour un virement) ; null si elle a été supprimée depuis.</summary>
     public Guid? TransactionId { get; set; }
 }

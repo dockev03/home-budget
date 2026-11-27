@@ -303,7 +303,7 @@ onMounted(load)
       <v-card-text>
         <v-alert v-if="formError" type="error" variant="tonal" class="mb-4" :text="formError" />
         <v-form v-model="scenarioValid" @submit.prevent="saveScenario">
-          <v-text-field v-model="name" label="Nom" maxlength="100" :rules="[required]" autofocus />
+          <v-text-field v-model="name" label="Nom" maxlength="100" :rules="[required]" v-autofocus />
           <v-switch
             v-model="isActive"
             color="primary"
@@ -340,7 +340,7 @@ onMounted(load)
       <v-card-text>
         <v-alert v-if="formError" type="error" variant="tonal" class="mb-4" :text="formError" />
         <v-form v-model="eventValid" @submit.prevent="saveEvent">
-          <v-text-field v-model="label" label="Libellé" maxlength="100" :rules="[required]" autofocus />
+          <v-text-field v-model="label" label="Libellé" maxlength="100" :rules="[required]" v-autofocus />
           <v-btn-toggle v-model="isIncome" mandatory color="primary" density="compact" class="mb-4">
             <v-btn :value="false">Dépense</v-btn>
             <v-btn :value="true">Rentrée</v-btn>

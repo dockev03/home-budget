@@ -70,7 +70,7 @@ async function accept() {
             autocomplete="new-password"
             hint="12 caractères minimum ; une phrase de passe est idéale."
             :rules="passwordRules"
-            autofocus
+            v-autofocus
           />
           <v-text-field
             v-model="confirmation"

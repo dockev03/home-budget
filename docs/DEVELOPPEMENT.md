@@ -45,6 +45,10 @@ Front : typage et build, lint, format, tests :
 cd src/HomeBudget.Web && npm run build && npm run lint && npm run format:check && npm test
 ```
 
+## Conventions du front
+
+- **Focus automatique** : utiliser la directive `v-autofocus` (`src/directives/autofocus.ts`), jamais la prop `autofocus` de Vuetify. Celle-ci appelle `focus()` 50 ms après l'apparition du champ, sans regarder où est le focus : une saisie rapide (gestionnaire de mots de passe, test Playwright) commencée dans un autre champ y était renvoyée, et le mot de passe se retrouvait tapé dans l'identifiant.
+
 ## Contrat d'API et client TypeScript
 
 Le client du front est généré depuis `src/HomeBudget.Web/openapi.json`. Après une modification de l'API :

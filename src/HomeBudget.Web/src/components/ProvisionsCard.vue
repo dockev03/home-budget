@@ -173,7 +173,7 @@ onMounted(load)
       <v-card-text>
         <v-alert v-if="formError" type="error" variant="tonal" class="mb-4" :text="formError" />
         <v-form v-model="valid" @submit.prevent="save">
-          <v-text-field v-model="label" label="Libellé" maxlength="100" :rules="[required]" autofocus />
+          <v-text-field v-model="label" label="Libellé" maxlength="100" :rules="[required]" v-autofocus />
           <v-autocomplete
             v-model="categoryId"
             :items="categoryItems"

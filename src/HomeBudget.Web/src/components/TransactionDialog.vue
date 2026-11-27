@@ -649,7 +649,7 @@ async function remove() {
                   label="Montant"
                   suffix="€"
                   inputmode="decimal"
-                  autofocus
+                  v-autofocus
                   :rules="kind === 'transfer' ? [amountRule, positiveRule] : [amountRule]"
                 />
                 <v-text-field v-else :model-value="formatAmount(total)" label="Montant total" readonly />

@@ -7029,6 +7029,97 @@
         }
       }
     },
+    "/api/account/avatar": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Photo de profil de l\u0027utilisateur connect\u00E9. Le front ajoute v (date de la photo) pour qu\u0027un changement ne serve pas l\u0027ancienne copie hors ligne.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Remplace la photo de profil, envoy\u00E9e telle quelle (JPEG, PNG ou WebP, 256 Kio au plus).",
+        "requestBody": {
+          "content": {
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/webp": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "413": {
+            "description": "Payload Too Large",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported Media Type",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Retire la photo de profil : la pastille reprend l\u0027initiale.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUser"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/split/settings": {
       "get": {
         "tags": [
@@ -13126,7 +13217,8 @@
           "roles",
           "twoFactorEnabled",
           "displayName",
-          "twoFactorRequired"
+          "twoFactorRequired",
+          "avatarUpdatedAt"
         ],
         "type": "object",
         "properties": {
@@ -13157,6 +13249,13 @@
           },
           "twoFactorRequired": {
             "type": "boolean"
+          },
+          "avatarUpdatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },

@@ -132,6 +132,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
 
     public DbSet<Webhook> Webhooks => Set<Webhook>();
 
+    public DbSet<UserAvatar> UserAvatars => Set<UserAvatar>();
+
     public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
@@ -281,6 +283,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
         {
             e.Property(u => u.DisplayName).HasMaxLength(AppUser.MaxDisplayNameLength);
             e.Ignore(u => u.Name);
+        });
+
+        builder.Entity<UserAvatar>(e =>
+        {
+            e.HasKey(a => a.UserId);
+            e.Property(a => a.ContentType).HasMaxLength(UserAvatar.MaxContentTypeLength);
+            e.HasOne<AppUser>().WithOne().HasForeignKey<UserAvatar>(a => a.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<Invitation>(e =>

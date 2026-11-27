@@ -184,6 +184,7 @@ Légende des lots (détail en §6) : **L1** = MVP cœur · **L2** = import et au
 | K3 | Comptes privés (visibles seulement par leur propriétaire) et comptes partagés | L3 |
 | K4 | Répartition des dépenses communes (à parts égales, au prorata des revenus ou selon des parts fixes) avec le solde entre membres | L5 |
 | K5 | Rôles : administrateur, membre, lecture seule | L3 |
+| K6 | Photo de profil facultative, affichée dans la pastille et le menu du compte (JPEG, PNG ou WebP, recadrée et réduite par le navigateur ; hors sauvegarde du foyer, comme les comptes utilisateurs) | L5 |
 
 ### L. Mobile et expérience
 

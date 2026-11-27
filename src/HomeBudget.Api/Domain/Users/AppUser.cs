@@ -28,5 +28,8 @@ public sealed class AppUser : IdentityUser<Guid>
     /// <summary>Double authentification imposée (utilisateurs invités) : l'API reste fermée tant qu'elle n'est pas active.</summary>
     public bool TwoFactorRequired { get; set; }
 
+    /// <summary>Date du dernier changement de la photo de profil, ou null sans photo ; sert aussi de version pour le cache.</summary>
+    public DateTimeOffset? AvatarUpdatedAt { get; set; }
+
     public string Name => string.IsNullOrWhiteSpace(DisplayName) ? UserName ?? string.Empty : DisplayName;
 }

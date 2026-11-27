@@ -7418,6 +7418,253 @@
         }
       }
     },
+    "/api/family/childcare/{year}/declarations": {
+      "get": {
+        "tags": [
+          "Family"
+        ],
+        "summary": "D\u00E9clarations Pajemploi de l\u0027ann\u00E9e (P2 bis), par mois puis par salari\u00E9, avec leurs totaux.",
+        "parameters": [
+          {
+            "name": "year",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChildcareDeclarationDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/family/childcare/declarations": {
+      "post": {
+        "tags": [
+          "Family"
+        ],
+        "summary": "Saisit la d\u00E9claration Pajemploi d\u0027un mois pour un salari\u00E9 (une seule par mois et par salari\u00E9).",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChildcareDeclarationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChildcareDeclarationDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/family/childcare/declarations/{id}": {
+      "put": {
+        "tags": [
+          "Family"
+        ],
+        "summary": "Modifie une d\u00E9claration Pajemploi (If-Match requis).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChildcareDeclarationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChildcareDeclarationDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Family"
+        ],
+        "summary": "Supprime une d\u00E9claration Pajemploi (If-Match requis). Les op\u00E9rations ne sont pas modifi\u00E9es.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/family/health": {
       "get": {
         "tags": [
@@ -9578,6 +9825,158 @@
           }
         }
       },
+      "BackupChildcareDeclaration": {
+        "required": [
+          "id",
+          "year",
+          "month",
+          "payeeId",
+          "activityDays",
+          "normalHours",
+          "extraHours",
+          "overtimeHours",
+          "paidLeaveDays",
+          "netHourlyRate",
+          "netSalary",
+          "maintenanceAllowance",
+          "mealAllowance",
+          "mileageAllowance",
+          "advance",
+          "longCareDays",
+          "disabledChildCare",
+          "isContractEnd",
+          "contractEndDate",
+          "precariousnessAllowance",
+          "paidLeaveCompensation",
+          "noticeCompensation",
+          "terminationAllowance",
+          "contributions",
+          "coveredContributions",
+          "cmgEntitlement",
+          "audit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "payeeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "activityDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "normalHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "extraHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "overtimeHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "paidLeaveDays": {
+            "type": "number",
+            "format": "double"
+          },
+          "netHourlyRate": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "netSalary": {
+            "type": "number",
+            "format": "double"
+          },
+          "maintenanceAllowance": {
+            "type": "number",
+            "format": "double"
+          },
+          "mealAllowance": {
+            "type": "number",
+            "format": "double"
+          },
+          "mileageAllowance": {
+            "type": "number",
+            "format": "double"
+          },
+          "advance": {
+            "type": "number",
+            "format": "double"
+          },
+          "longCareDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "disabledChildCare": {
+            "type": "boolean"
+          },
+          "isContractEnd": {
+            "type": "boolean"
+          },
+          "contractEndDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "precariousnessAllowance": {
+            "type": "number",
+            "format": "double"
+          },
+          "paidLeaveCompensation": {
+            "type": "number",
+            "format": "double"
+          },
+          "noticeCompensation": {
+            "type": "number",
+            "format": "double"
+          },
+          "terminationAllowance": {
+            "type": "number",
+            "format": "double"
+          },
+          "contributions": {
+            "type": "number",
+            "format": "double"
+          },
+          "coveredContributions": {
+            "type": "number",
+            "format": "double"
+          },
+          "cmgEntitlement": {
+            "type": "number",
+            "format": "double"
+          },
+          "audit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BackupAudit"
+              }
+            ]
+          }
+        }
+      },
       "BackupDocument": {
         "required": [
           "format",
@@ -9832,6 +10231,15 @@
             ],
             "items": {
               "$ref": "#/components/schemas/BackupAttachment"
+            }
+          },
+          "childcareDeclarations": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/BackupChildcareDeclaration"
             }
           }
         }
@@ -12201,6 +12609,312 @@
           }
         }
       },
+      "ChildcareDeclarationDto": {
+        "required": [
+          "id",
+          "year",
+          "month",
+          "payeeId",
+          "payeeName",
+          "activityDays",
+          "normalHours",
+          "extraHours",
+          "overtimeHours",
+          "paidLeaveDays",
+          "netHourlyRate",
+          "netSalary",
+          "maintenanceAllowance",
+          "mealAllowance",
+          "mileageAllowance",
+          "advance",
+          "longCareDays",
+          "disabledChildCare",
+          "isContractEnd",
+          "contractEndDate",
+          "precariousnessAllowance",
+          "paidLeaveCompensation",
+          "noticeCompensation",
+          "terminationAllowance",
+          "contributions",
+          "coveredContributions",
+          "cmgEntitlement",
+          "remuneration",
+          "totalCost",
+          "cmg",
+          "remaining",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "payeeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "payeeName": {
+            "type": "string"
+          },
+          "activityDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "normalHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "extraHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "overtimeHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "paidLeaveDays": {
+            "type": "number",
+            "format": "double"
+          },
+          "netHourlyRate": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "netSalary": {
+            "type": "number",
+            "format": "double"
+          },
+          "maintenanceAllowance": {
+            "type": "number",
+            "format": "double"
+          },
+          "mealAllowance": {
+            "type": "number",
+            "format": "double"
+          },
+          "mileageAllowance": {
+            "type": "number",
+            "format": "double"
+          },
+          "advance": {
+            "type": "number",
+            "format": "double"
+          },
+          "longCareDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "disabledChildCare": {
+            "type": "boolean"
+          },
+          "isContractEnd": {
+            "type": "boolean"
+          },
+          "contractEndDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "precariousnessAllowance": {
+            "type": "number",
+            "format": "double"
+          },
+          "paidLeaveCompensation": {
+            "type": "number",
+            "format": "double"
+          },
+          "noticeCompensation": {
+            "type": "number",
+            "format": "double"
+          },
+          "terminationAllowance": {
+            "type": "number",
+            "format": "double"
+          },
+          "contributions": {
+            "type": "number",
+            "format": "double"
+          },
+          "coveredContributions": {
+            "type": "number",
+            "format": "double"
+          },
+          "cmgEntitlement": {
+            "type": "number",
+            "format": "double"
+          },
+          "remuneration": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "cmg": {
+            "type": "number",
+            "format": "double"
+          },
+          "remaining": {
+            "type": "number",
+            "format": "double"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ChildcareDeclarationRequest": {
+        "required": [
+          "year",
+          "month",
+          "payeeId",
+          "activityDays",
+          "normalHours",
+          "extraHours",
+          "overtimeHours",
+          "paidLeaveDays",
+          "netHourlyRate",
+          "netSalary",
+          "maintenanceAllowance",
+          "mealAllowance",
+          "mileageAllowance",
+          "advance",
+          "longCareDays",
+          "disabledChildCare",
+          "isContractEnd",
+          "contractEndDate",
+          "precariousnessAllowance",
+          "paidLeaveCompensation",
+          "noticeCompensation",
+          "terminationAllowance",
+          "contributions",
+          "coveredContributions",
+          "cmgEntitlement"
+        ],
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "payeeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "activityDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "normalHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "extraHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "overtimeHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "paidLeaveDays": {
+            "type": "number",
+            "format": "double"
+          },
+          "netHourlyRate": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "netSalary": {
+            "type": "number",
+            "format": "double"
+          },
+          "maintenanceAllowance": {
+            "type": "number",
+            "format": "double"
+          },
+          "mealAllowance": {
+            "type": "number",
+            "format": "double"
+          },
+          "mileageAllowance": {
+            "type": "number",
+            "format": "double"
+          },
+          "advance": {
+            "type": "number",
+            "format": "double"
+          },
+          "longCareDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "disabledChildCare": {
+            "type": "boolean"
+          },
+          "isContractEnd": {
+            "type": "boolean"
+          },
+          "contractEndDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "precariousnessAllowance": {
+            "type": "number",
+            "format": "double"
+          },
+          "paidLeaveCompensation": {
+            "type": "number",
+            "format": "double"
+          },
+          "noticeCompensation": {
+            "type": "number",
+            "format": "double"
+          },
+          "terminationAllowance": {
+            "type": "number",
+            "format": "double"
+          },
+          "contributions": {
+            "type": "number",
+            "format": "double"
+          },
+          "coveredContributions": {
+            "type": "number",
+            "format": "double"
+          },
+          "cmgEntitlement": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "ChildcareDto": {
         "required": [
           "year",
@@ -12265,6 +12979,35 @@
           },
           "net": {
             "type": "number",
+            "format": "double"
+          },
+          "declarations": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          },
+          "declaredRemuneration": {
+            "type": "number",
+            "format": "double",
+            "default": 0
+          },
+          "declaredCmg": {
+            "type": "number",
+            "format": "double",
+            "default": 0
+          },
+          "paidGap": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "aidGap": {
+            "type": [
+              "null",
+              "number"
+            ],
             "format": "double"
           }
         }

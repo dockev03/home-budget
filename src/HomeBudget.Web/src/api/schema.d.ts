@@ -7529,6 +7529,254 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/family/childcare/{year}/declarations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Déclarations Pajemploi de l'année (P2 bis), par mois puis par salarié, avec leurs totaux. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    year: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ChildcareDeclarationDto"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/family/childcare/declarations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Saisit la déclaration Pajemploi d'un mois pour un salarié (une seule par mois et par salarié). */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ChildcareDeclarationRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ChildcareDeclarationDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/family/childcare/declarations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Modifie une déclaration Pajemploi (If-Match requis). */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ChildcareDeclarationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ChildcareDeclarationDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Supprime une déclaration Pajemploi (If-Match requis). Les opérations ne sont pas modifiées. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Failed */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Precondition Required */
+                428: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/family/health": {
         parameters: {
             query?: never;
@@ -8950,6 +9198,59 @@ export interface components {
             carryOverSince?: null | string;
             familyRole?: components["schemas"]["FamilyRole"];
         };
+        BackupChildcareDeclaration: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            year: number;
+            /** Format: int32 */
+            month: number;
+            /** Format: uuid */
+            payeeId: string;
+            /** Format: int32 */
+            activityDays: number;
+            /** Format: double */
+            normalHours: number;
+            /** Format: double */
+            extraHours: number;
+            /** Format: double */
+            overtimeHours: number;
+            /** Format: double */
+            paidLeaveDays: number;
+            /** Format: double */
+            netHourlyRate: null | number;
+            /** Format: double */
+            netSalary: number;
+            /** Format: double */
+            maintenanceAllowance: number;
+            /** Format: double */
+            mealAllowance: number;
+            /** Format: double */
+            mileageAllowance: number;
+            /** Format: double */
+            advance: number;
+            /** Format: int32 */
+            longCareDays: number;
+            disabledChildCare: boolean;
+            isContractEnd: boolean;
+            /** Format: date */
+            contractEndDate: null | string;
+            /** Format: double */
+            precariousnessAllowance: number;
+            /** Format: double */
+            paidLeaveCompensation: number;
+            /** Format: double */
+            noticeCompensation: number;
+            /** Format: double */
+            terminationAllowance: number;
+            /** Format: double */
+            contributions: number;
+            /** Format: double */
+            coveredContributions: number;
+            /** Format: double */
+            cmgEntitlement: number;
+            audit: null | components["schemas"]["BackupAudit"];
+        };
         BackupDocument: {
             format: null | string;
             /** Format: int32 */
@@ -8981,6 +9282,7 @@ export interface components {
             memberShares?: null | components["schemas"]["BackupMemberShare"][];
             savedReports?: null | components["schemas"]["BackupSavedReport"][];
             attachments?: null | components["schemas"]["BackupAttachment"][];
+            childcareDeclarations?: null | components["schemas"]["BackupChildcareDeclaration"][];
         };
         BackupImportBatch: {
             /** Format: uuid */
@@ -9591,6 +9893,119 @@ export interface components {
             currentPassword: string;
             newPassword: string;
         };
+        ChildcareDeclarationDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            year: number;
+            /** Format: int32 */
+            month: number;
+            /** Format: uuid */
+            payeeId: string;
+            payeeName: string;
+            /** Format: int32 */
+            activityDays: number;
+            /** Format: double */
+            normalHours: number;
+            /** Format: double */
+            extraHours: number;
+            /** Format: double */
+            overtimeHours: number;
+            /** Format: double */
+            paidLeaveDays: number;
+            /** Format: double */
+            netHourlyRate: null | number;
+            /** Format: double */
+            netSalary: number;
+            /** Format: double */
+            maintenanceAllowance: number;
+            /** Format: double */
+            mealAllowance: number;
+            /** Format: double */
+            mileageAllowance: number;
+            /** Format: double */
+            advance: number;
+            /** Format: int32 */
+            longCareDays: number;
+            disabledChildCare: boolean;
+            isContractEnd: boolean;
+            /** Format: date */
+            contractEndDate: null | string;
+            /** Format: double */
+            precariousnessAllowance: number;
+            /** Format: double */
+            paidLeaveCompensation: number;
+            /** Format: double */
+            noticeCompensation: number;
+            /** Format: double */
+            terminationAllowance: number;
+            /** Format: double */
+            contributions: number;
+            /** Format: double */
+            coveredContributions: number;
+            /** Format: double */
+            cmgEntitlement: number;
+            /** Format: double */
+            remuneration: number;
+            /** Format: double */
+            totalCost: number;
+            /** Format: double */
+            cmg: number;
+            /** Format: double */
+            remaining: number;
+            /** Format: int32 */
+            version: number;
+        };
+        ChildcareDeclarationRequest: {
+            /** Format: int32 */
+            year: number;
+            /** Format: int32 */
+            month: number;
+            /** Format: uuid */
+            payeeId: string;
+            /** Format: int32 */
+            activityDays: number;
+            /** Format: double */
+            normalHours: number;
+            /** Format: double */
+            extraHours: number;
+            /** Format: double */
+            overtimeHours: number;
+            /** Format: double */
+            paidLeaveDays: number;
+            /** Format: double */
+            netHourlyRate: null | number;
+            /** Format: double */
+            netSalary: number;
+            /** Format: double */
+            maintenanceAllowance: number;
+            /** Format: double */
+            mealAllowance: number;
+            /** Format: double */
+            mileageAllowance: number;
+            /** Format: double */
+            advance: number;
+            /** Format: int32 */
+            longCareDays: number;
+            disabledChildCare: boolean;
+            isContractEnd: boolean;
+            /** Format: date */
+            contractEndDate: null | string;
+            /** Format: double */
+            precariousnessAllowance: number;
+            /** Format: double */
+            paidLeaveCompensation: number;
+            /** Format: double */
+            noticeCompensation: number;
+            /** Format: double */
+            terminationAllowance: number;
+            /** Format: double */
+            contributions: number;
+            /** Format: double */
+            coveredContributions: number;
+            /** Format: double */
+            cmgEntitlement: number;
+        };
         ChildcareDto: {
             /** Format: int32 */
             year: number;
@@ -9612,6 +10027,25 @@ export interface components {
             aid: number;
             /** Format: double */
             net: number;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            declarations: number;
+            /**
+             * Format: double
+             * @default 0
+             */
+            declaredRemuneration: number;
+            /**
+             * Format: double
+             * @default 0
+             */
+            declaredCmg: number;
+            /** Format: double */
+            paidGap?: null | number;
+            /** Format: double */
+            aidGap?: null | number;
         };
         ChildcarePayeeDto: {
             /** Format: uuid */

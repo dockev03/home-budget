@@ -46,11 +46,12 @@ public sealed record BackupDocument(
     List<BackupLoan?>? Loans = null,
     List<BackupMemberShare?>? MemberShares = null,
     List<BackupSavedReport?>? SavedReports = null,
-    List<BackupAttachment?>? Attachments = null)
+    List<BackupAttachment?>? Attachments = null,
+    List<BackupChildcareDeclaration?>? ChildcareDeclarations = null)
 {
     public const string FormatName = "home-budget-backup";
 
-    public const int CurrentVersion = 11;
+    public const int CurrentVersion = 12;
 
     /// <summary>Version 1 : sans profils ni historique d'import (étapes 1 à 4), toujours restaurable.</summary>
     public const int MinVersion = 1;
@@ -90,6 +91,9 @@ public sealed record BackupDocument(
     /// Avant, le rôle est déduit du nom des catégories par défaut et l'attendu reprend le montant de la récurrence.
     /// </summary>
     public const int FamilyVersion = 11;
+
+    /// <summary>Version 12 : déclarations Pajemploi mensuelles des salariés de la garde (P2 bis).</summary>
+    public const int DeclarationsVersion = 12;
 }
 
 /// <summary>Traçabilité (K2) et version de concurrence, conservées à la restauration.</summary>
@@ -151,6 +155,36 @@ public sealed record BackupSavedReport(
     List<Guid>? TagIds,
     List<Domain.Categories.CategoryKind>? Kinds,
     bool IncludeTransfers,
+    BackupAudit? Audit);
+
+/// <summary>Déclaration Pajemploi d'un mois pour un salarié de la garde (P2 bis).</summary>
+public sealed record BackupChildcareDeclaration(
+    Guid Id,
+    int Year,
+    int Month,
+    Guid PayeeId,
+    int ActivityDays,
+    decimal NormalHours,
+    decimal ExtraHours,
+    decimal OvertimeHours,
+    decimal PaidLeaveDays,
+    decimal? NetHourlyRate,
+    decimal NetSalary,
+    decimal MaintenanceAllowance,
+    decimal MealAllowance,
+    decimal MileageAllowance,
+    decimal Advance,
+    int LongCareDays,
+    bool DisabledChildCare,
+    bool IsContractEnd,
+    DateOnly? ContractEndDate,
+    decimal PrecariousnessAllowance,
+    decimal PaidLeaveCompensation,
+    decimal NoticeCompensation,
+    decimal TerminationAllowance,
+    decimal Contributions,
+    decimal CoveredContributions,
+    decimal CmgEntitlement,
     BackupAudit? Audit);
 
 /// <summary>Valorisation d'un compte d'investissement (A7).</summary>

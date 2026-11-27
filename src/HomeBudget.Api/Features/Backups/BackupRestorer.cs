@@ -52,6 +52,7 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
         var shares = await db.MemberShares.AsNoTracking().OrderBy(m => m.Id).ToListAsync(ct);
         var reports = await db.SavedReports.AsNoTracking().OrderBy(r => r.Id).ToListAsync(ct);
         var attachments = await db.Attachments.AsNoTracking().OrderBy(a => a.Id).ToListAsync(ct);
+        var declarations = await db.ChildcareDeclarations.AsNoTracking().OrderBy(d => d.Id).ToListAsync(ct);
 
         return new BackupDocument(
             BackupDocument.FormatName,
@@ -103,7 +104,12 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
             [.. shares.Select(m => new BackupMemberShare(m.Id, m.UserId, m.Percent, AuditOf(m), m.ExcludeFromSplit))],
             [.. reports.Select(r => new BackupSavedReport(
                 r.Id, r.Name, r.GroupBy, r.Range, r.From, r.To, r.AccountIds, r.CategoryIds, r.PayeeIds, r.TagIds, r.Kinds, r.IncludeTransfers, AuditOf(r)))],
-            [.. attachments.Select(a => new BackupAttachment(a.Id, a.TransactionId, a.FileName, a.ContentType, a.Size, a.Sha256, AuditOf(a)))]);
+            [.. attachments.Select(a => new BackupAttachment(a.Id, a.TransactionId, a.FileName, a.ContentType, a.Size, a.Sha256, AuditOf(a)))],
+            [.. declarations.Select(d => new BackupChildcareDeclaration(
+                d.Id, d.Year, d.Month, d.PayeeId, d.ActivityDays, d.NormalHours, d.ExtraHours, d.OvertimeHours, d.PaidLeaveDays,
+                d.NetHourlyRate, d.NetSalary, d.MaintenanceAllowance, d.MealAllowance, d.MileageAllowance, d.Advance, d.LongCareDays,
+                d.DisabledChildCare, d.IsContractEnd, d.ContractEndDate, d.PrecariousnessAllowance, d.PaidLeaveCompensation,
+                d.NoticeCompensation, d.TerminationAllowance, d.Contributions, d.CoveredContributions, d.CmgEntitlement, AuditOf(d)))]);
     }
 
     /// <summary>
@@ -133,6 +139,8 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
 
         // Ordre imposé par les clés étrangères : des dépendants vers les éléments référencés.
         await db.RecurrenceOccurrences.ExecuteDeleteAsync(ct);
+        // Avant les tiers, qu'elles référencent ; remplacées quelle que soit la version (aucune avant la v12).
+        await db.ChildcareDeclarations.ExecuteDeleteAsync(ct);
         // Remplacées quelle que soit la version ; les fichiers restent sur le disque (nettoyés s'ils ne servent plus).
         await db.Attachments.ExecuteDeleteAsync(ct);
         // Remplacés quelle que soit la version : une sauvegarde antérieure à la v8 n'en contient pas.
@@ -511,6 +519,39 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 Size = a.Size,
                 Sha256 = a.Sha256!,
             }, a.Audit));
+        }
+
+        foreach (var d in (document.ChildcareDeclarations ?? []).OfType<BackupChildcareDeclaration>())
+        {
+            db.ChildcareDeclarations.Add(Stamp(new Domain.Family.ChildcareDeclaration
+            {
+                Id = d.Id,
+                Year = d.Year,
+                Month = d.Month,
+                PayeeId = d.PayeeId,
+                ActivityDays = d.ActivityDays,
+                NormalHours = d.NormalHours,
+                ExtraHours = d.ExtraHours,
+                OvertimeHours = d.OvertimeHours,
+                PaidLeaveDays = d.PaidLeaveDays,
+                NetHourlyRate = d.NetHourlyRate,
+                NetSalary = d.NetSalary,
+                MaintenanceAllowance = d.MaintenanceAllowance,
+                MealAllowance = d.MealAllowance,
+                MileageAllowance = d.MileageAllowance,
+                Advance = d.Advance,
+                LongCareDays = d.LongCareDays,
+                DisabledChildCare = d.DisabledChildCare,
+                IsContractEnd = d.IsContractEnd,
+                ContractEndDate = d.IsContractEnd ? d.ContractEndDate : null,
+                PrecariousnessAllowance = d.PrecariousnessAllowance,
+                PaidLeaveCompensation = d.PaidLeaveCompensation,
+                NoticeCompensation = d.NoticeCompensation,
+                TerminationAllowance = d.TerminationAllowance,
+                Contributions = d.Contributions,
+                CoveredContributions = d.CoveredContributions,
+                CmgEntitlement = d.CmgEntitlement,
+            }, d.Audit));
         }
 
         db.PreserveAuditFields = true;

@@ -236,6 +236,7 @@ Légende des lots (détail en §6) : **L1** = MVP cœur · **L2** = import et au
 |---|---|---|
 | P1 | Suivi CAF et CMG : montant attendu (récurrence à valider) comparé au reçu, avec l'écart | L6 |
 | P2 | Récapitulatif annuel des frais de garde, pour la déclaration d'impôts | L6 |
+| P2 bis | Déclarations Pajemploi mensuelles, une par salarié de la garde : travail, rémunération, indemnités, cotisations et CMG, avec coût total et reste à charge, comparés au payé et au CMG reçu | L6 |
 | P3 | Récapitulatif annuel par catégorie, comparé à l'année précédente | L4 |
 | P4 | Santé : dépense → remboursement CPAM → remboursement mutuelle → reste à charge (s'appuie sur B11) | L6 |
 

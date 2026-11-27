@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HomeBudget.Api.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261127160246_UserSessionsAndSecurityAlerts")]
+    [Migration("20261127162307_UserSessionsAndSecurityAlerts")]
     partial class UserSessionsAndSecurityAlerts
     {
         /// <inheritdoc />
@@ -555,6 +555,112 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("DashboardLayouts");
+                });
+
+            modelBuilder.Entity("HomeBudget.Api.Domain.Family.ChildcareDeclaration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ActivityDays")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("Advance")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("CmgEntitlement")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly?>("ContractEndDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Contributions")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("CoveredContributions")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("DisabledChildCare")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("ExtraHours")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsContractEnd")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("LongCareDays")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("MaintenanceAllowance")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("MealAllowance")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("MileageAllowance")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("NetHourlyRate")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("NetSalary")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("NormalHours")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("NoticeCompensation")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("OvertimeHours")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("PaidLeaveCompensation")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("PaidLeaveDays")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("PayeeId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("PrecariousnessAllowance")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("TerminationAllowance")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PayeeId");
+
+                    b.HasIndex("Year", "Month", "PayeeId")
+                        .IsUnique();
+
+                    b.ToTable("ChildcareDeclarations");
                 });
 
             modelBuilder.Entity("HomeBudget.Api.Domain.Imports.ImportBatch", b =>
@@ -2164,6 +2270,15 @@ namespace HomeBudget.Api.Infrastructure.Data.Migrations
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("HomeBudget.Api.Domain.Family.ChildcareDeclaration", b =>
+                {
+                    b.HasOne("HomeBudget.Api.Domain.Payees.Payee", null)
+                        .WithMany()
+                        .HasForeignKey("PayeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 

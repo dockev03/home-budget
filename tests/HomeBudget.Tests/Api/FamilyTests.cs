@@ -28,6 +28,36 @@ public sealed class FamilyTests
         isInstallment = false,
     };
 
+    /// <summary>Déclaration Pajemploi de la capture de novembre 2026 (salarié = tiers).</summary>
+    internal static object Declaration(int year, int month, Guid payeeId, decimal netSalary = 638.25m, decimal cmg = 446.40m) => new
+    {
+        year,
+        month,
+        payeeId,
+        activityDays = 16,
+        normalHours = 142m,
+        extraHours = 0m,
+        overtimeHours = 0m,
+        paidLeaveDays = 0m,
+        netHourlyRate = (decimal?)null,
+        netSalary,
+        maintenanceAllowance = 67.50m,
+        mealAllowance = 82.50m,
+        mileageAllowance = 0m,
+        advance = 0m,
+        longCareDays = 0,
+        disabledChildCare = false,
+        isContractEnd = false,
+        contractEndDate = (string?)null,
+        precariousnessAllowance = 0m,
+        paidLeaveCompensation = 0m,
+        noticeCompensation = 0m,
+        terminationAllowance = 0m,
+        contributions = 539.53m,
+        coveredContributions = 539.53m,
+        cmgEntitlement = cmg,
+    };
+
     private static Guid Pending(JsonElement pending, string label) =>
         Id(pending.EnumerateArray().First(p => p.GetProperty("label").GetString() == label));
 
@@ -181,6 +211,79 @@ public sealed class FamilyTests
         var after = (await admin.GetJsonAsync("/api/family/childcare/2026")).GetProperty("months").EnumerateArray().ToList();
         after[10].Decimal("paid").ShouldBe(0m);
         after[11].Decimal("paid").ShouldBe(1250m);
+    }
+
+    [Fact]
+    public async Task Childcare_declarations_are_saved_per_month_and_employee_and_compared_with_payments()
+    {
+        await using var factory = new HomeBudgetFactory { Today = Today };
+        var admin = await factory.CreateAdminClientAsync();
+        var reader = await factory.CreateUserClientAsync("lecteur", "ReadOnly");
+        var account = await admin.CreateAccountAsync("Courant", initialDate: new DateOnly(2025, 1, 1));
+        var nanny = await admin.CategoryIdAsync("Nounou Maël");
+        var cmg = await admin.CategoryIdAsync("CMG");
+        await admin.CreateTransactionAsync(account, -800m, nanny, new DateOnly(2026, 11, 30), payeeName: "Anaïs");
+        await admin.CreateTransactionAsync(account, -50m, nanny, new DateOnly(2026, 11, 30), payeeName: "Lucie");
+        await admin.CreateTransactionAsync(account, 446.40m, cmg, new DateOnly(2026, 11, 28));
+        async Task<Guid> PayeeAsync(string name) =>
+            (await admin.GetJsonAsync($"/api/payees?search={name}")).EnumerateArray().First().GetProperty("id").GetGuid();
+        var anais = await PayeeAsync("Anaïs");
+        var lucie = await PayeeAsync("Lucie");
+
+        var created = await admin.CreateAsync("/api/family/childcare/declarations", Declaration(2026, 11, anais));
+        created.GetProperty("payeeName").GetString().ShouldBe("Anaïs");
+        created.Decimal("remuneration").ShouldBe(788.25m);
+        created.Decimal("totalCost").ShouldBe(1327.78m);
+        created.Decimal("cmg").ShouldBe(985.93m);
+        created.Decimal("remaining").ShouldBe(341.85m);
+        // Plusieurs salariés le même mois : une déclaration chacun.
+        await admin.CreateAsync("/api/family/childcare/declarations", Declaration(2026, 11, lucie, netSalary: 0m, cmg: 0m));
+
+        // Une seule déclaration par mois et par salarié.
+        (await admin.PostAsync("/api/family/childcare/declarations", Declaration(2026, 11, anais)))
+            .StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        // Saisie invalide : mois, montant négatif, salarié inconnu, indemnité de fin hors fin de contrat.
+        (await admin.PostAsync("/api/family/childcare/declarations", Declaration(2026, 13, anais)))
+            .StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await admin.PostAsync("/api/family/childcare/declarations", Declaration(2026, 10, anais, netSalary: -1m)))
+            .StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await admin.PostAsync("/api/family/childcare/declarations", Declaration(2026, 10, Guid.NewGuid())))
+            .StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        // Lecture seule : consultation, sans écriture.
+        (await reader.PostAsync("/api/family/childcare/declarations", Declaration(2026, 10, anais)))
+            .StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+
+        var list = (await reader.GetJsonAsync("/api/family/childcare/2026/declarations")).EnumerateArray().ToList();
+        list.Select(d => d.GetProperty("payeeName").GetString()).ShouldBe(["Anaïs", "Lucie"]);
+        (await admin.GetJsonAsync("/api/family/childcare/2025/declarations")).GetArrayLength().ShouldBe(0);
+
+        // Récapitulatif : écart entre le payé (850) et la rémunération déclarée (788,25 + 150), et sur le CMG.
+        var november = (await admin.GetJsonAsync("/api/family/childcare/2026")).GetProperty("months")[10];
+        november.GetProperty("declarations").GetInt32().ShouldBe(2);
+        november.Decimal("declaredRemuneration").ShouldBe(938.25m);
+        november.Decimal("paidGap").ShouldBe(-88.25m);
+        november.Decimal("declaredCmg").ShouldBe(446.40m);
+        november.Decimal("aidGap").ShouldBe(0m);
+        var october = (await admin.GetJsonAsync("/api/family/childcare/2026")).GetProperty("months")[9];
+        october.GetProperty("declarations").GetInt32().ShouldBe(0);
+        october.GetProperty("paidGap").ValueKind.ShouldBe(JsonValueKind.Null);
+
+        // Modification (If-Match) : version périmée refusée, puis la bonne acceptée.
+        var url = $"/api/family/childcare/declarations/{Id(created)}";
+        (await admin.PutAsync(url, Declaration(2026, 11, anais, netSalary: 700m), created.Version() + 1))
+            .StatusCode.ShouldBe(HttpStatusCode.PreconditionFailed);
+        var updated = await ApiClient.ReadJsonAsync(await admin.PutAsync(url, Declaration(2026, 11, anais, netSalary: 700m), created.Version()));
+        updated.Decimal("remuneration").ShouldBe(850m);
+        // Déplacer la déclaration de Lucie sur Anaïs : doublon.
+        var lucieDeclaration = list[1];
+        (await admin.PutAsync($"/api/family/childcare/declarations/{Id(lucieDeclaration)}", Declaration(2026, 11, anais), lucieDeclaration.Version()))
+            .StatusCode.ShouldBe(HttpStatusCode.Conflict);
+
+        (await admin.DeleteAsync(url, updated.Version())).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        (await admin.GetJsonAsync("/api/family/childcare/2026/declarations")).GetArrayLength().ShouldBe(1);
+        // La suppression est inscrite au journal (K2) ; créations et modifications portent auteur et version.
+        var audit = await admin.GetJsonAsync("/api/audit?action=Deleted");
+        audit.GetProperty("items").EnumerateArray().ShouldContain(e => e.GetProperty("target").GetString() == "ChildcareDeclaration");
     }
 
     [Fact]

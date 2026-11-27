@@ -549,6 +549,42 @@ public static class BackupValidator
             Audit(where, a.Audit, errors);
         }
 
+        if (document.FormatVersion >= BackupDocument.DeclarationsVersion
+            && (document.ChildcareDeclarations is null || document.ChildcareDeclarations.Contains(null)))
+        {
+            errors.Add("Fichier incomplet : la liste des déclarations Pajemploi est attendue.");
+        }
+        UniqueIds("déclaration Pajemploi", (document.ChildcareDeclarations ?? []).OfType<BackupChildcareDeclaration>().Select(d => d.Id), errors);
+        var declaredMonths = new HashSet<(int, int, Guid)>();
+        foreach (var d in (document.ChildcareDeclarations ?? []).OfType<BackupChildcareDeclaration>())
+        {
+            var where = $"Déclaration Pajemploi {d.Id}";
+            Reference(where, "salarié", d.PayeeId, payeeIds, errors);
+            if (d.Year is < 1901 or > 9998 || d.Month is < 1 or > 12)
+            {
+                errors.Add($"{where} : mois invalide.");
+            }
+            else if (!declaredMonths.Add((d.Year, d.Month, d.PayeeId)))
+            {
+                errors.Add($"{where} : deux déclarations du même salarié pour le même mois.");
+            }
+            if (d.ActivityDays is < 0 or > 31 || d.LongCareDays is < 0 or > 31)
+            {
+                errors.Add($"{where} : nombre de jours invalide.");
+            }
+            decimal?[] values =
+            [
+                d.NormalHours, d.ExtraHours, d.OvertimeHours, d.PaidLeaveDays, d.NetHourlyRate, d.NetSalary, d.MaintenanceAllowance,
+                d.MealAllowance, d.MileageAllowance, d.Advance, d.PrecariousnessAllowance, d.PaidLeaveCompensation, d.NoticeCompensation,
+                d.TerminationAllowance, d.Contributions, d.CoveredContributions, d.CmgEntitlement,
+            ];
+            if (values.Any(v => v is { } x && (x < 0 || x > Family.FamilyEndpoints.MaxDeclarationValue || decimal.Round(x, 2) != x)))
+            {
+                errors.Add($"{where} : heure ou montant invalide.");
+            }
+            Audit(where, d.Audit, errors);
+        }
+
         UniqueIds("modification d'opération", (document.TransactionChanges ?? []).Select(c => c!.Id), errors);
         foreach (var c in (document.TransactionChanges ?? []).OfType<BackupTransactionChange>())
         {

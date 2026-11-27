@@ -25,6 +25,38 @@ public sealed class FamilyCalculationsTests
         Enum.GetValues<BenefitStatus>().Where(s => !BenefitGap.IsDue(s)).ShouldBe([BenefitStatus.Upcoming]);
 
     [Fact]
+    public void Pajemploi_totals_match_the_statement()
+    {
+        // Relevé Pajemploi de novembre 2026 : 638,25 € de salaire, 67,50 € d'entretien, 82,50 € de repas.
+        var totals = ChildcareDeclarationTotals.Of(new ChildcareDeclaration
+        {
+            NetSalary = 638.25m,
+            MaintenanceAllowance = 67.50m,
+            MealAllowance = 82.50m,
+            Advance = 100m,
+            Contributions = 539.53m,
+            CoveredContributions = 539.53m,
+            CmgEntitlement = 446.40m,
+        });
+        totals.Remuneration.ShouldBe(788.25m);
+        totals.TotalCost.ShouldBe(1327.78m);
+        totals.Cmg.ShouldBe(985.93m);
+        totals.Remaining.ShouldBe(341.85m);
+    }
+
+    [Fact]
+    public void Pajemploi_remuneration_includes_end_of_contract_allowances() =>
+        ChildcareDeclarationTotals.Of(new ChildcareDeclaration
+        {
+            NetSalary = 500m,
+            MileageAllowance = 10m,
+            PrecariousnessAllowance = 1m,
+            PaidLeaveCompensation = 2m,
+            NoticeCompensation = 3m,
+            TerminationAllowance = 4m,
+        }).Remuneration.ShouldBe(520m);
+
+    [Fact]
     public void Declarable_childcare_is_net_of_aid_and_never_negative()
     {
         ChildcareSummary.Declarable(1080m, 300m).ShouldBe(780m);

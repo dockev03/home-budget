@@ -9,7 +9,9 @@ using HomeBudget.Api.Domain.Recurrences;
 using HomeBudget.Api.Features.Accounts;
 using HomeBudget.Api.Features.Exports;
 using HomeBudget.Api.Features.Transactions;
+using HomeBudget.Api.Infrastructure;
 using HomeBudget.Api.Infrastructure.Data;
+using HomeBudget.Api.Infrastructure.Http;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -37,6 +39,19 @@ public static class FamilyEndpoints
             .Produces(StatusCodes.Status200OK, contentType: ExportEndpoints.CsvContentType)
             .ProducesValidationProblem()
             .WithSummary("Exporte le récapitulatif des frais de garde de l'année en CSV.");
+        group.MapGet("/childcare/{year:int}/declarations", DeclarationsAsync)
+            .Produces<List<ChildcareDeclarationDto>>().ProducesValidationProblem()
+            .WithSummary("Déclarations Pajemploi de l'année (P2 bis), par mois puis par salarié, avec leurs totaux.");
+        group.MapPost("/childcare/declarations", CreateDeclarationAsync).RequireAuthorization(AuthorizationPolicies.Write)
+            .Produces<ChildcareDeclarationDto>(StatusCodes.Status201Created).ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .WithSummary("Saisit la déclaration Pajemploi d'un mois pour un salarié (une seule par mois et par salarié).");
+        group.MapPut("/childcare/declarations/{id:guid}", UpdateDeclarationAsync).RequireAuthorization(AuthorizationPolicies.Write)
+            .Produces<ChildcareDeclarationDto>().ProducesValidationProblem().WithConcurrencyProblems()
+            .WithSummary("Modifie une déclaration Pajemploi (If-Match requis).");
+        group.MapDelete("/childcare/declarations/{id:guid}", DeleteDeclarationAsync).RequireAuthorization(AuthorizationPolicies.Write)
+            .Produces(StatusCodes.Status204NoContent).WithConcurrencyProblems()
+            .WithSummary("Supprime une déclaration Pajemploi (If-Match requis). Les opérations ne sont pas modifiées.");
         group.MapGet("/health", HealthAsync)
             .Produces<HealthDto>().ProducesValidationProblem()
             .WithSummary("Dépenses de santé de la plage (P4), avec les remboursements CPAM et mutuelle liés et le reste à charge (défaut : l'année en cours).");
@@ -64,7 +79,80 @@ public static class FamilyEndpoints
     /// <param name="Paid">Frais de garde payés (en positif).</param>
     /// <param name="Aid">Aides à la garde reçues (CMG…).</param>
     /// <param name="Net">Payé − aides.</param>
-    public sealed record ChildcareMonthDto(int Month, decimal Paid, decimal Aid, decimal Net);
+    /// <param name="Declarations">Nombre de déclarations Pajemploi saisies pour le mois.</param>
+    /// <param name="DeclaredRemuneration">Rémunération déclarée (salaire net et indemnités), tous salariés.</param>
+    /// <param name="DeclaredCmg">Droit CMG déclaré (hors cotisations prises en charge, qui ne passent pas par le compte).</param>
+    /// <param name="PaidGap">Payé − rémunération déclarée ; null sans déclaration.</param>
+    /// <param name="AidGap">Aides reçues − droit CMG déclaré ; null sans déclaration.</param>
+    public sealed record ChildcareMonthDto(
+        int Month, decimal Paid, decimal Aid, decimal Net,
+        int Declarations = 0, decimal DeclaredRemuneration = 0m, decimal DeclaredCmg = 0m, decimal? PaidGap = null, decimal? AidGap = null);
+
+    /// <summary>Champs saisis d'une déclaration Pajemploi (montants et heures à 2 décimales au plus, positifs).</summary>
+    public sealed record ChildcareDeclarationRequest(
+        int Year,
+        int Month,
+        Guid PayeeId,
+        int ActivityDays,
+        decimal NormalHours,
+        decimal ExtraHours,
+        decimal OvertimeHours,
+        decimal PaidLeaveDays,
+        decimal? NetHourlyRate,
+        decimal NetSalary,
+        decimal MaintenanceAllowance,
+        decimal MealAllowance,
+        decimal MileageAllowance,
+        decimal Advance,
+        int LongCareDays,
+        bool DisabledChildCare,
+        bool IsContractEnd,
+        DateOnly? ContractEndDate,
+        decimal PrecariousnessAllowance,
+        decimal PaidLeaveCompensation,
+        decimal NoticeCompensation,
+        decimal TerminationAllowance,
+        decimal Contributions,
+        decimal CoveredContributions,
+        decimal CmgEntitlement);
+
+    /// <param name="Remuneration">Salaire net déclaré : salaire, indemnités et indemnités de fin de contrat.</param>
+    /// <param name="TotalCost">Coût total de l'emploi : rémunération + cotisations.</param>
+    /// <param name="Cmg">Complément du mode de garde : cotisations prises en charge + droit CMG.</param>
+    /// <param name="Remaining">Montant restant à charge : coût total − CMG.</param>
+    public sealed record ChildcareDeclarationDto(
+        Guid Id,
+        int Year,
+        int Month,
+        Guid PayeeId,
+        string PayeeName,
+        int ActivityDays,
+        decimal NormalHours,
+        decimal ExtraHours,
+        decimal OvertimeHours,
+        decimal PaidLeaveDays,
+        decimal? NetHourlyRate,
+        decimal NetSalary,
+        decimal MaintenanceAllowance,
+        decimal MealAllowance,
+        decimal MileageAllowance,
+        decimal Advance,
+        int LongCareDays,
+        bool DisabledChildCare,
+        bool IsContractEnd,
+        DateOnly? ContractEndDate,
+        decimal PrecariousnessAllowance,
+        decimal PaidLeaveCompensation,
+        decimal NoticeCompensation,
+        decimal TerminationAllowance,
+        decimal Contributions,
+        decimal CoveredContributions,
+        decimal CmgEntitlement,
+        decimal Remuneration,
+        decimal TotalCost,
+        decimal Cmg,
+        decimal Remaining,
+        int Version);
 
     public sealed record ChildcarePayeeDto(Guid? PayeeId, string Name, decimal Paid);
 
@@ -212,10 +300,20 @@ public static class FamilyEndpoints
         var childcare = lines.Where(x => childcareIds.Contains(x.CategoryId!.Value)).ToList();
         var aids = lines.Where(x => aidIds.Contains(x.CategoryId!.Value)).ToList();
 
+        // Déclarations Pajemploi du mois : comparées au réel, payé d'un côté, CMG reçu de l'autre.
+        var declared = (await db.ChildcareDeclarations.AsNoTracking().Where(d => d.Year == year).ToListAsync(ct))
+            .GroupBy(d => d.Month)
+            .ToDictionary(g => g.Key, g => (
+                Count: g.Count(),
+                Remuneration: g.Sum(d => ChildcareDeclarationTotals.Of(d).Remuneration),
+                Cmg: g.Sum(d => d.CmgEntitlement)));
+
         // Une dépense est négative (R2) : un remboursement de la nounou dans la même catégorie la diminue.
         var months = Enumerable.Range(1, 12)
             .Select(m => new ChildcareMonth(m, -childcare.Where(x => x.Date.Month == m).Sum(x => x.Amount), aids.Where(x => x.Date.Month == m).Sum(x => x.Amount)))
-            .Select(m => new ChildcareMonthDto(m.Month, m.Paid, m.Aid, m.Net))
+            .Select(m => declared.TryGetValue(m.Month, out var d)
+                ? new ChildcareMonthDto(m.Month, m.Paid, m.Aid, m.Net, d.Count, d.Remuneration, d.Cmg, m.Paid - d.Remuneration, m.Aid - d.Cmg)
+                : new ChildcareMonthDto(m.Month, m.Paid, m.Aid, m.Net))
             .ToList();
 
         var payeeIds = childcare.Where(x => x.PayeeId != null).Select(x => x.PayeeId!.Value).Distinct().ToList();
@@ -264,6 +362,175 @@ public static class FamilyEndpoints
         TransactionExportWriter.AppendLine(csv, ["Montant déclarable", summary.Declarable.ToString("0.00", numbers), "", ""]);
         byte[] bytes = [.. Encoding.UTF8.GetPreamble(), .. Encoding.UTF8.GetBytes(csv.ToString())];
         return TypedResults.File(bytes, ExportEndpoints.CsvContentType, $"frais-de-garde-{year}.csv");
+    }
+
+    private static async Task<IResult> DeclarationsAsync(int year, AppDbContext db, CancellationToken ct)
+    {
+        if (!ValidYear(year))
+        {
+            return InvalidYear();
+        }
+        var declarations = await db.ChildcareDeclarations.AsNoTracking().Where(d => d.Year == year).ToListAsync(ct);
+        var payeeIds = declarations.Select(d => d.PayeeId).Distinct().ToList();
+        var names = await db.Payees.AsNoTracking().Where(p => payeeIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id, p => p.Name, ct);
+        return TypedResults.Ok(declarations
+            .Select(d => ToDto(d, names.GetValueOrDefault(d.PayeeId) ?? string.Empty))
+            .OrderBy(d => d.Month)
+            .ThenBy(d => d.PayeeName, StringComparer.CurrentCultureIgnoreCase)
+            .ToList());
+    }
+
+    private static async Task<IResult> CreateDeclarationAsync(ChildcareDeclarationRequest request, AppDbContext db, CancellationToken ct)
+    {
+        if (await ValidateAsync(request, null, db, ct) is { } problem)
+        {
+            return problem;
+        }
+        var declaration = new ChildcareDeclaration();
+        Apply(declaration, request);
+        db.ChildcareDeclarations.Add(declaration);
+        await db.SaveChangesAsync(ct);
+        return TypedResults.Created($"/api/family/childcare/declarations/{declaration.Id}", await ToDtoAsync(declaration, db, ct));
+    }
+
+    private static async Task<IResult> UpdateDeclarationAsync(
+        Guid id, ChildcareDeclarationRequest request, HttpRequest http, AppDbContext db, CancellationToken ct)
+    {
+        var declaration = await db.ChildcareDeclarations.FirstOrDefaultAsync(d => d.Id == id, ct);
+        if (declaration is null)
+        {
+            return TypedResults.NotFound();
+        }
+        if (Concurrency.Check(http, declaration) is { } precondition)
+        {
+            return precondition;
+        }
+        if (await ValidateAsync(request, id, db, ct) is { } problem)
+        {
+            return problem;
+        }
+        Apply(declaration, request);
+        return await db.TrySaveAsync(ct) ? TypedResults.Ok(await ToDtoAsync(declaration, db, ct)) : Concurrency.Conflict();
+    }
+
+    private static async Task<IResult> DeleteDeclarationAsync(Guid id, HttpRequest http, AppDbContext db, CancellationToken ct)
+    {
+        var declaration = await db.ChildcareDeclarations.FirstOrDefaultAsync(d => d.Id == id, ct);
+        if (declaration is null)
+        {
+            return TypedResults.NotFound();
+        }
+        if (Concurrency.Check(http, declaration) is { } precondition)
+        {
+            return precondition;
+        }
+        db.ChildcareDeclarations.Remove(declaration);
+        return await db.TrySaveAsync(ct) ? TypedResults.NoContent() : Concurrency.Conflict();
+    }
+
+    /// <summary>Plafond des heures et montants saisis : bien au-delà d'un mois réel, il écarte les fautes de frappe.</summary>
+    public const decimal MaxDeclarationValue = 100_000m;
+
+    private static async Task<IResult?> ValidateAsync(ChildcareDeclarationRequest r, Guid? id, AppDbContext db, CancellationToken ct)
+    {
+        var errors = new Dictionary<string, string[]>();
+        if (!ValidYear(r.Year))
+        {
+            errors["year"] = ["Année invalide."];
+        }
+        if (r.Month is < 1 or > 12)
+        {
+            errors["month"] = ["Mois invalide (1 à 12)."];
+        }
+        if (r.ActivityDays is < 0 or > 31)
+        {
+            errors["activityDays"] = ["Nombre de jours d'activité invalide (0 à 31)."];
+        }
+        if (r.LongCareDays is < 0 or > 31)
+        {
+            errors["longCareDays"] = ["Nombre de jours de garde de plus de 24 h invalide (0 à 31)."];
+        }
+        var values = new (string Key, decimal? Value)[]
+        {
+            ("normalHours", r.NormalHours), ("extraHours", r.ExtraHours), ("overtimeHours", r.OvertimeHours),
+            ("paidLeaveDays", r.PaidLeaveDays), ("netHourlyRate", r.NetHourlyRate), ("netSalary", r.NetSalary),
+            ("maintenanceAllowance", r.MaintenanceAllowance), ("mealAllowance", r.MealAllowance),
+            ("mileageAllowance", r.MileageAllowance), ("advance", r.Advance),
+            ("precariousnessAllowance", r.PrecariousnessAllowance), ("paidLeaveCompensation", r.PaidLeaveCompensation),
+            ("noticeCompensation", r.NoticeCompensation), ("terminationAllowance", r.TerminationAllowance),
+            ("contributions", r.Contributions), ("coveredContributions", r.CoveredContributions), ("cmgEntitlement", r.CmgEntitlement),
+        };
+        foreach (var (key, value) in values)
+        {
+            if (value is { } v && (v < 0 || v > MaxDeclarationValue || decimal.Round(v, 2) != v))
+            {
+                errors[key] = ["Valeur invalide : positive, 2 décimales au plus."];
+            }
+        }
+        if (!r.IsContractEnd && (r.ContractEndDate is not null || r.PrecariousnessAllowance != 0 || r.PaidLeaveCompensation != 0
+            || r.NoticeCompensation != 0 || r.TerminationAllowance != 0))
+        {
+            errors["isContractEnd"] = ["Date et indemnités de fin de contrat : seulement pour une fin de contrat."];
+        }
+        if (!await db.Payees.AnyAsync(p => p.Id == r.PayeeId, ct))
+        {
+            errors["payeeId"] = ["Salarié introuvable."];
+        }
+        if (errors.Count > 0)
+        {
+            return TypedResults.ValidationProblem(errors);
+        }
+        if (await db.ChildcareDeclarations.AnyAsync(d => d.Year == r.Year && d.Month == r.Month && d.PayeeId == r.PayeeId && d.Id != id, ct))
+        {
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Déclaration déjà saisie.",
+                detail: "Ce salarié a déjà une déclaration pour ce mois : modifiez-la.");
+        }
+        return null;
+    }
+
+    private static void Apply(ChildcareDeclaration d, ChildcareDeclarationRequest r)
+    {
+        d.Year = r.Year;
+        d.Month = r.Month;
+        d.PayeeId = r.PayeeId;
+        d.ActivityDays = r.ActivityDays;
+        d.NormalHours = r.NormalHours;
+        d.ExtraHours = r.ExtraHours;
+        d.OvertimeHours = r.OvertimeHours;
+        d.PaidLeaveDays = r.PaidLeaveDays;
+        d.NetHourlyRate = r.NetHourlyRate;
+        d.NetSalary = r.NetSalary;
+        d.MaintenanceAllowance = r.MaintenanceAllowance;
+        d.MealAllowance = r.MealAllowance;
+        d.MileageAllowance = r.MileageAllowance;
+        d.Advance = r.Advance;
+        d.LongCareDays = r.LongCareDays;
+        d.DisabledChildCare = r.DisabledChildCare;
+        d.IsContractEnd = r.IsContractEnd;
+        d.ContractEndDate = r.IsContractEnd ? r.ContractEndDate : null;
+        d.PrecariousnessAllowance = r.PrecariousnessAllowance;
+        d.PaidLeaveCompensation = r.PaidLeaveCompensation;
+        d.NoticeCompensation = r.NoticeCompensation;
+        d.TerminationAllowance = r.TerminationAllowance;
+        d.Contributions = r.Contributions;
+        d.CoveredContributions = r.CoveredContributions;
+        d.CmgEntitlement = r.CmgEntitlement;
+    }
+
+    private static async Task<ChildcareDeclarationDto> ToDtoAsync(ChildcareDeclaration d, AppDbContext db, CancellationToken ct) =>
+        ToDto(d, await db.Payees.AsNoTracking().Where(p => p.Id == d.PayeeId).Select(p => p.Name).FirstOrDefaultAsync(ct) ?? string.Empty);
+
+    private static ChildcareDeclarationDto ToDto(ChildcareDeclaration d, string payeeName)
+    {
+        var totals = ChildcareDeclarationTotals.Of(d);
+        return new ChildcareDeclarationDto(
+            d.Id, d.Year, d.Month, d.PayeeId, payeeName, d.ActivityDays, d.NormalHours, d.ExtraHours, d.OvertimeHours, d.PaidLeaveDays,
+            d.NetHourlyRate, d.NetSalary, d.MaintenanceAllowance, d.MealAllowance, d.MileageAllowance, d.Advance, d.LongCareDays,
+            d.DisabledChildCare, d.IsContractEnd, d.ContractEndDate, d.PrecariousnessAllowance, d.PaidLeaveCompensation,
+            d.NoticeCompensation, d.TerminationAllowance, d.Contributions, d.CoveredContributions, d.CmgEntitlement,
+            totals.Remuneration, totals.TotalCost, totals.Cmg, totals.Remaining, d.Version);
     }
 
     private static async Task<IResult> HealthAsync(DateOnly? from, DateOnly? to, AppDbContext db, TimeProvider clock, CancellationToken ct)

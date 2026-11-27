@@ -30,6 +30,40 @@ test.describe('Suivis du foyer', () => {
     expect(csp).toEqual([])
   })
 
+  test('une déclaration Pajemploi se saisit en cliquant sur un mois', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'Parcours de bureau (la déclaration ne se saisit qu’une fois).')
+    const csp = watchCsp(page)
+    await login(page)
+    // Année sans autre donnée : le tiers « Leclerc » vient du parcours des opérations.
+    await page.goto('/famille/2020?onglet=garde')
+    await page.getByTestId('childcare-month-11').click()
+    const dialog = page.getByTestId('childcare-declarations')
+    await expect(dialog).toContainText('Aucune déclaration pour ce mois.')
+    await dialog.getByTestId('declaration-add').click()
+
+    await dialog.getByRole('combobox', { name: 'Salarié' }).fill('Lecl')
+    await page.getByRole('option', { name: 'Leclerc' }).click()
+    await dialog.getByTestId('declaration-activityDays').getByRole('textbox').fill('16')
+    await dialog.getByTestId('declaration-normalHours').getByRole('textbox').fill('142')
+    await dialog.getByTestId('declaration-netSalary').getByRole('textbox').fill('638,25')
+    await dialog.getByTestId('declaration-maintenanceAllowance').getByRole('textbox').fill('67,50')
+    await dialog.getByTestId('declaration-mealAllowance').getByRole('textbox').fill('82,50')
+    await dialog.getByTestId('declaration-contributions').getByRole('textbox').fill('539,53')
+    await dialog.getByTestId('declaration-coveredContributions').getByRole('textbox').fill('539,53')
+    await dialog.getByTestId('declaration-cmgEntitlement').getByRole('textbox').fill('446,40')
+    // Le récapitulatif se calcule pendant la saisie, comme sur Pajemploi.
+    const totals = dialog.getByTestId('declaration-totals')
+    await expect(totals).toContainText('1 327,78')
+    await expect(totals).toContainText('341,85')
+    await dialog.getByTestId('declaration-save').click()
+
+    await expect(dialog.getByTestId('childcare-declaration')).toContainText('Leclerc')
+    await expect(dialog.getByTestId('childcare-declaration')).toContainText('341,85')
+    await dialog.getByRole('button', { name: 'Fermer' }).click()
+    await expect(page.getByTestId('childcare-month-11')).toContainText('déclaré')
+    expect(csp).toEqual([])
+  })
+
   test('le rôle d’une catégorie se choisit selon son type', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'Parcours de bureau.')
     await login(page)

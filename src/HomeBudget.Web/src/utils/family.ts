@@ -1,4 +1,5 @@
 import type { Schemas } from '@/api/client'
+import { roundCents } from './format'
 import type { CategoryKind } from './labels'
 
 export type FamilyRole = Schemas['FamilyRole']
@@ -52,4 +53,190 @@ export const unreimbursed = (rows: HealthRow[]) =>
 export function monthName(month: number): string {
   const text = new Intl.DateTimeFormat('fr-FR', { month: 'long' }).format(new Date(2000, month - 1, 1))
   return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
+export type ChildcareDeclaration = Schemas['ChildcareDeclarationDto']
+export type ChildcareDeclarationRequest = Schemas['ChildcareDeclarationRequest']
+
+/** Champs décimaux d'une déclaration Pajemploi (heures, jours de congés, montants), saisis en texte. */
+export type DeclarationDecimalField =
+  | 'normalHours'
+  | 'extraHours'
+  | 'overtimeHours'
+  | 'paidLeaveDays'
+  | 'netHourlyRate'
+  | 'netSalary'
+  | 'maintenanceAllowance'
+  | 'mealAllowance'
+  | 'mileageAllowance'
+  | 'advance'
+  | 'precariousnessAllowance'
+  | 'paidLeaveCompensation'
+  | 'noticeCompensation'
+  | 'terminationAllowance'
+  | 'contributions'
+  | 'coveredContributions'
+  | 'cmgEntitlement'
+
+export type DeclarationIntegerField = 'activityDays' | 'longCareDays'
+
+/** Libellés des champs, dans l'ordre et selon les blocs du récapitulatif Pajemploi. */
+export const declarationSections: {
+  title: string
+  advanced?: boolean
+  fields: { key: DeclarationDecimalField | DeclarationIntegerField; label: string; suffix?: string }[]
+}[] = [
+  {
+    title: 'Travail à déclarer',
+    fields: [
+      { key: 'activityDays', label: "Jours d'activité", suffix: 'j' },
+      { key: 'normalHours', label: 'Heures normales', suffix: 'h' },
+      { key: 'extraHours', label: 'Heures complémentaires', suffix: 'h' },
+      { key: 'overtimeHours', label: 'Heures majorées', suffix: 'h' },
+      { key: 'paidLeaveDays', label: 'Jours de « congés payés » versés', suffix: 'j' },
+    ],
+  },
+  {
+    title: 'Rémunération salariale',
+    fields: [
+      { key: 'netHourlyRate', label: "Taux horaire net d'une heure normale", suffix: '€' },
+      { key: 'netSalary', label: 'Salaire net pour le mois', suffix: '€' },
+    ],
+  },
+  {
+    title: 'Indemnités et compléments de salaire',
+    fields: [
+      { key: 'maintenanceAllowance', label: "Indemnités d'entretien", suffix: '€' },
+      { key: 'mealAllowance', label: 'Frais de repas', suffix: '€' },
+      { key: 'mileageAllowance', label: 'Indemnités kilométriques', suffix: '€' },
+      { key: 'advance', label: 'Acompte versé (pour information)', suffix: '€' },
+    ],
+  },
+  {
+    title: 'Résultat de la déclaration',
+    fields: [
+      { key: 'contributions', label: 'Montant total des cotisations', suffix: '€' },
+      { key: 'coveredContributions', label: 'Cotisations prises en charge (CAF ou MSA)', suffix: '€' },
+      { key: 'cmgEntitlement', label: 'Droit CMG', suffix: '€' },
+    ],
+  },
+  {
+    title: 'Informations complémentaires',
+    advanced: true,
+    fields: [{ key: 'longCareDays', label: 'Jours de garde de plus de 24 h', suffix: 'j' }],
+  },
+  {
+    title: 'Indemnités de fin de contrat',
+    advanced: true,
+    fields: [
+      { key: 'precariousnessAllowance', label: 'Indemnité de précarité', suffix: '€' },
+      { key: 'paidLeaveCompensation', label: 'Indemnité compensatrice de congés payés', suffix: '€' },
+      { key: 'noticeCompensation', label: 'Indemnité compensatrice de préavis', suffix: '€' },
+      { key: 'terminationAllowance', label: 'Indemnité de rupture', suffix: '€' },
+    ],
+  },
+]
+
+export const integerFields: DeclarationIntegerField[] = ['activityDays', 'longCareDays']
+export const endOfContractFields: DeclarationDecimalField[] = [
+  'precariousnessAllowance',
+  'paidLeaveCompensation',
+  'noticeCompensation',
+  'terminationAllowance',
+]
+
+type DeclarationAmounts = Pick<
+  ChildcareDeclarationRequest,
+  | 'netSalary'
+  | 'maintenanceAllowance'
+  | 'mealAllowance'
+  | 'mileageAllowance'
+  | 'precariousnessAllowance'
+  | 'paidLeaveCompensation'
+  | 'noticeCompensation'
+  | 'terminationAllowance'
+  | 'contributions'
+  | 'coveredContributions'
+  | 'cmgEntitlement'
+>
+
+/**
+ * Totaux d'une déclaration, comme sur le récapitulatif Pajemploi (et comme l'API) : rémunération déclarée,
+ * coût total de l'emploi, complément du mode de garde (CMG) et montant restant à charge. L'acompte n'y entre pas.
+ */
+export function declarationTotals(d: DeclarationAmounts) {
+  const remuneration = roundCents(
+    d.netSalary +
+      d.maintenanceAllowance +
+      d.mealAllowance +
+      d.mileageAllowance +
+      d.precariousnessAllowance +
+      d.paidLeaveCompensation +
+      d.noticeCompensation +
+      d.terminationAllowance,
+  )
+  const totalCost = roundCents(remuneration + d.contributions)
+  const cmg = roundCents(d.coveredContributions + d.cmgEntitlement)
+  return { remuneration, totalCost, cmg, remaining: roundCents(totalCost - cmg) }
+}
+
+/** Formulaire d'une déclaration : chaque nombre est saisi en texte (virgule acceptée). */
+export type DeclarationForm = Record<DeclarationDecimalField | DeclarationIntegerField, string> & {
+  payeeId: string | null
+  disabledChildCare: boolean
+  isContractEnd: boolean
+  contractEndDate: string
+}
+
+const allFields = declarationSections.flatMap((s) => s.fields.map((f) => f.key))
+
+/** Formulaire vide, ou rempli depuis une déclaration existante (ou la précédente, pour recopier). */
+export function declarationForm(from?: ChildcareDeclaration | null): DeclarationForm {
+  const form = {
+    payeeId: from?.payeeId ?? null,
+    disabledChildCare: from?.disabledChildCare ?? false,
+    isContractEnd: from?.isContractEnd ?? false,
+    contractEndDate: from?.contractEndDate ?? '',
+  } as DeclarationForm
+  for (const key of allFields) {
+    const value = from?.[key]
+    form[key] = value == null || value === 0 ? '' : String(value).replace('.', ',')
+  }
+  return form
+}
+
+/** Nombre saisi : vide vaut 0 (ou null pour le taux horaire) ; null si la saisie est invalide. */
+export function parseDeclarationValue(text: string, integer = false): number | null {
+  const cleaned = text.replace(/[\s  €]/g, '').replace(',', '.')
+  if (cleaned === '') return 0
+  if (integer ? !/^\d+$/.test(cleaned) : !/^\d+(\.\d{1,2})?$/.test(cleaned)) return null
+  return Number(cleaned)
+}
+
+/** Corps de la requête ; null si un champ est invalide ou si le salarié manque. */
+export function declarationRequest(
+  form: DeclarationForm,
+  year: number,
+  month: number,
+): ChildcareDeclarationRequest | null {
+  if (!form.payeeId) return null
+  const values = {} as Record<DeclarationDecimalField | DeclarationIntegerField, number>
+  for (const key of allFields) {
+    const value = parseDeclarationValue(form[key], integerFields.includes(key as DeclarationIntegerField))
+    if (value === null) return null
+    values[key] = value
+  }
+  if (!form.isContractEnd) {
+    for (const key of endOfContractFields) values[key] = 0
+  }
+  return {
+    ...values,
+    year,
+    month,
+    payeeId: form.payeeId,
+    netHourlyRate: form.netHourlyRate.trim() === '' ? null : values.netHourlyRate,
+    disabledChildCare: form.disabledChildCare,
+    isContractEnd: form.isContractEnd,
+    contractEndDate: form.isContractEnd && form.contractEndDate ? form.contractEndDate : null,
+  }
 }

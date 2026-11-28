@@ -92,6 +92,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
 
     public DbSet<Loan> Loans => Set<Loan>();
 
+    public DbSet<SavingsRate> SavingsRates => Set<SavingsRate>();
+
     public DbSet<MemberShare> MemberShares => Set<MemberShare>();
 
     public DbSet<SavedReport> SavedReports => Set<SavedReport>();
@@ -222,6 +224,16 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, IHttpCo
             e.HasOne<Account>().WithMany().HasForeignKey(l => l.AccountId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(l => l.AccountId).IsUnique();
             e.HasQueryFilter(l => SeesAllAccounts || Accounts.Any(a => a.Id == l.AccountId));
+        });
+
+        builder.Entity<SavingsRate>(e =>
+        {
+            ConfigureAudit(e);
+            e.Property(r => r.AnnualRate).HasConversion(new ScaledDecimalConverter(SavingsRate.RateDecimals));
+            // Les taux d'un livret (A9) disparaissent avec leur compte, et suivent sa visibilité (R8).
+            e.HasOne<Account>().WithMany().HasForeignKey(r => r.AccountId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(r => new { r.AccountId, r.EffectiveFrom }).IsUnique();
+            e.HasQueryFilter(r => SeesAllAccounts || Accounts.Any(a => a.Id == r.AccountId));
         });
 
         builder.Entity<MemberShare>(e =>

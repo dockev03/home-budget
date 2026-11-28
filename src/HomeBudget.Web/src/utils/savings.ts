@@ -1,13 +1,20 @@
 import type { Schemas } from '@/api/client'
 import { formatAmount, formatDate } from './format'
+import { formatRate } from './loans'
 
-/** Objectifs d'épargne (J1, J2, J4), épargne de précaution (J3), patrimoine (G5) et valorisations (A7). */
+/**
+ * Objectifs d'épargne (J1, J2, J4), épargne de précaution (J3), patrimoine (G5), valorisations (A7) et rémunération
+ * des livrets (A9).
+ */
 
 export type SavingsGoal = Schemas['SavingsGoalDto']
 export type SavingsGoalStatus = Schemas['SavingsGoalStatus']
 export type NetWorthPoint = Schemas['NetWorthPointDto']
 export type EmergencyFund = Schemas['EmergencyFundDto']
 export type Valuation = Schemas['ValuationDto']
+export type SavingsRate = Schemas['SavingsRateDto']
+export type SavingsInterest = Schemas['SavingsInterestDto']
+export type InterestFortnight = Schemas['InterestFortnightDto']
 
 /** Durées proposées pour l'évolution du patrimoine, en périodes. */
 export const NET_WORTH_LENGTHS = [12, 24, 60] as const
@@ -69,4 +76,31 @@ export function monthsCoveredColor(months: number | null | undefined): string {
 export function netWorthChange(points: Pick<NetWorthPoint, 'total'>[]): number {
   if (points.length < 2) return 0
   return Math.round((points.at(-1)!.total - points[0]!.total) * 100) / 100
+}
+
+const shortMonth = new Intl.DateTimeFormat('fr-FR', { month: 'short' })
+
+/** Quinzaine lisible : « 1–15 janv. », « 16–28 févr. ». */
+export function fortnightLabel(f: Pick<InterestFortnight, 'start' | 'end'>): string {
+  const [y, m, startDay] = f.start.split('-').map(Number)
+  const endDay = Number(f.end.split('-')[2])
+  return `${startDay}–${endDay} ${shortMonth.format(new Date(y!, m! - 1, 1))}`
+}
+
+/** Taux du jour et prochain changement : « 1,5 %, puis 1,7 % à partir du 01/08/2026 ». */
+export function rateText(interest: Pick<SavingsInterest, 'currentRate' | 'nextRate'>): string {
+  const current = interest.currentRate == null ? 'Aucun taux en vigueur' : formatRate(interest.currentRate)
+  const next = interest.nextRate
+  return next
+    ? `${current}, puis ${formatRate(next.annualRate)} à partir du ${formatDate(next.effectiveFrom)}`
+    : current
+}
+
+/** Résumé d'un livret dans la liste des comptes : « 1,7 % · 12,34 € d'intérêts acquis cette année ». */
+export function savingsSummary(account: {
+  savingsRate?: number | null
+  interestEarned?: number | null
+}): string | null {
+  if (account.savingsRate == null || account.interestEarned == null) return null
+  return `${formatRate(account.savingsRate)} · ${formatAmount(account.interestEarned)} d'intérêts acquis cette année`
 }

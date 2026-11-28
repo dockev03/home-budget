@@ -49,6 +49,7 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
         var valuations = await db.AccountValuations.AsNoTracking().OrderBy(v => v.Id).ToListAsync(ct);
         var goals = await db.SavingsGoals.AsNoTracking().OrderBy(g => g.Id).ToListAsync(ct);
         var loans = await db.Loans.AsNoTracking().OrderBy(l => l.Id).ToListAsync(ct);
+        var savingsRates = await db.SavingsRates.AsNoTracking().OrderBy(r => r.Id).ToListAsync(ct);
         var shares = await db.MemberShares.AsNoTracking().OrderBy(m => m.Id).ToListAsync(ct);
         var reports = await db.SavedReports.AsNoTracking().OrderBy(r => r.Id).ToListAsync(ct);
         var attachments = await db.Attachments.AsNoTracking().OrderBy(a => a.Id).ToListAsync(ct);
@@ -109,7 +110,8 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 d.Id, d.Year, d.Month, d.PayeeId, d.ActivityDays, d.NormalHours, d.ExtraHours, d.OvertimeHours, d.PaidLeaveDays,
                 d.NetHourlyRate, d.NetSalary, d.MaintenanceAllowance, d.MealAllowance, d.MileageAllowance, d.Advance, d.LongCareDays,
                 d.DisabledChildCare, d.IsContractEnd, d.ContractEndDate, d.PrecariousnessAllowance, d.PaidLeaveCompensation,
-                d.NoticeCompensation, d.TerminationAllowance, d.Contributions, d.CoveredContributions, d.CmgEntitlement, AuditOf(d)))]);
+                d.NoticeCompensation, d.TerminationAllowance, d.Contributions, d.CoveredContributions, d.CmgEntitlement, AuditOf(d)))],
+            [.. savingsRates.Select(r => new BackupSavingsRate(r.Id, r.AccountId, r.EffectiveFrom, r.AnnualRate, AuditOf(r)))]);
     }
 
     /// <summary>
@@ -145,6 +147,8 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
         await db.Attachments.ExecuteDeleteAsync(ct);
         // Remplacés quelle que soit la version : une sauvegarde antérieure à la v8 n'en contient pas.
         await db.Loans.ExecuteDeleteAsync(ct);
+        // Remplacés quelle que soit la version : une sauvegarde antérieure à la v13 n'en contient pas.
+        await db.SavingsRates.ExecuteDeleteAsync(ct);
         await db.MemberShares.ExecuteDeleteAsync(ct);
         await db.SavedReports.ExecuteDeleteAsync(ct);
         // Remplacés quelle que soit la version : une sauvegarde antérieure à la v7 n'en contient pas.
@@ -481,6 +485,17 @@ public sealed class BackupRestorer(AppDbContext db, TimeProvider clock)
                 FirstPaymentDate = l.FirstPaymentDate,
                 MonthlyInsurance = l.MonthlyInsurance,
             }, l.Audit));
+        }
+
+        foreach (var r in (document.SavingsRates ?? []).OfType<BackupSavingsRate>())
+        {
+            db.SavingsRates.Add(Stamp(new Domain.Accounts.SavingsRate
+            {
+                Id = r.Id,
+                AccountId = r.AccountId,
+                EffectiveFrom = r.EffectiveFrom,
+                AnnualRate = r.AnnualRate,
+            }, r.Audit));
         }
 
         // Une part d'un utilisateur inconnu de cette instance est ignorée.

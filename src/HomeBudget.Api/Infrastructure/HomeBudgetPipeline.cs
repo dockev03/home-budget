@@ -82,6 +82,7 @@ public static class HomeBudgetPipeline
         app.MapAccountEndpoints();
         app.MapValuationEndpoints();
         app.MapLoanEndpoints();
+        app.MapSavingsInterestEndpoints();
         app.MapCategoryEndpoints();
         app.MapPayeeEndpoints();
         app.MapTransactionEndpoints();

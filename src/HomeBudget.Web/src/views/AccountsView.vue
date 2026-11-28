@@ -5,18 +5,21 @@ import {
   mdiChartLine,
   mdiLockOutline,
   mdiPencil,
+  mdiPercentOutline,
   mdiPlus,
   mdiShieldCheckOutline,
 } from '@mdi/js'
 import { ApiError } from '@/api/errors'
 import AccountDialog from '@/components/AccountDialog.vue'
 import LoanDialog from '@/components/LoanDialog.vue'
+import SavingsInterestDialog from '@/components/SavingsInterestDialog.vue'
 import ValuationsDialog from '@/components/ValuationsDialog.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useReferenceStore, type Account } from '@/stores/reference'
 import { formatAmount } from '@/utils/format'
 import { iconPath } from '@/utils/icons'
 import { accountTypes } from '@/utils/labels'
+import { savingsSummary } from '@/utils/savings'
 
 const reference = useReferenceStore()
 const auth = useAuthStore()
@@ -27,6 +30,8 @@ const valuationsDialog = ref(false)
 const valued = ref<Account | null>(null)
 const loanDialog = ref(false)
 const loanAccount = ref<Account | null>(null)
+const savingsDialog = ref(false)
+const savingsAccount = ref<Account | null>(null)
 const error = ref<string | null>(null)
 
 const groups = computed(() =>
@@ -53,6 +58,11 @@ function openValuations(account: Account) {
 function openLoan(account: Account) {
   loanAccount.value = account
   loanDialog.value = true
+}
+
+function openSavings(account: Account) {
+  savingsAccount.value = account
+  savingsDialog.value = true
 }
 
 async function reload() {
@@ -129,6 +139,9 @@ onMounted(() => reference.load(true).catch(() => (error.value = 'Chargement impo
         <v-list-item-subtitle v-if="account.remainingPrincipal != null">
           Capital restant dû : {{ formatAmount(account.remainingPrincipal) }}
         </v-list-item-subtitle>
+        <v-list-item-subtitle v-if="savingsSummary(account)" data-testid="savings-summary">
+          {{ savingsSummary(account) }}
+        </v-list-item-subtitle>
         <v-list-item-subtitle v-if="account.futureBalance !== account.balance">
           Avec les opérations à venir : {{ formatAmount(account.futureBalance) }}
         </v-list-item-subtitle>
@@ -153,6 +166,14 @@ onMounted(() => reference.load(true).catch(() => (error.value = 'Chargement impo
             @click.prevent.stop="openLoan(account)"
           />
           <v-btn
+            v-if="account.type === 'Savings'"
+            :icon="mdiPercentOutline"
+            variant="text"
+            size="small"
+            :aria-label="`Rémunération de ${account.name}`"
+            @click.prevent.stop="openSavings(account)"
+          />
+          <v-btn
             v-if="auth.canWrite"
             :icon="mdiPencil"
             variant="text"
@@ -170,4 +191,5 @@ onMounted(() => reference.load(true).catch(() => (error.value = 'Chargement impo
   <AccountDialog v-model="dialog" :account="editing" @saved="reload" />
   <ValuationsDialog v-model="valuationsDialog" :account="valued" @changed="reload" />
   <LoanDialog v-model="loanDialog" :account="loanAccount" @changed="reload" />
+  <SavingsInterestDialog v-model="savingsDialog" :account="savingsAccount" @changed="reload" />
 </template>

@@ -129,6 +129,9 @@ public sealed class BackupRestoreTests
         await admin.CreateAsync($"/api/accounts/{pea}/valuations", new { date = TestScenario.Iso(TestScenario.Today.AddDays(-1)), value = 5321.45m, note = "Relevé" });
         await admin.CreateAsync("/api/savings-goals", new { name = "Vacances", targetAmount = 2000m, targetDate = TestScenario.Iso(TestScenario.Today.AddMonths(8)), accountId = livret });
         var epargne = await admin.CreateCategoryAsync("Épargne enfant", "Savings");
+        // Taux du livret, passé et programmé (A9).
+        await admin.CreateAsync($"/api/accounts/{livret}/savings-rates", new { effectiveFrom = "2025-08-01", annualRate = 1.5m });
+        await admin.CreateAsync($"/api/accounts/{livret}/savings-rates", new { effectiveFrom = "2027-02-01", annualRate = 1.6125m });
         await admin.CreateAsync("/api/savings-goals", new { name = "Études", targetAmount = 10000m, categoryId = epargne, startDate = "2026-01-01" });
 
         // Crédit, répartition des dépenses communes et rapport enregistré (étape 12).
@@ -223,7 +226,8 @@ public sealed class BackupRestoreTests
 
         var document = JsonNode.Parse(backup)!;
         document["format"]!.GetValue<string>().ShouldBe("home-budget-backup");
-        document["formatVersion"]!.GetValue<int>().ShouldBe(12);
+        document["formatVersion"]!.GetValue<int>().ShouldBe(13);
+        document["savingsRates"]!.AsArray().Select(r => r!["annualRate"]!.GetValue<decimal>()).Order().ShouldBe([1.5m, 1.6125m]);
         document["settings"]!["envelopeSince"]!.GetValue<string>().ShouldNotBeNull();
         document["categories"]!.AsArray().Count(c => c!["carryOverSince"] is not null).ShouldBe(1);
         document["categories"]!.AsArray().Count(c => c!["familyRole"]!.GetValue<string>() != "None").ShouldBe(4);
@@ -503,6 +507,33 @@ public sealed class BackupRestoreTests
         node["formatVersion"] = 11;
         (await RestoreAsync(admin, node.ToJsonString())).StatusCode.ShouldBe(HttpStatusCode.OK);
         JsonNode.Parse(await ExportAsync(admin))!["childcareDeclarations"]!.AsArray().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Version_12_backup_restores_without_savings_rates_and_version_13_checks_them()
+    {
+        await using var factory = new HomeBudgetFactory();
+        var admin = await factory.CreateAdminClientAsync();
+        await SeedAsync(admin);
+        var node = JsonNode.Parse(await ExportAsync(admin))!.AsObject();
+        var rates = node["savingsRates"]!.AsArray();
+        var copy = rates[0]!.DeepClone().AsObject();
+        copy["id"] = Guid.NewGuid().ToString();
+        copy["annualRate"] = 1.23456m;
+        rates.Add(copy);
+
+        var response = await RestoreAsync(admin, node.ToJsonString());
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        body.ShouldContain("deux taux du même compte commencent le même jour");
+        body.ShouldContain("taux invalide");
+
+        // Version 13 : la liste est attendue ; version 12 : elle n'existait pas, les taux de l'instance sont remplacés par aucun.
+        node.Remove("savingsRates");
+        (await RestoreAsync(admin, node.ToJsonString())).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        node["formatVersion"] = 12;
+        (await RestoreAsync(admin, node.ToJsonString())).StatusCode.ShouldBe(HttpStatusCode.OK);
+        JsonNode.Parse(await ExportAsync(admin))!["savingsRates"]!.AsArray().ShouldBeEmpty();
     }
 
     [Fact]

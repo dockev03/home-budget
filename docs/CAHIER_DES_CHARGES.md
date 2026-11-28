@@ -59,6 +59,7 @@ Légende des lots (détail en §6) : **L1** = MVP cœur · **L2** = import et au
 | A6 | Archivage d'un compte (masqué, historique conservé) | L1 |
 | A7 | Valorisation manuelle des comptes d'investissement (historique des valeurs saisies) | L4 |
 | A8 | Comptes de crédit : capital, taux, durée, assurance → tableau d'amortissement et capital restant dû | L5 |
+| A9 | Rémunération des livrets : taux paramétrable et changements de taux programmés → intérêts acquis à ce jour et estimés au 31 décembre, calculés par quinzaine | L4 |
 
 ### B. Opérations
 

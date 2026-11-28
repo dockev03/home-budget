@@ -47,11 +47,12 @@ public sealed record BackupDocument(
     List<BackupMemberShare?>? MemberShares = null,
     List<BackupSavedReport?>? SavedReports = null,
     List<BackupAttachment?>? Attachments = null,
-    List<BackupChildcareDeclaration?>? ChildcareDeclarations = null)
+    List<BackupChildcareDeclaration?>? ChildcareDeclarations = null,
+    List<BackupSavingsRate?>? SavingsRates = null)
 {
     public const string FormatName = "home-budget-backup";
 
-    public const int CurrentVersion = 12;
+    public const int CurrentVersion = 13;
 
     /// <summary>Version 1 : sans profils ni historique d'import (étapes 1 à 4), toujours restaurable.</summary>
     public const int MinVersion = 1;
@@ -94,6 +95,9 @@ public sealed record BackupDocument(
 
     /// <summary>Version 12 : déclarations Pajemploi mensuelles des salariés de la garde (P2 bis).</summary>
     public const int DeclarationsVersion = 12;
+
+    /// <summary>Version 13 : taux de rémunération des livrets, passés et programmés (A9).</summary>
+    public const int SavingsRatesVersion = 13;
 }
 
 /// <summary>Traçabilité (K2) et version de concurrence, conservées à la restauration.</summary>
@@ -137,6 +141,9 @@ public sealed record BackupAccount(
 /// <summary>Conditions d'un crédit (A8).</summary>
 public sealed record BackupLoan(
     Guid Id, Guid AccountId, decimal Principal, decimal AnnualRate, int DurationMonths, DateOnly FirstPaymentDate, decimal MonthlyInsurance, BackupAudit? Audit);
+
+/// <summary>Taux de rémunération d'un livret à partir d'une date (A9).</summary>
+public sealed record BackupSavingsRate(Guid Id, Guid AccountId, DateOnly EffectiveFrom, decimal AnnualRate, BackupAudit? Audit);
 
 /// <summary>Part fixe d'un membre (K4) ; ignorée à la restauration si l'utilisateur n'existe pas sur l'instance.</summary>
 public sealed record BackupMemberShare(Guid Id, Guid UserId, decimal Percent, BackupAudit? Audit, bool ExcludeFromSplit = false);

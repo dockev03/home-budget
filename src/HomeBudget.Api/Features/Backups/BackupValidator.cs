@@ -488,6 +488,35 @@ public static class BackupValidator
             Audit(where, l.Audit, errors);
         }
 
+        if (document.FormatVersion >= BackupDocument.SavingsRatesVersion && (document.SavingsRates is null || document.SavingsRates.Contains(null)))
+        {
+            errors.Add("Fichier incomplet : la liste des taux de rémunération est attendue.");
+        }
+        UniqueIds("taux de rémunération", (document.SavingsRates ?? []).OfType<BackupSavingsRate>().Select(r => r.Id), errors);
+        var rateDates = new HashSet<(Guid, DateOnly)>();
+        foreach (var r in (document.SavingsRates ?? []).OfType<BackupSavingsRate>())
+        {
+            var where = $"Taux de rémunération {r.Id}";
+            Reference(where, "compte", r.AccountId, accountIds, errors);
+            if (accountById.TryGetValue(r.AccountId, out var account) && account.Type != Domain.Accounts.AccountType.Savings)
+            {
+                errors.Add($"{where} : le compte doit être un compte d'épargne.");
+            }
+            if (!rateDates.Add((r.AccountId, r.EffectiveFrom)))
+            {
+                errors.Add($"{where} : deux taux du même compte commencent le même jour.");
+            }
+            if (r.AnnualRate is < 0 or > 100 || decimal.Round(r.AnnualRate, Domain.Accounts.SavingsRate.RateDecimals) != r.AnnualRate)
+            {
+                errors.Add($"{where} : taux invalide.");
+            }
+            if (r.EffectiveFrom < Transactions.TransactionValidation.MinDate || r.EffectiveFrom > Transactions.TransactionValidation.MaxDate)
+            {
+                errors.Add($"{where} : date invalide.");
+            }
+            Audit(where, r.Audit, errors);
+        }
+
         UniqueIds("part de répartition", (document.MemberShares ?? []).Select(m => m!.Id), errors);
         var shareUsers = new HashSet<Guid>();
         foreach (var m in (document.MemberShares ?? []).OfType<BackupMemberShare>())
